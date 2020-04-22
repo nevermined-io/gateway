@@ -1,6 +1,6 @@
-[![banner](https://raw.githubusercontent.com/oceanprotocol/art/master/github/repo-banner%402x.png)](https://oceanprotocol.com)
+[![banner](https://raw.githubusercontent.com/keyko-io/assets/master/images/logo/small/keyko_logo@2x-100.jpg)](https://keyko.io)
 
-# Brizo
+# nevermind-gateway
 
 > Helping publishers provide extended data services (e.g. storage and compute).
 > [oceanprotocol.com](https://oceanprotocol.com)
