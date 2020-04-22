@@ -1,0 +1,37 @@
+{
+  "name": "Brizo",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oceanprotocol/brizo.git"
+  },
+  "dependencies": [
+    {
+      "name": "keeper-contracts",
+      "version": "~0.6.12"
+    },
+    {
+      "name": "squid-py",
+      "version": ">0.4.2"
+    },
+    {
+      "name": "aquarius",
+      "version": ">0.1.8"
+    },
+    {
+      "name": "osmosis-azure-driver",
+      "version": ">0.0.4"
+    },
+    {
+      "name": "osmosis-aws-driver",
+      "version": ">0.0.2"
+    },
+    {
+      "name": "osmosis-driver-interface",
+      "version": ">0.0.6"
+    },
+    {
+      "name": "osmosis-on-premise-driver",
+      "version": ">0.0.5"
+    }
+  ]
+}
