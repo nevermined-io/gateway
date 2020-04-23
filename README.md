@@ -6,25 +6,22 @@
 > [oceanprotocol.com](https://oceanprotocol.com)
 
 
-[![Docker Build Status](https://img.shields.io/docker/build/oceanprotocol/brizo.svg)](https://hub.docker.com/r/oceanprotocol/brizo/)
-[![Travis (.com)](https://img.shields.io/travis/com/oceanprotocol/brizo.svg)](https://travis-ci.com/oceanprotocol/brizo)
-[![Codacy coverage](https://img.shields.io/codacy/coverage/40dd4c27169a4db4865f72317172bd9e.svg)](https://app.codacy.com/project/ocean-protocol/brizo/dashboard)
-[![PyPI](https://img.shields.io/pypi/v/ocean-brizo.svg)](https://pypi.org/project/ocean-brizo/)
-[![GitHub contributors](https://img.shields.io/github/contributors/oceanprotocol/brizo.svg)](https://github.com/oceanprotocol/brizo/graphs/contributors)
+[![Docker Build Status](https://img.shields.io/docker/build/keykoio/nevermind-gateway.svg)](https://hub.docker.com/r/keykoio/nevermind-gateway/)
+[![GitHub contributors](https://img.shields.io/github/contributors/keyko-io/nevermind-gateway.svg)](https://github.com/keyko-io/nevermind-gateway/graphs/contributors)
 
 
 ## Table of Contents
 
-- [Features](#features)
-- [Running Locally, for Dev and Test](#running-locally-for-dev-and-test)
-- [API documentation](#api-documentation)
-- [Configuration](#configuration)
-- [Dependencies](#dependencies)
-- [Code Style](#code-style)
-- [Testing](#testing)
-- [Debugging](#debugging)
-- [New Version](#new-version)
-- [License](#license)
+  - [Features](#features)
+  - [Running Locally, for Dev and Test](#running-locally-for-dev-and-test)
+  - [API documentation](#api-documentation)
+  - [Configuration](#configuration)
+     - [The [keeper-contracts] and [resources] Sections](#the-keeper-contracts-and-resources-sections)
+     - [The [osmosis] Section](#the-osmosis-section)
+  - [Dependencies](#dependencies)
+  - [Testing](#testing)
+  - [New Version](#new-version)
+  - [License](#license)
 
 ---
 
