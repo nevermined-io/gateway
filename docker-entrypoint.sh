@@ -1,7 +1,7 @@
 #!/bin/sh
 
-export CONFIG_FILE=/brizo/config.ini
-envsubst < /brizo/config.ini.template > /brizo/config.ini
+export CONFIG_FILE=/nevermind-gateway/config.ini
+envsubst < /nevermind-gateway/config.ini.template > /nevermind-gateway/config.ini
 if [ "${LOCAL_CONTRACTS}" = "true" ]; then
   echo "Waiting for contracts to be generated..."
   while [ ! -f "/usr/local/nevermind-contracts/ready" ]; do
@@ -11,5 +11,5 @@ fi
 
 /bin/cp -up /usr/local/nevermind-contracts/* /usr/local/artifacts/ 2>/dev/null || true
 
-gunicorn -b ${BRIZO_URL#*://} -w ${BRIZO_WORKERS} -t ${BRIZO_TIMEOUT} brizo.run:app
+gunicorn -b ${BRIZO_URL#*://} -w ${BRIZO_WORKERS} -t ${BRIZO_TIMEOUT} nevermind_gateway.run:app
 tail -f /dev/null

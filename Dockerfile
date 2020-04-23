@@ -1,5 +1,5 @@
 FROM python:3.6-alpine
-LABEL maintainer="Ocean Protocol <devops@oceanprotocol.com>"
+LABEL maintainer="Keyko <root@keyko.io>"
 
 ARG VERSION
 
@@ -16,8 +16,8 @@ RUN apk add --no-cache --update\
     python3-dev \
   && pip install virtualenv
 
-COPY . /brizo
-WORKDIR /brizo
+COPY . /nevermind-gateway
+WORKDIR /nevermind-gateway
 
 RUN pip install .
 
@@ -50,6 +50,6 @@ ENV BRIZO_URL='http://0.0.0.0:8030'
 ENV BRIZO_WORKERS='1'
 ENV BRIZO_TIMEOUT='9000'
 
-ENTRYPOINT ["/brizo/docker-entrypoint.sh"]
+ENTRYPOINT ["/nevermind-gateway/docker-entrypoint.sh"]
 
 EXPOSE 8030
