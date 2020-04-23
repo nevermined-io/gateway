@@ -32,13 +32,13 @@ def setup_keeper(config_file=None):
 
     account = get_account(0)
     if account is None:
-        raise AssertionError(f'Brizo cannot run without a valid '
+        raise AssertionError(f'Nevermind Gateway cannot run without a valid '
                              f'ethereum account. Account address was not found in the environment'
                              f'variable `PROVIDER_ADDRESS`. Please set the following evnironment '
                              f'variables and try again: `PROVIDER_ADDRESS`, `PROVIDER_PASSWORD`, '
                              f'and `PROVIDER_KEYFILE`.')
     if not account.key_file and not (account.password and account.key_file):
-        raise AssertionError(f'Brizo cannot run without a valid '
+        raise AssertionError(f'Nevermind Gateway cannot run without a valid '
                              f'ethereum account with either a password and '
                              f'keyfile/encrypted-key-string '
                              f'or private key. Current account has password {account.password}, '

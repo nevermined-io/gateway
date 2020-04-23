@@ -31,8 +31,8 @@ from nevermind_gateway.util import (check_auth_token, do_secret_store_decrypt, d
                                     build_download_response, get_download_url)
 from tests.conftest import get_consumer_account, get_publisher_account, get_sample_ddo
 
-PURCHASE_ENDPOINT = BaseURLs.BASE_BRIZO_URL + '/services/access/initialize'
-SERVICE_ENDPOINT = BaseURLs.BASE_BRIZO_URL + '/services/consume'
+PURCHASE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/access/initialize'
+SERVICE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/consume'
 
 
 def dummy_callback(*_):
@@ -235,7 +235,7 @@ def test_consume(client):
     )
     assert response.status == '200 OK'
 
-    # Consume using url index and signature (let brizo do the decryption)
+    # Consume using url index and signature (let the gateway do the decryption)
     payload.pop('url')
     payload['signature'] = signature
     payload['index'] = index

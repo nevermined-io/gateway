@@ -5,8 +5,6 @@
 > Helping publishers provide extended data services (e.g. storage and compute).
 > [oceanprotocol.com](https://oceanprotocol.com)
 
-___"🏄‍♀️🌊 Brizo is an ancient Greek goddess who was known as the protector of mariners, sailors, and fishermen.
-She was worshipped primarily by the women of Delos, who set out food offerings in small boats. Brizo was also known as a prophet specializing in the interpretation of dreams."___
 
 [![Docker Build Status](https://img.shields.io/docker/build/oceanprotocol/brizo.svg)](https://hub.docker.com/r/oceanprotocol/brizo/)
 [![Travis (.com)](https://img.shields.io/travis/com/oceanprotocol/brizo.svg)](https://travis-ci.com/oceanprotocol/brizo)
@@ -14,11 +12,6 @@ She was worshipped primarily by the women of Delos, who set out food offerings i
 [![PyPI](https://img.shields.io/pypi/v/ocean-brizo.svg)](https://pypi.org/project/ocean-brizo/)
 [![GitHub contributors](https://img.shields.io/github/contributors/oceanprotocol/brizo.svg)](https://github.com/oceanprotocol/brizo/graphs/contributors)
 
----
-
-**🐲🦑 THERE BE DRAGONS AND SQUIDS. This is in alpha state and you can expect running into problems. If you run into them, please open up [a new issue](https://github.com/oceanprotocol/brizo/issues). 🦑🐲**
-
----
 
 ## Table of Contents
 
@@ -37,44 +30,44 @@ She was worshipped primarily by the women of Delos, who set out food offerings i
 
 ## Features
 
-In the Ocean ecosystem, Brizo is the technical component executed by the Publishers 
+In the Nevermind ecosystem, Gateway is the technical component executed by the Publishers 
 allowing them to provide extended data services (e.g. storage and compute). 
-Brizo, as part of the Publisher ecosystem, includes the credentials to interact 
+Nevermind Gateway, as part of the Publisher ecosystem, includes the credentials to interact 
 with the infrastructure (initially cloud, but could be on-premise).
 
 ## Running Locally, for Dev and Test
 
-If you want to contribute to the development of Brizo, then you could do the following. (If you want to run a Brizo in production, then you will have to do something else.)
+If you want to contribute to the development of Nevermind Gateway, then you could do the following. (If you want to run a Nevermind Gateway in production, then you will have to do something else.)
 
 First, clone this repository:
 
 ```bash
-git clone git@github.com:oceanprotocol/brizo.git
-cd brizo/
+git clone git@github.com:keyko-io/nevermind-gateway.git
+cd nevermind-gateway/
 ```
 
-Then run some things that Brizo expects to be running:
+Then run some things that Nevermind Gateway expects to be running:
 
 ```bash
-git clone git@github.com:oceanprotocol/barge.git
-cd barge
-bash start_ocean.sh --no-brizo --no-pleuston --local-spree-node
+git clone git@github.com:keyko-io/nevermind-tools.git
+cd nevermind-tools
+bash start_nevermind.sh --no-brizo --local-spree-node
 ```
 
-Barge is the repository where all the Ocean Docker Compose files are located. 
-We are running the script `start_ocean.sh`: the easy way to have Ocean projects 
-up and running. We run without Brizo or Pleuston instances.
+Nevermind Tools is the repository where all the Nevermind Docker Compose files are located. 
+We are running the script `start_nevermind.sh`: the easy way to have Nevermind projects 
+up and running. We run without Gateway instance.
 
-To learn more about Barge, visit [the Barge repository](https://github.com/oceanprotocol/barge).
+To learn more about Nevermind Tools, visit [the Tools repository](https://github.com/keyko-io/nevermind-tools).
 
-Note that it runs an Aquarius instance and an Elasticsearch instance but Aquarius can 
-also work with BigchainDB or MongoDB.
+Note that it runs an Nevermind Metadata instance and an Elasticsearch instance but Nevermind Metadata can 
+also work with MongoDB.
 
 The most simple way to start is:
 
 ```bash
 pip install -r requirements_dev.txt
-export FLASK_APP=brizo/run.py
+export FLASK_APP=nevermind_gateway/run.py
 export CONFIG_FILE=config.ini
 ./scripts/wait_for_migration_and_extract_keeper_artifacts.sh
 flask run --port=8030
@@ -94,31 +87,29 @@ and when it asks for the Common Name (CN), answer `localhost`
 Then edit the config file `config.ini` so that:
 
 ```yaml
-brizo.url = https://localhost:8030
+gateway.url = https://localhost:8030
 ```
 
 Then execute this command:
 
 ```bash
-gunicorn --certfile cert.pem --keyfile key.pem -b 0.0.0.0:8030 -w 1 brizo.run:app
+gunicorn --certfile cert.pem --keyfile key.pem -b 0.0.0.0:8030 -w 1 nevermind_gateway.run:app
 ```
 
 ## API documentation
 
-Once you have Brizo running you can get access to the API documentation at:
+Once you have Nevermind Gateway running you can get access to the API documentation at:
 
 ```bash
 https://127.0.0.1:8030/api/v1/docs
 ```
 
-There is also some [Brizo API documentation in the official Ocean docs](https://docs.oceanprotocol.com/references/brizo/).
-
 ## Configuration
 
-To get configuration settings, Brizo first checks to see if there is a non-empty 
+To get configuration settings, Nevermind Gateway first checks to see if there is a non-empty 
 environment variable named CONFIG_FILE. It there is, it will look in a config file 
 at that path. Otherwise it will look in a config file named `config.ini`. Note 
-that some settings in the config file can be overriden by setting certain 
+that some settings in the config file can be overwritten by setting certain 
 environment variables; there are more details below.
 
 See the [example config.ini file in this repo](config.ini). You will see that 
@@ -194,7 +185,7 @@ See [the Ocean tutorial about how to set up on-premise storage](https://docs.oce
 
 ## Dependencies
 
-Brizo relies on the following Ocean libraries:
+Nevermind Gateway relies on the following Ocean libraries:
 
 - [ocean-utils](https://github.com/oceanprotocol/common-utils-py) provides common functions and datastructures for interaction with the Ocean Protocol components
 - [ocean-keeper](https://github.com/oceanprotocol/keeper-py-lib) handles all of the `keeper` interactions
@@ -203,55 +194,24 @@ Brizo relies on the following Ocean libraries:
 - [osmosis-aws-driver](https://github.com/oceanprotocol/osmosis-aws-driver) mediates access to assets in AWS
 - [osmosis-on-premise-driver](https://github.com/oceanprotocol/osmosis-on-premise-driver) mediates access to on-premise assets
 
-## Code Style
-
-Information about our Python code style is documented in the 
-[python-developer-guide](https://github.com/oceanprotocol/dev-ocean/blob/master/doc/development/python-developer-guide.md)
-and the [python-style-guide](https://github.com/oceanprotocol/dev-ocean/blob/master/doc/development/python-style-guide.md).
-
 ## Testing
 
-Automatic tests are setup via Travis, executing `tox`.
+Automatic tests are setup via Github actions.
 Our tests use the pytest framework.
 
-## Debugging
-
-To debug Brizo using PyCharm, follow the next instructions:
-
-1. Clone [barge](https://github.com/oceanprotocol/barge) repository.
-2. Run barge omitting `brizo`. (i.e.:`bash start_ocean.sh --no-brizo --no-pleuston --local-nile-node`)
-3. In PyCharm, go to _Settings > Project Settings > Python Debugger_, and select the option _Gevent Compatible_
-4. Configure a new debugger configuration: _Run > Edit Configurations..._, there click on _Add New Configuration_
-5. Configure as shown in the next image:
-![Pycharm Debugger configuration](imgs/debugger_configuration.png)
-6. Set the following environment variables:
-
-    ```text
-    PYTHONUNBUFFERED=1
-    CONFIG_FILE=config.ini
-    AZURE_ACCOUNT_NAME=<COMPLETE_WITH_YOUR_DATA>
-    AZURE_TENANT_ID=<COMPLETE_WITH_YOUR_DATA>
-    AZURE_SUBSCRIPTION_ID=<COMPLETE_WITH_YOUR_DATA>
-    AZURE_LOCATION=<COMPLETE_WITH_YOUR_DATA>
-    AZURE_CLIENT_SECRET=<COMPLETE_WITH_YOUR_DATA>
-    AZURE_CLIENT_ID=<COMPLETE_WITH_YOUR_DATA>
-    AZURE_ACCOUNT_KEY=<COMPLETE_WITH_YOUR_DATA>
-    AZURE_RESOURCE_GROUP=<COMPLETE_WITH_YOUR_DATA>
-    OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
-    ```
-
-   The option `OBJC_DISABLE_INITIALIZE_FORK_SAFETY` is needed if you run in last versions of MacOS.
-7. Now you can configure your breakpoints and debug brizo or squid-py.
 
 ## New Version
 
 The `bumpversion.sh` script helps to bump the project version. You can execute 
 the script using as first argument {major|minor|patch} to bump accordingly the version.
 
+##Attribution
+This project is based in the [Ocean Protocol Brizo](https://github.com/oceanprotocol/brizo). It keeps the same Apache v2 License and adds some improvements.
+
 ## License
 
 ```text
-Copyright 2018 Ocean Protocol Foundation Ltd.
+Copyright 2020 Keyko GmbH.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
