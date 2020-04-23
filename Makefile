@@ -53,7 +53,7 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr .pytest_cache
 
 lint: ## check style with PyLint
-	pylint --errors-only brizo tests
+	pylint --errors-only nevermind_gateway tests
 
 test: ## run tests quickly with the default Python
 	py.test
@@ -62,7 +62,7 @@ test-all: ## run tests on every Python version with tox
 	tox
 
 coverage: ## check code coverage quickly with the default Python
-	coverage run --source brizo -m pytest
+	coverage run --source nevermind_gateway -m pytest
 	coverage report -m
 	coverage html
 	$(BROWSER) htmlcov/index.html
