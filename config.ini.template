@@ -4,7 +4,7 @@ secret_store.url = ${SECRET_STORE_URL}
 parity.url = ${PARITY_URL}
 
 [resources]
-brizo.url = ${BRIZO_URL}
+gateway.url = ${GATEWAY_URL}
 
 [osmosis]
 azure.account.name = ${AZURE_ACCOUNT_NAME}

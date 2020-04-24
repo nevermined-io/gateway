@@ -44,11 +44,11 @@ ENV AZURE_SUBSCRIPTION_ID=''
 ENV AZURE_SHARE_INPUT='compute'
 ENV AZURE_SHARE_OUTPUT='output'
 
-ENV BRIZO_URL='http://0.0.0.0:8030'
+ENV GATEWAY_URL='http://0.0.0.0:8030'
 
 # docker-entrypoint.sh configuration file variables
-ENV BRIZO_WORKERS='1'
-ENV BRIZO_TIMEOUT='9000'
+ENV GATEWAY_WORKERS='1'
+ENV GATEWAY_TIMEOUT='9000'
 
 ENTRYPOINT ["/nevermind-gateway/docker-entrypoint.sh"]
 

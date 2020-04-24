@@ -11,7 +11,7 @@ from contracts_lib_py.utils import add_ethereum_prefix_and_hash_msg
 from common_utils_py.agreements.service_agreement import ServiceAgreement
 from common_utils_py.agreements.service_factory import ServiceDescriptor, ServiceFactory
 from common_utils_py.agreements.service_types import ServiceTypes
-from common_utils_py.aquarius.aquarius import Aquarius
+from common_utils_py.metadata.metadata import Metadata
 from common_utils_py.ddo.ddo import DDO
 from common_utils_py.http_requests.requests_session import get_requests_session
 from plecos import plecos
@@ -31,8 +31,8 @@ from nevermind_gateway.util import (check_auth_token, do_secret_store_decrypt, d
                                     build_download_response, get_download_url)
 from tests.conftest import get_consumer_account, get_publisher_account, get_sample_ddo
 
-PURCHASE_ENDPOINT = BaseURLs.BASE_BRIZO_URL + '/services/access/initialize'
-SERVICE_ENDPOINT = BaseURLs.BASE_BRIZO_URL + '/services/consume'
+PURCHASE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/access/initialize'
+SERVICE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/consume'
 
 
 def dummy_callback(*_):
@@ -42,7 +42,7 @@ def dummy_callback(*_):
 def get_registered_ddo(account, providers=None):
 
     keeper = keeper_instance()
-    aqua = Aquarius('http://localhost:5000')
+    aqua = Metadata('http://localhost:5000')
     metadata = get_sample_ddo()['service'][0]['attributes']
     metadata['main']['files'][0]['checksum'] = str(uuid.uuid4())
 
@@ -235,7 +235,7 @@ def test_consume(client):
     )
     assert response.status == '200 OK'
 
-    # Consume using url index and signature (let brizo do the decryption)
+    # Consume using url index and signature (let the gateway do the decryption)
     payload.pop('url')
     payload['signature'] = signature
     payload['index'] = index

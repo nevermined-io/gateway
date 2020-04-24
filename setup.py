@@ -14,11 +14,11 @@ with open('README.md') as readme_file:
 with open('CHANGELOG.md') as history_file:
     history = history_file.read()
 
-# Installed by pip install ocean-brizo
+# Installed by pip install nevermind-gateway
 # or pip install -e .
 install_requirements = [
     # Install squid-py and all its dependencies first
-    'common-utils-py==0.1.0',  # gets PyYAML, coloredlogs, web3
+    'common-utils-py==0.1.1',  # gets PyYAML, coloredlogs, web3
     'contracts-lib-py==0.1.0',
     'ocean-secret-store-client==0.0.2',
     'Flask==1.0.2',
@@ -52,7 +52,7 @@ test_requirements = [
     'plecos'
 ]
 
-# Possibly required by developers of ocean-brizo:
+# Possibly required by developers of nevermind-gateway:
 dev_requirements = [
     'bumpversion',
     'pkginfo',
@@ -71,7 +71,7 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
     ],
-    description="🐳 Ocean Brizo.",
+    description="Nevermind Gateway.",
     extras_require={
         'test': test_requirements,
         'dev': dev_requirements + test_requirements,

@@ -148,8 +148,8 @@ def consume():
         type: string
       - name: url
         in: query
-        description: This URL is only valid if Brizo acts as a proxy.
-                     Consumer can't download using the URL if it's not through Brizo.
+        description: This URL is only valid if Nevermind Gateway acts as a proxy.
+                     Consumer can't download using the URL if it's not through Nevermind Gateway.
         required: true
         type: string
       - name: signature

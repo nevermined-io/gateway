@@ -14,7 +14,7 @@ from nevermind_gateway.routes import services
 from nevermind_gateway.util import keeper_instance, get_provider_account
 
 config = Config(filename=app.config['CONFIG_FILE'])
-brizo_url = config.get(ConfigSections.RESOURCES, 'brizo.url')
+gateway_url = config.get(ConfigSections.RESOURCES, 'gateway.url')
 
 
 def get_version():
@@ -64,7 +64,7 @@ def spec():
 # Call factory function to create our blueprint
 swaggerui_blueprint = get_swaggerui_blueprint(
     BaseURLs.SWAGGER_URL,
-    brizo_url + '/spec',
+    gateway_url + '/spec',
     config={  # Swagger UI config overrides
         'app_name': "Test application"
     },

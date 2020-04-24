@@ -45,7 +45,7 @@ class Config(configparser.ConfigParser):
         secret_store.url = http://localhost:12001                     # Secret store url.
         parity.url = http://localhost:8545                            # Parity client url.
         [resources]
-        brizo.url = http://localhost:8030                             # Brizo url.
+        gateway.url = http://localhost:8030                             # Gateway url.
 
         :param filename: Path of the config file, str.
         :param options_dict: Python dict with the config, dict.
