@@ -202,13 +202,17 @@ Our tests use the pytest framework.
 The `bumpversion.sh` script helps to bump the project version. You can execute 
 the script using as first argument {major|minor|patch} to bump accordingly the version.
 
-##Attribution
+## Attribution
+
 This project is based in the [Ocean Protocol Brizo](https://github.com/oceanprotocol/brizo). It keeps the same Apache v2 License and adds some improvements.
+See [NOTICE file](NOTICE).
 
 ## License
 
 ```text
-Copyright 2020 Keyko GmbH.
+Copyright 2020 Keyko GmbH
+This product includes software developed at
+BigchainDB GmbH and Ocean Protocol (https://www.oceanprotocol.com/)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
