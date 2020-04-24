@@ -1,9 +1,9 @@
 [![banner](https://raw.githubusercontent.com/keyko-io/assets/master/images/logo/small/keyko_logo@2x-100.jpg)](https://keyko.io)
 
-# nevermind-gateway
+# Nevermind Gateway
 
-> Helping publishers provide extended data services (e.g. storage and compute).
-> [oceanprotocol.com](https://oceanprotocol.com)
+> Nevermind gate keeper helping to data publishers & owners to provide extended data services
+> [keyko.io](https://keyko.io/)
 
 
 [![Docker Build Status](https://img.shields.io/docker/build/keykoio/nevermind-gateway.svg)](https://hub.docker.com/r/keykoio/nevermind-gateway/)
@@ -132,8 +132,7 @@ A publisher can choose to support none, one, two or all of the above. It depends
 
 If a publisher wants to store some files in Azure Storage (and make them available 
 from there), then they must get and set the following config settings in the [osmosis] 
-section of the config file. There is 
-an [Ocean tutorial about how to get all those credentials from Azure](https://docs.oceanprotocol.com/tutorials/azure-for-brizo/).
+section of the config file. 
 
 ```ini
 [osmosis]
@@ -172,13 +171,11 @@ AZURE_SHARE_OUTPUT='output'
 
 If a publisher wants to store some files in Amazon S3 storage (and make them 
 available from there), then there are no AWS-related config settings to set 
-in the config file. AWS credentials actually get stored elsewhere. See 
-[the Ocean tutorial about how to set up Amazon S3 storage](https://docs.oceanprotocol.com/tutorials/amazon-s3-for-brizo/).
+in the config file. AWS credentials actually get stored elsewhere. 
 
 If a publisher wants to store some files on-premise (and make them available 
 from there), then there are no special config settings to set in the config 
 file. The only requirement is that the file URLs must be resolvable by Brizo. 
-See [the Ocean tutorial about how to set up on-premise storage](https://docs.oceanprotocol.com/tutorials/on-premise-for-brizo/).
 
 ## Dependencies
 
