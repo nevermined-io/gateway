@@ -30,7 +30,7 @@ jobs:
         export KEEPER_VERSION=latest
         export METADATA_VERSION=latest
         rm -rf "${HOME}/.nevermind/nevermind-contracts/artifacts"
-        bash -x start_nevermind.sh --no-gateway --latest 2>&1 > start_nevermind.log &
+        bash -x start_nevermind.sh --no-commons --no-gateway --latest 2>&1 > start_nevermind.log &
         cd ..
         for i in $(seq 1 50); do
           sleep 5

@@ -48,7 +48,7 @@ Then run some things that Nevermind Gateway expects to be running:
 ```bash
 git clone git@github.com:keyko-io/nevermind-tools.git
 cd nevermind-tools
-bash start_nevermind.sh --no-brizo --local-spree-node
+bash start_nevermind.sh --no-gateway --local-spree-node
 ```
 
 Nevermind Tools is the repository where all the Nevermind Docker Compose files are located. 

@@ -18,7 +18,7 @@ with open('CHANGELOG.md') as history_file:
 # or pip install -e .
 install_requirements = [
     # Install squid-py and all its dependencies first
-    'common-utils-py==0.1.0',  # gets PyYAML, coloredlogs, web3
+    'common-utils-py==0.1.1',  # gets PyYAML, coloredlogs, web3
     'contracts-lib-py==0.1.0',
     'ocean-secret-store-client==0.0.2',
     'Flask==1.0.2',
