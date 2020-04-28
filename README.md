@@ -6,7 +6,7 @@
 > [keyko.io](https://keyko.io/)
 
 
-[![Docker Build Status](https://img.shields.io/docker/build/keykoio/nevermind-gateway.svg)](https://hub.docker.com/r/keykoio/nevermind-gateway/)
+[![Docker Build Status](https://img.shields.io/docker/cloud/build/keykoio/nevermind-gateway.svg)](https://hub.docker.com/r/keykoio/nevermind-gateway/)
 [![GitHub contributors](https://img.shields.io/github/contributors/keyko-io/nevermind-gateway.svg)](https://github.com/keyko-io/nevermind-gateway/graphs/contributors)
 
 

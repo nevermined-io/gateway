@@ -57,7 +57,7 @@ def publish():
             documentId:
               description: Identifier of the asset to be registered in ocean.
               type: string
-              example: 'did:op:08a429b8529856d59867503f8056903a680935a76950bb9649785cc97869a43d'
+              example: 'did:nv:08a429b8529856d59867503f8056903a680935a76950bb9649785cc97869a43d'
             signature:
               description: Publisher signature of the documentId
               type: string
