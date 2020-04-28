@@ -44,6 +44,7 @@ def get_registered_ddo(account, providers=None):
     keeper = keeper_instance()
     aqua = Metadata('http://localhost:5000')
     metadata = get_sample_ddo()['service'][0]['attributes']
+    metadata['main']['files'][0]['url'] = "https://raw.githubusercontent.com/tbertinmahieux/MSongsDB/master/Tasks_Demos/CoverSongs/shs_dataset_test.txt"
     metadata['main']['files'][0]['checksum'] = str(uuid.uuid4())
 
     ddo = DDO()
@@ -102,10 +103,6 @@ def get_registered_ddo(account, providers=None):
             aqua.retire_asset_ddo(ddo.did)
     except ValueError:
         pass
-
-    if not plecos.is_valid_dict_local(ddo.metadata):
-        print(f'invalid metadata: {plecos.validate_dict_local(ddo.metadata)}')
-        assert False, f'invalid metadata: {plecos.validate_dict_local(ddo.metadata)}'
 
     encrypted_files = do_secret_store_encrypt(
         remove_0x_prefix(ddo.asset_id),

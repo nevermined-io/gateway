@@ -1,8 +1,4 @@
 """Config data."""
-
-#  Copyright 2018 Ocean Protocol Foundation
-#  SPDX-License-Identifier: Apache-2.0
-
 import configparser
 import logging
 import os
