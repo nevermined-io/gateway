@@ -10,12 +10,12 @@ with open('README.md') as readme_file:
 with open('CHANGELOG.md') as history_file:
     history = history_file.read()
 
-# Installed by pip install nevermind-gateway
+# Installed by pip install nevermined-gateway
 # or pip install -e .
 install_requirements = [
     # Install squid-py and all its dependencies first
-    'common-utils-py==0.1.3',  # gets PyYAML, coloredlogs, web3
-    'contracts-lib-py==0.1.1',
+    'common-utils-py==0.2.0',  # gets PyYAML, coloredlogs, web3
+    'contracts-lib-py==0.2.0',
     'ocean-secret-store-client==0.0.2',
     'Flask==1.0.2',
     'Flask-Cors==3.0.6',
@@ -48,7 +48,7 @@ test_requirements = [
     'plecos'
 ]
 
-# Possibly required by developers of nevermind-gateway:
+# Possibly required by developers of nevermined-gateway:
 dev_requirements = [
     'bumpversion',
     'pkginfo',
@@ -67,7 +67,7 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
     ],
-    description="Nevermind Gateway.",
+    description="Nevermined Gateway.",
     extras_require={
         'test': test_requirements,
         'dev': dev_requirements + test_requirements,
@@ -77,13 +77,13 @@ setup(
     long_description=readme,
     long_description_content_type="text/markdown",
     include_package_data=True,
-    keywords='nevermind-gateway',
-    name='nevermind-gateway',
-    packages=find_packages(include=['nevermind_gateway', 'nevermind_gateway.app']),
+    keywords='nevermined-gateway',
+    name='nevermined-gateway',
+    packages=find_packages(include=['nevermined_gateway', 'nevermined_gateway.app']),
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
-    url='https://github.com/keyko-io/nevermind-gateway',
+    url='https://github.com/keyko-io/nevermined-gateway',
     version='0.1.2',
     zip_safe=False,
 )

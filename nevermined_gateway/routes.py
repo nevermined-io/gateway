@@ -1,6 +1,3 @@
-#  Copyright 2018 Ocean Protocol Foundation
-#  SPDX-License-Identifier: Apache-2.0
-
 import json
 import logging
 
@@ -11,12 +8,12 @@ from common_utils_py.did_resolver.did_resolver import DIDResolver
 from common_utils_py.http_requests.requests_session import get_requests_session
 from secret_store_client.client import RPCError
 
-from nevermind_gateway.log import setup_logging
-from nevermind_gateway.myapp import app
-from nevermind_gateway.util import (build_download_response, check_required_attributes, do_secret_store_encrypt,
-                                    get_asset_url_at_index, get_config, get_download_url, get_provider_account,
-                                    is_access_granted, keeper_instance, setup_keeper, verify_signature,
-                                    was_compute_triggered)
+from nevermined_gateway.log import setup_logging
+from nevermined_gateway.myapp import app
+from nevermined_gateway.util import (build_download_response, check_required_attributes, do_secret_store_encrypt,
+                                     get_asset_url_at_index, get_config, get_download_url, get_provider_account,
+                                     is_access_granted, keeper_instance, setup_keeper, verify_signature,
+                                     was_compute_triggered)
 
 setup_logging()
 services = Blueprint('services', __name__)
@@ -148,8 +145,8 @@ def consume():
         type: string
       - name: url
         in: query
-        description: This URL is only valid if Nevermind Gateway acts as a proxy.
-                     Consumer can't download using the URL if it's not through Nevermind Gateway.
+        description: This URL is only valid if Nevermined Gateway acts as a proxy.
+                     Consumer can't download using the URL if it's not through Nevermined Gateway.
         required: true
         type: string
       - name: signature

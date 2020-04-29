@@ -1,13 +1,13 @@
 [![banner](https://raw.githubusercontent.com/keyko-io/assets/master/images/logo/small/keyko_logo@2x-100.jpg)](https://keyko.io)
 
-# Nevermind Gateway
+# Nevermined Gateway
 
-> Nevermind gate keeper helping to data publishers & owners to provide extended data services
+> Nevermined gate keeper helping to data publishers & owners to provide extended data services
 > [keyko.io](https://keyko.io/)
 
 
-[![Docker Build Status](https://img.shields.io/docker/cloud/build/keykoio/nevermind-gateway.svg)](https://hub.docker.com/r/keykoio/nevermind-gateway/)
-[![GitHub contributors](https://img.shields.io/github/contributors/keyko-io/nevermind-gateway.svg)](https://github.com/keyko-io/nevermind-gateway/graphs/contributors)
+[![Docker Build Status](https://img.shields.io/docker/cloud/build/keykoio/nevermined-gateway.svg)](https://hub.docker.com/r/keykoio/nevermined-gateway/)
+[![GitHub contributors](https://img.shields.io/github/contributors/keyko-io/nevermined-gateway.svg)](https://github.com/keyko-io/nevermined-gateway/graphs/contributors)
 
 
 ## Table of Contents
@@ -27,44 +27,44 @@
 
 ## Features
 
-In the Nevermind ecosystem, Gateway is the technical component executed by the Publishers 
+In the Nevermined ecosystem, Gateway is the technical component executed by the Publishers 
 allowing them to provide extended data services (e.g. storage and compute). 
-Nevermind Gateway, as part of the Publisher ecosystem, includes the credentials to interact 
+Nevermined Gateway, as part of the Publisher ecosystem, includes the credentials to interact 
 with the infrastructure (initially cloud, but could be on-premise).
 
 ## Running Locally, for Dev and Test
 
-If you want to contribute to the development of Nevermind Gateway, then you could do the following. (If you want to run a Nevermind Gateway in production, then you will have to do something else.)
+If you want to contribute to the development of Nevermined Gateway, then you could do the following. (If you want to run a Nevermined Gateway in production, then you will have to do something else.)
 
 First, clone this repository:
 
 ```bash
-git clone git@github.com:keyko-io/nevermind-gateway.git
-cd nevermind-gateway/
+git clone git@github.com:keyko-io/nevermined-gateway.git
+cd nevermined-gateway/
 ```
 
-Then run some things that Nevermind Gateway expects to be running:
+Then run some things that Nevermined Gateway expects to be running:
 
 ```bash
-git clone git@github.com:keyko-io/nevermind-tools.git
-cd nevermind-tools
-bash start_nevermind.sh --no-gateway --local-spree-node
+git clone git@github.com:keyko-io/nevermined-tools.git
+cd nevermined-tools
+bash start_nevermined.sh --no-gateway --local-spree-node
 ```
 
-Nevermind Tools is the repository where all the Nevermind Docker Compose files are located. 
-We are running the script `start_nevermind.sh`: the easy way to have Nevermind projects 
+Nevermined Tools is the repository where all the Nevermined Docker Compose files are located. 
+We are running the script `start_nevermined.sh`: the easy way to have Nevermined projects 
 up and running. We run without Gateway instance.
 
-To learn more about Nevermind Tools, visit [the Tools repository](https://github.com/keyko-io/nevermind-tools).
+To learn more about Nevermined Tools, visit [the Tools repository](https://github.com/keyko-io/nevermined-tools).
 
-Note that it runs an Nevermind Metadata instance and an Elasticsearch instance but Nevermind Metadata can 
+Note that it runs an Nevermined Metadata instance and an Elasticsearch instance but Nevermined Metadata can 
 also work with MongoDB.
 
 The most simple way to start is:
 
 ```bash
 pip install -r requirements_dev.txt
-export FLASK_APP=nevermind_gateway/run.py
+export FLASK_APP=nevermined_gateway/run.py
 export CONFIG_FILE=config.ini
 ./scripts/wait_for_migration_and_extract_keeper_artifacts.sh
 flask run --port=8030
@@ -90,12 +90,12 @@ gateway.url = https://localhost:8030
 Then execute this command:
 
 ```bash
-gunicorn --certfile cert.pem --keyfile key.pem -b 0.0.0.0:8030 -w 1 nevermind_gateway.run:app
+gunicorn --certfile cert.pem --keyfile key.pem -b 0.0.0.0:8030 -w 1 nevermined_gateway.run:app
 ```
 
 ## API documentation
 
-Once you have Nevermind Gateway running you can get access to the API documentation at:
+Once you have Nevermined Gateway running you can get access to the API documentation at:
 
 ```bash
 https://127.0.0.1:8030/api/v1/docs
@@ -103,7 +103,7 @@ https://127.0.0.1:8030/api/v1/docs
 
 ## Configuration
 
-To get configuration settings, Nevermind Gateway first checks to see if there is a non-empty 
+To get configuration settings, Nevermined Gateway first checks to see if there is a non-empty 
 environment variable named CONFIG_FILE. It there is, it will look in a config file 
 at that path. Otherwise it will look in a config file named `config.ini`. Note 
 that some settings in the config file can be overwritten by setting certain 
@@ -179,10 +179,10 @@ file. The only requirement is that the file URLs must be resolvable by Brizo.
 
 ## Dependencies
 
-Nevermind Gateway relies on the following Ocean libraries:
+Nevermined Gateway relies on the following Ocean libraries:
 
-- [ocean-utils](https://github.com/oceanprotocol/common-utils-py) provides common functions and datastructures for interaction with the Ocean Protocol components
-- [ocean-keeper](https://github.com/oceanprotocol/keeper-py-lib) handles all of the `keeper` interactions
+- [common-utils-py](https://github.com/keyko-io/common-utils-py) provides common functions and datastructures for interaction with the Ocean Protocol components
+- [contracts-lib-py](https://github.com/keyko-io/contracts-lib-py) handles all of the `keeper` interactions
 - [ocean-secret-store-client](https://github.com/oceanprotocol/secret-store-client-py) to encrypt/decrypt the dataset urls
 - [osmosis-azure-driver](https://github.com/oceanprotocol/osmosis-azure-driver) mediates access to assets in Azure
 - [osmosis-aws-driver](https://github.com/oceanprotocol/osmosis-aws-driver) mediates access to assets in AWS

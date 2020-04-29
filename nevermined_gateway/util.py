@@ -14,7 +14,7 @@ from contracts_lib_py.utils import add_ethereum_prefix_and_hash_msg, get_account
 from contracts_lib_py.web3_provider import Web3Provider
 from eth_utils import remove_0x_prefix
 from flask import Response
-from nevermind_gateway.config import Config
+from nevermined_gateway.config import Config
 from osmosis_driver_interface.osmosis import Osmosis
 from secret_store_client.client import Client as SecretStore
 
@@ -32,13 +32,13 @@ def setup_keeper(config_file=None):
 
     account = get_account(0)
     if account is None:
-        raise AssertionError(f'Nevermind Gateway cannot run without a valid '
+        raise AssertionError(f'Nevermined Gateway cannot run without a valid '
                              f'ethereum account. Account address was not found in the environment'
                              f'variable `PROVIDER_ADDRESS`. Please set the following evnironment '
                              f'variables and try again: `PROVIDER_ADDRESS`, `PROVIDER_PASSWORD`, '
                              f'and `PROVIDER_KEYFILE`.')
     if not account.key_file and not (account.password and account.key_file):
-        raise AssertionError(f'Nevermind Gateway cannot run without a valid '
+        raise AssertionError(f'Nevermined Gateway cannot run without a valid '
                              f'ethereum account with either a password and '
                              f'keyfile/encrypted-key-string '
                              f'or private key. Current account has password {account.password}, '
@@ -128,7 +128,7 @@ def check_auth_token(token):
         return '0x0'
     # :HACK: alert, this should be part of ocean-utils, ocean-keeper, or a stand-alone library
     sig, timestamp = parts
-    auth_token_message = get_config().auth_token_message or "Ocean Protocol Authentication"
+    auth_token_message = get_config().auth_token_message or "Nevermined Protocol Authentication"
     default_exp = 30 * 24 * 60 * 60
     expiration = int(get_config().auth_token_expiration or default_exp)
     if int(datetime.now().timestamp()) > (int(timestamp) + expiration):
@@ -141,7 +141,7 @@ def check_auth_token(token):
 
 
 def generate_token(account):
-    raw_msg = get_config().auth_token_message or "Ocean Protocol Authentication"
+    raw_msg = get_config().auth_token_message or "Nevermined Protocol Authentication"
     _time = int(datetime.now().timestamp())
     _message = f'{raw_msg}\n{_time}'
     prefixed_msg_hash = add_ethereum_prefix_and_hash_msg(_message)

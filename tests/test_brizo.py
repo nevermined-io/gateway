@@ -1,6 +1,3 @@
-#  Copyright 2018 Ocean Protocol Foundation
-#  SPDX-License-Identifier: Apache-2.0
-
 import json
 import mimetypes
 from unittest.mock import Mock, MagicMock
@@ -22,13 +19,13 @@ from common_utils_py.ddo.public_key_rsa import PUBLIC_KEY_TYPE_RSA
 from common_utils_py.did import DID, did_to_id, did_to_id_bytes
 from common_utils_py.utils.utilities import checksum
 
-from nevermind_gateway.constants import BaseURLs
-from nevermind_gateway.util import (check_auth_token, do_secret_store_decrypt, do_secret_store_encrypt,
-                                    generate_token, get_config, get_provider_account, is_token_valid,
-                                    keeper_instance,
-                                    verify_signature,
-                                    web3,
-                                    build_download_response, get_download_url)
+from nevermined_gateway.constants import BaseURLs
+from nevermined_gateway.util import (check_auth_token, do_secret_store_decrypt, do_secret_store_encrypt,
+                                     generate_token, get_config, get_provider_account, is_token_valid,
+                                     keeper_instance,
+                                     verify_signature,
+                                     web3,
+                                     build_download_response, get_download_url)
 from tests.conftest import get_consumer_account, get_publisher_account, get_sample_ddo
 
 PURCHASE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/access/initialize'
