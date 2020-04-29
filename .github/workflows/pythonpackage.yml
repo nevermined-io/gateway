@@ -30,7 +30,7 @@ jobs:
         export KEEPER_VERSION=v0.2.0
         export METADATA_VERSION=latest
         rm -rf "${HOME}/.nevermined/nevermined-contracts/artifacts"
-        bash -x start_nevermined.sh --no-commons --no-gateway --latest 2>&1 > start_nevermined.log &
+        bash -x start_nevermined.sh --no-commons --no-gateway 2>&1 > start_nevermined.log &
         cd ..
         for i in $(seq 1 50); do
           sleep 5
