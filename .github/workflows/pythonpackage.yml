@@ -29,6 +29,7 @@ jobs:
         cd nevermined-tools
         export KEEPER_VERSION=v0.2.0
         export METADATA_VERSION=latest
+        export EVENTS_HANDLER_VERSION=v0.2.0
         rm -rf "${HOME}/.nevermined/nevermined-contracts/artifacts"
         bash -x start_nevermined.sh --no-commons --no-gateway 2>&1 > start_nevermined.log &
         cd ..
