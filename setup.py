@@ -31,6 +31,7 @@ install_requirements = [
     'osmosis-on-premise-driver==0.0.6',
     'osmosis-ipfs-driver==0.0.1',
     'Werkzeug>=0.15.3',
+    'eciespy==0.3.5',
 ]
 
 # Required to run setup.py:
