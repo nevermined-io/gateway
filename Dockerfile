@@ -16,8 +16,8 @@ RUN apk add --no-cache --update\
     python3-dev \
   && pip install virtualenv
 
-COPY . /nevermind-gateway
-WORKDIR /nevermind-gateway
+COPY . /nevermined-gateway
+WORKDIR /nevermined-gateway
 
 RUN pip install .
 
@@ -50,6 +50,6 @@ ENV GATEWAY_URL='http://0.0.0.0:8030'
 ENV GATEWAY_WORKERS='1'
 ENV GATEWAY_TIMEOUT='9000'
 
-ENTRYPOINT ["/nevermind-gateway/docker-entrypoint.sh"]
+ENTRYPOINT ["/nevermined-gateway/docker-entrypoint.sh"]
 
 EXPOSE 8030

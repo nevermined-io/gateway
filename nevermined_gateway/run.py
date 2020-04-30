@@ -4,11 +4,11 @@ from flask import jsonify
 from flask_swagger import swagger
 from flask_swagger_ui import get_swaggerui_blueprint
 
-from nevermind_gateway.config import Config
-from nevermind_gateway.constants import BaseURLs, ConfigSections, Metadata
-from nevermind_gateway.myapp import app
-from nevermind_gateway.routes import services
-from nevermind_gateway.util import keeper_instance, get_provider_account
+from nevermined_gateway.config import Config
+from nevermined_gateway.constants import BaseURLs, ConfigSections, Metadata
+from nevermined_gateway.myapp import app
+from nevermined_gateway.routes import services
+from nevermined_gateway.util import keeper_instance, get_provider_account
 
 config = Config(filename=app.config['CONFIG_FILE'])
 gateway_url = config.get(ConfigSections.RESOURCES, 'gateway.url')

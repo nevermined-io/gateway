@@ -1,34 +1,28 @@
-#  Copyright 2018 Ocean Protocol Foundation
-#  SPDX-License-Identifier: Apache-2.0
-
 import json
 import mimetypes
-from unittest.mock import Mock, MagicMock
 import uuid
+from unittest.mock import MagicMock, Mock
 
-from eth_utils import add_0x_prefix, remove_0x_prefix
-from contracts_lib_py.utils import add_ethereum_prefix_and_hash_msg
 from common_utils_py.agreements.service_agreement import ServiceAgreement
 from common_utils_py.agreements.service_factory import ServiceDescriptor, ServiceFactory
 from common_utils_py.agreements.service_types import ServiceTypes
-from common_utils_py.metadata.metadata import Metadata
 from common_utils_py.ddo.ddo import DDO
-from common_utils_py.http_requests.requests_session import get_requests_session
-from plecos import plecos
-from werkzeug.utils import get_content_type
-
 from common_utils_py.ddo.metadata import MetadataMain
 from common_utils_py.ddo.public_key_rsa import PUBLIC_KEY_TYPE_RSA
 from common_utils_py.did import DID, did_to_id, did_to_id_bytes
+from common_utils_py.http_requests.requests_session import get_requests_session
+from common_utils_py.metadata.metadata import Metadata
 from common_utils_py.utils.utilities import checksum
+from contracts_lib_py.utils import add_ethereum_prefix_and_hash_msg
+from eth_utils import add_0x_prefix, remove_0x_prefix
+from werkzeug.utils import get_content_type
 
-from nevermind_gateway.constants import BaseURLs
-from nevermind_gateway.util import (check_auth_token, do_secret_store_decrypt, do_secret_store_encrypt,
-                                    generate_token, get_config, get_provider_account, is_token_valid,
-                                    keeper_instance,
-                                    verify_signature,
-                                    web3,
-                                    build_download_response, get_download_url)
+from nevermined_gateway.constants import BaseURLs
+from nevermined_gateway.util import (build_download_response, check_auth_token,
+                                     do_secret_store_decrypt, do_secret_store_encrypt,
+                                     generate_token, get_config, get_download_url,
+                                     get_provider_account, is_token_valid, keeper_instance,
+                                     verify_signature, web3)
 from tests.conftest import get_consumer_account, get_publisher_account, get_sample_ddo
 
 PURCHASE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/access/initialize'
@@ -40,7 +34,6 @@ def dummy_callback(*_):
 
 
 def get_registered_ddo(account, providers=None):
-
     keeper = keeper_instance()
     aqua = Metadata('http://localhost:5000')
     metadata = get_sample_ddo()['service'][0]['attributes']
@@ -203,7 +196,7 @@ def test_consume(client):
 
     consumer_balance = keeper.token.get_token_balance(cons_acc.address)
     if consumer_balance < 50:
-        keeper.dispenser.request_tokens(50-consumer_balance, cons_acc)
+        keeper.dispenser.request_tokens(50 - consumer_balance, cons_acc)
 
     sa = ServiceAgreement.from_ddo(ServiceTypes.ASSET_ACCESS, ddo)
     lock_reward(agreement_id, sa, cons_acc)
@@ -311,11 +304,12 @@ def test_auth_token():
     token = "0x1d2741dee30e64989ef0203957c01b14f250f5d2f6ccb0" \
             "c88c9518816e4fcec16f84e545094eb3f377b7e214ded226" \
             "76fbde8ca2e41b4eb1b3565047ecd9acf300-1568372035"
-    pub_address = "0xe2DD09d719Da89e5a3D0F2549c7E24566e947260"
+    pub_address = "0x62C092047B01630FC7ABAf3Ab07f4b8aDa5EeB35"
     doc_id = "663516d306904651bbcf9fe45a00477c215c7303d8a24c5bad6005dd2f95e68e"
     assert is_token_valid(token), f'cannot recognize auth-token {token}'
     address = check_auth_token(token)
     assert address and address.lower() == pub_address.lower(), f'address mismatch, got {address}, ' \
+                                                               f'' \
                                                                f'' \
                                                                f'' \
                                                                f'expected {pub_address}'
@@ -366,11 +360,13 @@ def test_build_download_response():
     filename = '<<filename>>'
     url = f'https://source-lllllll.cccc/{filename}'
     response = build_download_response(request, requests_session, url, url, None)
-    assert response.headers["content-type"] == get_content_type(response.default_mimetype, response.charset)
+    assert response.headers["content-type"] == get_content_type(response.default_mimetype,
+                                                                response.charset)
     assert response.headers.get_all('Content-Disposition')[0] == f'attachment;filename={filename}'
 
     filename = '<<filename>>'
     url = f'https://source-lllllll.cccc/{filename}'
     response = build_download_response(request, requests_session, url, url, content_type)
     assert response.headers["content-type"] == content_type
-    assert response.headers.get_all('Content-Disposition')[0] == f'attachment;filename={filename+mimetypes.guess_extension(content_type)}'
+    assert response.headers.get_all('Content-Disposition')[
+               0] == f'attachment;filename={filename + mimetypes.guess_extension(content_type)}'

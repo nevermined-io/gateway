@@ -25,18 +25,19 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        git clone https://github.com/keyko-io/nevermind-tools
-        cd nevermind-tools
-        export KEEPER_VERSION=latest
+        git clone https://github.com/keyko-io/nevermined-tools
+        cd nevermined-tools
+        export KEEPER_VERSION=v0.2.0
         export METADATA_VERSION=latest
-        rm -rf "${HOME}/.nevermind/nevermind-contracts/artifacts"
-        bash -x start_nevermind.sh --no-commons --no-gateway --latest 2>&1 > start_nevermind.log &
+        export EVENTS_HANDLER_VERSION=v0.2.0
+        rm -rf "${HOME}/.nevermined/nevermined-contracts/artifacts"
+        bash -x start_nevermined.sh --no-commons --no-gateway 2>&1 > start_nevermined.log &
         cd ..
         for i in $(seq 1 50); do
           sleep 5
-          [ -f "${HOME}/.nevermind/nvermind-contracts/artifacts/ready" ] && break
+          [ -f "${HOME}/.nevermined/nvermined-contracts/artifacts/ready" ] && break
         done
-        ls -la "${HOME}/.nevermind/nevermind-contracts/artifacts/"
+        ls -la "${HOME}/.nevermined/nevermined-contracts/artifacts/"
         ./scripts/wait_for_migration_and_extract_keeper_artifacts.sh
         python -m pip install --upgrade pip
         pip install -r requirements_dev.txt
