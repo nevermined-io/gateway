@@ -51,9 +51,4 @@ def get_sample_ddo():
         '/examples/access/v0.1/ddo1.json').read().decode(
         'utf-8'))
 
-def get_provider_key_file():
-    return os.getenv('PROVIDER_KEYFILE', '')
-
-def get_provider_password():
-    return os.getenv('PROVIDER_PASSWORD', '')
 

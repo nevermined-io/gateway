@@ -321,6 +321,23 @@ def test_exec_endpoint():
     pass
 
 
+def test_encryption(client):
+    payload = 'message=hola'
+
+    post_response = client.post(
+        BaseURLs.ASSETS_URL + '/encrypt?' + payload,
+        data='',
+        content_type='application/json'
+    )
+    assert post_response.status_code == 200
+
+    result = json.loads(post_response.data.decode('utf-8'))
+    print(result)
+    assert len(result['hash']) > 1
+    assert len(result['public-key']) > 1
+
+
+
 def test_download_ipfs_file(client):
     cid = 'QmQfpdcMWnLTXKKW9GPV7NgtEugghgD6HgzSF6gSrp2mL9'
     url = f'ipfs://{cid}'

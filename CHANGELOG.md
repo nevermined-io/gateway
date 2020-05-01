@@ -1,6 +1,12 @@
 History
 =======
 
+0.2.1 (May, 2020)
+-------------------------
+
+* [#5](https://github.com/keyko-io/nevermined-gateway/issues/5) New endpoint to encrypt messages
+
+
 0.2.0 (April, 2020)
 -------------------------
 

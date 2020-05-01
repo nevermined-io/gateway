@@ -4,17 +4,19 @@ from ecies.utils import generate_eth_key
 
 from nevermined_gateway.util import (check_auth_token,
                                      is_token_valid, keeper_instance,
-                                     verify_signature)
-from tests.conftest import get_provider_key_file, get_provider_password
+                                     verify_signature, get_provider_key_file, get_provider_password)
 
 
 def test_encryption_decryption():
     eth_k = generate_eth_key()
     private_key_hex = eth_k.to_hex()  # hex string
     public_key_hex = eth_k.public_key.to_hex()  # hex string
-    data = b'hi there'
-    result = decrypt(private_key_hex, encrypt(public_key_hex, data))
-    assert result == data
+    data = 'hi there'
+    result = decrypt(private_key_hex, encrypt(public_key_hex, data.encode()))
+    print(result)
+    print('decoded=' + result.decode())
+    assert result == data.encode()
+    assert data == result.decode()
 
 
 def test_encryption_decryption_with_credentials():

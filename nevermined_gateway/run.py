@@ -1,5 +1,8 @@
 import configparser
+import logging
 
+from common_utils_py.http_requests.requests_session import get_requests_session
+from contracts_lib_py.utils import get_public_key_from_file
 from flask import jsonify
 from flask_swagger import swagger
 from flask_swagger_ui import get_swaggerui_blueprint
@@ -8,11 +11,13 @@ from nevermined_gateway.config import Config
 from nevermined_gateway.constants import BaseURLs, ConfigSections, Metadata
 from nevermined_gateway.myapp import app
 from nevermined_gateway.routes import services
-from nevermined_gateway.util import keeper_instance, get_provider_account
+from nevermined_gateway.util import keeper_instance, get_provider_account, get_provider_key_file, get_provider_password
 
 config = Config(filename=app.config['CONFIG_FILE'])
 gateway_url = config.get(ConfigSections.RESOURCES, 'gateway.url')
 
+requests_session = get_requests_session()
+logger = logging.getLogger(__name__)
 
 def get_version():
     conf = configparser.ConfigParser()
@@ -34,7 +39,7 @@ def version():
     info['contracts']['AgreementStoreManager'] = keeper.agreement_manager.address
     info['contracts']['ConditionStoreManager'] = keeper.condition_manager.address
     info['contracts']['DIDRegistry'] = keeper.did_registry.address
-    if keeper.network_name != 'pacific':
+    if keeper.network_name != 'production':
         info['contracts']['Dispenser'] = keeper.dispenser.address
     info['contracts'][
         'EscrowAccessSecretStoreTemplate'] = keeper.escrow_access_secretstore_template.address
@@ -46,6 +51,8 @@ def version():
     info['contracts']['TemplateStoreManager'] = keeper.template_manager.address
     info['keeper-version'] = keeper.token.version
     info['provider-address'] = get_provider_account().address
+    info['public-key'] = get_public_key_from_file(get_provider_key_file(), get_provider_password())
+
     return jsonify(info)
 
 
@@ -65,7 +72,7 @@ swaggerui_blueprint = get_swaggerui_blueprint(
     config={  # Swagger UI config overrides
         'app_name': "Test application"
     },
-)
+    )
 
 # Register blueprint at URL
 app.register_blueprint(swaggerui_blueprint, url_prefix=BaseURLs.SWAGGER_URL)

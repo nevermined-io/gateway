@@ -52,6 +52,14 @@ def init_account_envvars():
     os.environ['PARITY_KEYFILE'] = os.getenv('PROVIDER_KEYFILE', '')
 
 
+def get_provider_key_file():
+    return os.getenv('PROVIDER_KEYFILE', '')
+
+
+def get_provider_password():
+    return os.getenv('PROVIDER_PASSWORD', '')
+
+
 def get_config():
     config_file = os.getenv('CONFIG_FILE', 'config.ini')
     return Config(filename=config_file)
