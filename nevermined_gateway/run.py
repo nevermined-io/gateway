@@ -2,7 +2,6 @@ import configparser
 import logging
 
 from common_utils_py.http_requests.requests_session import get_requests_session
-from contracts_lib_py.utils import get_public_key_from_file
 from flask import jsonify
 from flask_swagger import swagger
 from flask_swagger_ui import get_swaggerui_blueprint
@@ -11,7 +10,8 @@ from nevermined_gateway.config import Config
 from nevermined_gateway.constants import BaseURLs, ConfigSections, Metadata
 from nevermined_gateway.myapp import app
 from nevermined_gateway.routes import services
-from nevermined_gateway.util import keeper_instance, get_provider_account, get_provider_key_file, get_provider_password
+from nevermined_gateway.util import keeper_instance, get_provider_account, get_provider_key_file, get_provider_password, \
+    get_public_key_from_file
 
 config = Config(filename=app.config['CONFIG_FILE'])
 gateway_url = config.get(ConfigSections.RESOURCES, 'gateway.url')

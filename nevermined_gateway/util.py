@@ -12,11 +12,15 @@ from contracts_lib_py import Keeper
 from contracts_lib_py.contract_handler import ContractHandler
 from contracts_lib_py.utils import add_ethereum_prefix_and_hash_msg, get_account
 from contracts_lib_py.web3_provider import Web3Provider
-from eth_utils import remove_0x_prefix
+from ecies import encrypt, decrypt
+from eth_utils import remove_0x_prefix, to_hex
 from flask import Response
+from web3.auto import w3
+
 from nevermined_gateway.config import Config
 from osmosis_driver_interface.osmosis import Osmosis
 from secret_store_client.client import Client as SecretStore
+from eth_keys import keys, KeyAPI
 
 logger = logging.getLogger(__name__)
 
@@ -285,7 +289,7 @@ def get_download_url(url, config_file):
 
 def check_required_attributes(required_attributes, data, method):
     assert isinstance(data, dict), 'invalid payload format.'
-    logger.info('got %s request: %s' % (method, data))
+    logger.debug('got %s request: %s' % (method, data))
     if not data:
         logger.error('%s request failed: data is empty.' % method)
         return 'payload seems empty.', 400
@@ -294,3 +298,32 @@ def check_required_attributes(required_attributes, data, method):
             logger.error('%s request failed: required attr %s missing.' % (method, attr))
             return '"%s" is required in the call to %s' % (attr, method), 400
     return None, None
+
+
+def get_keys_from_file(keyfile_path, keyfile_password):
+    with open(keyfile_path) as keyfile:
+        encrypted_key = keyfile.read()
+    private_key = w3.eth.account.decrypt(encrypted_key, keyfile_password)
+    pk = keys.PrivateKey(private_key)
+
+    private_key_hex = to_hex(private_key)  # hex string
+    public_key_hex = to_hex(pk.public_key._raw_key)  # hex string
+
+    return public_key_hex, private_key_hex
+
+
+def get_public_key_from_file(keyfile_path, keyfile_password):
+    with open(keyfile_path) as keyfile:
+        encrypted_key = keyfile.read()
+    private_key = w3.eth.account.decrypt(encrypted_key, keyfile_password)
+    pk = keys.PrivateKey(private_key)
+
+    return to_hex(pk.public_key._raw_key)  # hex string
+
+
+def encryption(public_key_hex, data):
+    return encrypt(public_key_hex, data)
+
+
+def decryption(private_key_hex, encrypted_data):
+    return decrypt(private_key_hex, encrypted_data)

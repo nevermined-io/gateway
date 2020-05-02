@@ -4,7 +4,6 @@ import logging
 from common_utils_py.did import id_to_did
 from common_utils_py.did_resolver.did_resolver import DIDResolver
 from common_utils_py.http_requests.requests_session import get_requests_session
-from contracts_lib_py.utils import encryption, get_public_key_from_file, get_keys_from_file
 from ecies import decrypt
 from eth_utils import remove_0x_prefix, to_hex, to_bytes, decode_hex
 from flask import Blueprint, jsonify, request
@@ -15,7 +14,8 @@ from nevermined_gateway.myapp import app
 from nevermined_gateway.util import (build_download_response, check_required_attributes, do_secret_store_encrypt,
                                      get_asset_url_at_index, get_config, get_download_url, get_provider_account,
                                      is_access_granted, keeper_instance, setup_keeper, verify_signature,
-                                     was_compute_triggered, get_provider_key_file, get_provider_password)
+                                     was_compute_triggered, get_provider_key_file, get_provider_password,
+                                     get_keys_from_file, get_public_key_from_file, encryption)
 
 setup_logging()
 services = Blueprint('services', __name__)

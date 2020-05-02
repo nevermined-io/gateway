@@ -1,4 +1,4 @@
-from contracts_lib_py.utils import get_keys_from_file, decryption, encryption
+from nevermined_gateway.util import get_keys_from_file, decryption, encryption
 from ecies import encrypt, decrypt
 from ecies.utils import generate_eth_key
 
