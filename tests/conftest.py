@@ -50,3 +50,5 @@ def get_sample_ddo():
         'https://raw.githubusercontent.com/keyko-io/nevermined-docs/master/architecture/specs'
         '/examples/access/v0.1/ddo1.json').read().decode(
         'utf-8'))
+
+

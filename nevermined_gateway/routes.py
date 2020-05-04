@@ -1,11 +1,12 @@
 import json
 import logging
 
-from eth_utils import remove_0x_prefix
-from flask import Blueprint, jsonify, request
 from common_utils_py.did import id_to_did
 from common_utils_py.did_resolver.did_resolver import DIDResolver
 from common_utils_py.http_requests.requests_session import get_requests_session
+from ecies import decrypt
+from eth_utils import remove_0x_prefix, to_hex, to_bytes, decode_hex
+from flask import Blueprint, jsonify, request
 from secret_store_client.client import RPCError
 
 from nevermined_gateway.log import setup_logging
@@ -13,7 +14,8 @@ from nevermined_gateway.myapp import app
 from nevermined_gateway.util import (build_download_response, check_required_attributes, do_secret_store_encrypt,
                                      get_asset_url_at_index, get_config, get_download_url, get_provider_account,
                                      is_access_granted, keeper_instance, setup_keeper, verify_signature,
-                                     was_compute_triggered)
+                                     was_compute_triggered, get_provider_key_file, get_provider_password,
+                                     get_keys_from_file, get_public_key_from_file, encryption)
 
 setup_logging()
 services = Blueprint('services', __name__)
@@ -22,6 +24,63 @@ provider_acc = get_provider_account()
 requests_session = get_requests_session()
 
 logger = logging.getLogger(__name__)
+
+
+@services.route("/encrypt", methods=['POST'])
+def encrypt():
+    """Call the execution of a workflow.
+
+    ---
+    tags:
+      - services
+    consumes:
+      - application/json
+    parameters:
+      - name: message
+        in: query
+        description: The message to encrypt
+        required: true
+        type: string
+        example: 'hi there!'
+
+    responses:
+      200:
+        description: Message encrypted successfully.
+      500:
+        description: Error
+    """
+    required_attributes = ['message']
+    data = request.args
+
+    # print('Received message: ')
+    # print(data.get('message'))
+    msg, status = check_required_attributes(required_attributes, data, 'encrypt')
+    if msg:
+        return msg, status
+
+    message = data.get('message')
+
+    # print('Message=' + message)
+    # print('KeyFile=' + get_provider_key_file())
+    # print('Password=' + get_provider_password())
+
+    public_key_hex = get_public_key_from_file(get_provider_key_file(), get_provider_password())
+    encrypted_message = encryption(public_key_hex, message.encode())
+    hash = to_hex(encrypted_message)
+
+    # print('PublicKey=' + public_key_hex)
+    # print('HASH=')
+    # print(hash)
+
+    (_x, private_key_hex) = get_keys_from_file(get_provider_key_file(), get_provider_password())
+    decrypted_message = decrypt(private_key_hex, decode_hex(hash))
+    # print('decrypted_message=' + decrypted_message.decode())
+
+    output = dict()
+    output['public-key'] = public_key_hex
+    output['hash'] = hash
+
+    return jsonify(output)
 
 
 @services.route('/publish', methods=['POST'])
