@@ -15,7 +15,10 @@ from nevermined_gateway.util import (build_download_response, check_required_att
                                      get_asset_url_at_index, get_config, get_download_url, get_provider_account,
                                      is_access_granted, keeper_instance, setup_keeper, verify_signature,
                                      was_compute_triggered, get_provider_key_file, get_provider_password,
-                                     get_keys_from_file, get_public_key_from_file, encryption)
+                                     get_keys_from_file, get_ecdsa_public_key_from_file, encryption,
+                                     get_rsa_public_key_from_file, get_rsa_public_key_file, rsa_encryption,
+                                     get_content_keyfile_from_path, get_rsa_private_key_from_file,
+                                     get_rsa_private_key_file, rsa_decryption)
 
 setup_logging()
 services = Blueprint('services', __name__)
@@ -26,9 +29,9 @@ requests_session = get_requests_session()
 logger = logging.getLogger(__name__)
 
 
-@services.route("/encrypt", methods=['POST'])
-def encrypt():
-    """Call the execution of a workflow.
+@services.route("/encrypt-ecdsa", methods=['POST'])
+def encrypt_ecdsa():
+    """Encrypt a Secret using the Gateway keys: Elliptic Curve Digital Signature Algorithm
 
     ---
     tags:
@@ -64,20 +67,65 @@ def encrypt():
     # print('KeyFile=' + get_provider_key_file())
     # print('Password=' + get_provider_password())
 
-    public_key_hex = get_public_key_from_file(get_provider_key_file(), get_provider_password())
+    public_key_hex = get_ecdsa_public_key_from_file(get_provider_key_file(), get_provider_password())
     encrypted_message = encryption(public_key_hex, message.encode())
     hash = to_hex(encrypted_message)
 
-    # print('PublicKey=' + public_key_hex)
-    # print('HASH=')
-    # print(hash)
-
-    (_x, private_key_hex) = get_keys_from_file(get_provider_key_file(), get_provider_password())
-    decrypted_message = decrypt(private_key_hex, decode_hex(hash))
+    # For testing we can decrypt the message we just encrypted
+    #(_x, private_key_hex) = get_keys_from_file(get_provider_key_file(), get_provider_password())
+    #decrypted_message = decrypt(private_key_hex, decode_hex(hash))
     # print('decrypted_message=' + decrypted_message.decode())
 
     output = dict()
     output['public-key'] = public_key_hex
+    output['hash'] = hash
+
+    return jsonify(output)
+
+
+@services.route("/encrypt-rsa", methods=['POST'])
+def encrypt_rsa():
+    """Encrypt a Secret using the RSA Gateway keys
+
+    ---
+    tags:
+      - services
+    consumes:
+      - application/json
+    parameters:
+      - name: message
+        in: query
+        description: The message to encrypt
+        required: true
+        type: string
+        example: 'hi there!'
+
+    responses:
+      200:
+        description: Message encrypted successfully.
+      500:
+        description: Error
+    """
+    required_attributes = ['message']
+    data = request.args
+
+    msg, status = check_required_attributes(required_attributes, data, 'encrypt')
+    if msg:
+        return msg, status
+
+    message = data.get('message')
+
+    pub_key = get_rsa_public_key_from_file(get_rsa_public_key_file())
+    encrypted_message = rsa_encryption(pub_key, message.encode())
+    hash = to_hex(encrypted_message)
+
+    # For testing we can decrypt the message we just encrypted
+    # priv_key = get_rsa_private_key_from_file(get_rsa_private_key_file())
+    # decrypted_message = rsa_decryption(priv_key, decode_hex(hash))
+    # print('decrypted_message=' + decrypted_message.decode())
+
+    output = dict()
+    output['public-key'] = get_content_keyfile_from_path(get_rsa_public_key_file())
     output['hash'] = hash
 
     return jsonify(output)

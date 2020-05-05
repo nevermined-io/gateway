@@ -7,20 +7,21 @@ import site
 from datetime import datetime
 from os import getenv
 
+import rsa
 from common_utils_py.did import did_to_id
 from contracts_lib_py import Keeper
 from contracts_lib_py.contract_handler import ContractHandler
 from contracts_lib_py.utils import add_ethereum_prefix_and_hash_msg, get_account
 from contracts_lib_py.web3_provider import Web3Provider
 from ecies import encrypt, decrypt
+from eth_keys import keys
 from eth_utils import remove_0x_prefix, to_hex
 from flask import Response
+from osmosis_driver_interface.osmosis import Osmosis
+from secret_store_client.client import Client as SecretStore
 from web3.auto import w3
 
 from nevermined_gateway.config import Config
-from osmosis_driver_interface.osmosis import Osmosis
-from secret_store_client.client import Client as SecretStore
-from eth_keys import keys, KeyAPI
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ def setup_keeper(config_file=None):
                              f'ethereum account. Account address was not found in the environment'
                              f'variable `PROVIDER_ADDRESS`. Please set the following evnironment '
                              f'variables and try again: `PROVIDER_ADDRESS`, `PROVIDER_PASSWORD`, '
-                             f'and `PROVIDER_KEYFILE`.')
+                             f', `PROVIDER_KEYFILE`, `RSA_KEYFILE` and `RSA_PASSWORD`.')
     if not account.key_file and not (account.password and account.key_file):
         raise AssertionError(f'Nevermined Gateway cannot run without a valid '
                              f'ethereum account with either a password and '
@@ -54,6 +55,9 @@ def init_account_envvars():
     os.environ['PARITY_ADDRESS'] = os.getenv('PROVIDER_ADDRESS', '')
     os.environ['PARITY_PASSWORD'] = os.getenv('PROVIDER_PASSWORD', '')
     os.environ['PARITY_KEYFILE'] = os.getenv('PROVIDER_KEYFILE', '')
+    os.environ['PSK-RSA_PRIVKEY_FILE'] = os.getenv('RSA_PRIVKEY_FILE', '')
+    os.environ['PSK-RSA_PUBKEY_FILE'] = os.getenv('RSA_PUBKEY_FILE', '')
+
 
 
 def get_provider_key_file():
@@ -62,6 +66,14 @@ def get_provider_key_file():
 
 def get_provider_password():
     return os.getenv('PROVIDER_PASSWORD', '')
+
+
+def get_rsa_private_key_file():
+    return os.getenv('RSA_PRIVKEY_FILE', '')
+
+
+def get_rsa_public_key_file():
+    return os.getenv('RSA_PUBKEY_FILE', '')
 
 
 def get_config():
@@ -312,13 +324,42 @@ def get_keys_from_file(keyfile_path, keyfile_password):
     return public_key_hex, private_key_hex
 
 
-def get_public_key_from_file(keyfile_path, keyfile_password):
+def get_ecdsa_public_key_from_file(keyfile_path, keyfile_password):
     with open(keyfile_path) as keyfile:
         encrypted_key = keyfile.read()
     private_key = w3.eth.account.decrypt(encrypted_key, keyfile_password)
     pk = keys.PrivateKey(private_key)
 
     return to_hex(pk.public_key._raw_key)  # hex string
+
+
+def get_content_keyfile_from_path(keyfile_path):
+    with open(keyfile_path, mode='r') as keyfile:
+        key_content = keyfile.read()
+
+    return key_content.replace('-----BEGIN PUBLIC KEY-----', '') \
+        .replace('-----END PUBLIC KEY-----', '') \
+        .replace('\n', '')
+
+
+def get_rsa_public_key_from_file(keyfile_path):
+    with open(keyfile_path, mode='rb') as keyfile:
+        key_content = keyfile.read()
+    return rsa.PublicKey.load_pkcs1_openssl_pem(key_content)
+
+
+def get_rsa_private_key_from_file(keyfile_path):
+    with open(keyfile_path, mode='rb') as keyfile:
+        key_content = keyfile.read()
+    return rsa.PrivateKey.load_pkcs1(key_content)
+
+
+def rsa_encryption(public_key, data):
+    return rsa.encrypt(data, public_key)
+
+
+def rsa_decryption(private_key, encrypted_data):
+    return rsa.decrypt(encrypted_data, private_key)
 
 
 def encryption(public_key_hex, data):

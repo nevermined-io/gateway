@@ -1,4 +1,6 @@
-from nevermined_gateway.util import get_keys_from_file, decryption, encryption
+from nevermined_gateway.util import get_keys_from_file, decryption, encryption, get_rsa_public_key_file, \
+    get_rsa_public_key_from_file, get_rsa_private_key_file, get_rsa_private_key_from_file, rsa_decryption, \
+    rsa_encryption
 from ecies import encrypt, decrypt
 from ecies.utils import generate_eth_key
 
@@ -30,6 +32,15 @@ def test_encryption_decryption_with_credentials():
     data = b'hi there'
     assert data == decryption(private_key_hex, encryption(public_key_hex, data))
     assert b'it should fail' != decryption(private_key_hex, encryption(public_key_hex, b'kdas'))
+
+
+def test_rsa_encryption_decryption():
+    pub_key = get_rsa_public_key_from_file(get_rsa_public_key_file())
+    priv_key = get_rsa_private_key_from_file(get_rsa_private_key_file())
+
+    data = b'hi there'
+    assert data == rsa_decryption(priv_key, rsa_encryption(pub_key, data))
+    assert b'it should fail' != rsa_decryption(priv_key, rsa_encryption(pub_key, b'kdas'))
 
 
 def test_auth_token():

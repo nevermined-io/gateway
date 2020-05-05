@@ -64,11 +64,26 @@ The most simple way to start is:
 
 ```bash
 pip install -r requirements_dev.txt
+
 export FLASK_APP=nevermined_gateway/run.py
+export PROVIDER_ADDRESS=0x00bd138abd70e2f00903268f3db08f2d25677c9e
+export PROVIDER_PASSWORD=node0
+export PROVIDER_KEYFILE=tests/resources/data/publisher_key_file.json
+export RSA_PRIVKEY_FILE=tests/resources/data/rsa_priv_key.pem
+export RSA_PUBKEY_FILE=tests/resources/data/rsa_pub_key.pem
 export CONFIG_FILE=config.ini
+
 ./scripts/wait_for_migration_and_extract_keeper_artifacts.sh
 flask run --port=8030
 ```
+
+You can generate the RSA private and public keys using the following commands:
+
+```bash
+openssl genrsa -out tests/resources/data/rsa_priv_key.pem 1024
+openssl rsa -in tests/resources/data/rsa_priv_key.pem -pubout -out tests/resources/data/rsa_pub_key.pem
+```
+
 
 That will use HTTP (i.e. not SSL/TLS).
 
@@ -112,10 +127,10 @@ environment variables; there are more details below.
 See the [example config.ini file in this repo](config.ini). You will see that 
 there are three sections: `[keeper-contracts]`, `[resources]` and `[osmosis]`.
 
-### The [keeper-contracts] and [resources] Sections
+### The nevermined-contracts and resources Sections
 
-The `[keeper-contracts]` section is used to setup connection to the keeper nodes and load keeper-contracts artifacts.
-The `[resources]` sections is used to configure Aquarius and Brizo services. 
+The `[nevermined-contracts]` section is used to setup connection to the blockchain nodes and load nevermined-contracts artifacts.
+The `[resources]` sections is used to configure Metadata API and Gateway services. 
 
 ### The [osmosis] Section
 
@@ -179,7 +194,7 @@ file. The only requirement is that the file URLs must be resolvable by Brizo.
 
 ## Dependencies
 
-Nevermined Gateway relies on the following Ocean libraries:
+Nevermined Gateway relies on the following libraries:
 
 - [common-utils-py](https://github.com/keyko-io/common-utils-py) provides common functions and datastructures for interaction with the Ocean Protocol components
 - [contracts-lib-py](https://github.com/keyko-io/contracts-lib-py) handles all of the `keeper` interactions

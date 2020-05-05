@@ -11,7 +11,7 @@ from nevermined_gateway.constants import BaseURLs, ConfigSections, Metadata
 from nevermined_gateway.myapp import app
 from nevermined_gateway.routes import services
 from nevermined_gateway.util import keeper_instance, get_provider_account, get_provider_key_file, get_provider_password, \
-    get_public_key_from_file
+    get_ecdsa_public_key_from_file, get_content_keyfile_from_path, get_rsa_public_key_file
 
 config = Config(filename=app.config['CONFIG_FILE'])
 gateway_url = config.get(ConfigSections.RESOURCES, 'gateway.url')
@@ -51,7 +51,9 @@ def version():
     info['contracts']['TemplateStoreManager'] = keeper.template_manager.address
     info['keeper-version'] = keeper.token.version
     info['provider-address'] = get_provider_account().address
-    info['public-key'] = get_public_key_from_file(get_provider_key_file(), get_provider_password())
+
+    info['ecdsa-public-key'] = get_ecdsa_public_key_from_file(get_provider_key_file(), get_provider_password())
+    info['rsa-public-key'] = get_content_keyfile_from_path(get_rsa_public_key_file())
 
     return jsonify(info)
 

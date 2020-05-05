@@ -32,7 +32,8 @@ install_requirements = [
     'osmosis-ipfs-driver==0.0.1',
     'Werkzeug>=0.15.3',
     'eciespy==0.3.5',
-    'eth-keys==0.3.3'
+    'eth-keys==0.3.3',
+    'rsa==4.0',
 ]
 
 # Required to run setup.py:
