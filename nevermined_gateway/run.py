@@ -53,7 +53,10 @@ def version():
     info['provider-address'] = get_provider_account().address
 
     info['ecdsa-public-key'] = get_ecdsa_public_key_from_file(get_provider_key_file(), get_provider_password())
-    info['rsa-public-key'] = get_content_keyfile_from_path(get_rsa_public_key_file())
+    try:
+        info['rsa-public-key'] = get_content_keyfile_from_path(get_rsa_public_key_file())
+    except Exception as e:
+        logger.warning(f'Unable to load RSA Public Key: {e}. ', exc_info=1)
 
     return jsonify(info)
 
