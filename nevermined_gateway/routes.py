@@ -1,10 +1,10 @@
 import json
 import logging
 
-from common_utils_py.did import id_to_did
+from common_utils_py.did import id_to_did, NEVERMINED_PREFIX
 from common_utils_py.did_resolver.did_resolver import DIDResolver
 from common_utils_py.http_requests.requests_session import get_requests_session
-from eth_utils import remove_0x_prefix, to_hex
+from eth_utils import remove_0x_prefix
 from flask import Blueprint, jsonify, request
 from secret_store_client.client import RPCError
 
@@ -14,9 +14,9 @@ from nevermined_gateway.util import (build_download_response, check_required_att
                                      get_asset_url_at_index, get_config, get_download_url, get_provider_account,
                                      is_access_granted, keeper_instance, setup_keeper, verify_signature,
                                      was_compute_triggered, get_provider_key_file, get_provider_password,
-                                     get_ecdsa_public_key_from_file, encryption,
-                                     get_rsa_public_key_from_file, get_rsa_public_key_file, rsa_encryption,
-                                     get_content_keyfile_from_path)
+                                     get_ecdsa_public_key_from_file, get_rsa_public_key_file,
+                                     get_content_keyfile_from_path, rsa_encription_from_file,
+                                     ecdsa_encription_from_file)
 
 setup_logging()
 services = Blueprint('services', __name__)
@@ -60,9 +60,7 @@ def encrypt_ecdsa():
     try:
         message = data.get('message')
 
-        public_key_hex = get_ecdsa_public_key_from_file(get_provider_key_file(), get_provider_password())
-        encrypted_message = encryption(public_key_hex, message.encode())
-        hash = to_hex(encrypted_message)
+        hash, public_key_hex = ecdsa_encription_from_file(message)
 
         # For testing we can decrypt the message we just encrypted
         #(_x, private_key_hex) = get_keys_from_file(get_provider_key_file(), get_provider_password())
@@ -113,9 +111,7 @@ def encrypt_rsa():
     try:
         message = data.get('message')
 
-        pub_key = get_rsa_public_key_from_file(get_rsa_public_key_file())
-        encrypted_message = rsa_encryption(pub_key, message.encode())
-        hash = to_hex(encrypted_message)
+        hash, pub_key = rsa_encription_from_file(message)
 
         # For testing we can decrypt the message we just encrypted
         # priv_key = get_rsa_private_key_from_file(get_rsa_private_key_file())
@@ -126,6 +122,80 @@ def encrypt_rsa():
         output['public-key'] = get_content_keyfile_from_path(get_rsa_public_key_file())
         output['hash'] = hash
 
+        return jsonify(output)
+
+    except Exception as e:
+        logger.error(f'Error: {e}. ', exc_info=1)
+        return f'Error: {str(e)}', 500
+
+
+@services.route("/encrypt", methods=['POST'])
+def encrypt_content():
+    """Encrypt a Secret using the Secret Store, ECDSA or RSA methods
+
+    ---
+    tags:
+      - services
+    consumes:
+      - application/json
+    parameters:
+      - name: message
+        in: query
+        description: The message to encrypt
+        required: true
+        type: string
+        example: 'hi there!'
+      - name: method
+        in: query
+        description: The encryption method to use. Options (`SecretStore`, `PSK-ECDSA`, `PSK-RSA`)
+        required: true
+        type: string
+        example: 'PSK-RSA'
+    responses:
+      200:
+        description: Message encrypted successfully.
+      500:
+        description: Error
+    """
+    required_attributes = ['message', 'method']
+    data = request.args
+
+    msg, status = check_required_attributes(required_attributes, data, 'encrypt')
+    if msg:
+        return msg, status
+
+    try:
+        message = data.get('message')
+        method = data.get('method')
+
+        if (method == 'SecretStore'):
+            msg, status = check_required_attributes(['did'], data, 'encrypt')
+            if msg:
+                return msg, status
+
+            did = data.get('did').replace(NEVERMINED_PREFIX, '')
+            document = json.dumps(json.loads(message), separators=(',', ':'))
+            hash = do_secret_store_encrypt(
+                remove_0x_prefix(did),
+                document,
+                provider_acc,
+                get_config()
+            )
+            public_key = get_ecdsa_public_key_from_file(get_provider_key_file(), get_provider_password())
+
+        elif (method == 'PSK-ECDSA'):
+            hash, public_key = ecdsa_encription_from_file(message)
+
+        elif (method == 'PSK-RSA'):
+            hash, public_key = rsa_encription_from_file(message)
+        else:
+            return f'Unknown method: {method}\n' \
+                   f'Options available are (`SecretStore`, `PSK-ECDSA`, `PSK-RSA`)', 500
+
+        output = dict()
+        output['public-key'] = public_key
+        output['hash'] = hash
+        output['method'] = method
         return jsonify(output)
 
     except Exception as e:
@@ -209,6 +279,8 @@ def publish():
                   f'publisherAddress {publisher_address} and documentId {did}.'
             raise ValueError(msg)
 
+        print('Document: ' + document)
+        print('DID: ' + remove_0x_prefix(did))
         encrypted_document = do_secret_store_encrypt(
             remove_0x_prefix(did),
             document,

@@ -333,6 +333,20 @@ def get_ecdsa_public_key_from_file(keyfile_path, keyfile_password):
     return to_hex(pk.public_key._raw_key)  # hex string
 
 
+def ecdsa_encription_from_file(message):
+    public_key_hex = get_ecdsa_public_key_from_file(get_provider_key_file(), get_provider_password())
+    encrypted_message = encryption(public_key_hex, message.encode())
+    hash = to_hex(encrypted_message)
+    return hash, public_key_hex
+
+
+def rsa_encription_from_file(message):
+    pub_key = get_rsa_public_key_from_file(get_rsa_public_key_file())
+    encrypted_message = rsa_encryption(pub_key, message.encode())
+    hash = to_hex(encrypted_message)
+    return hash, get_content_keyfile_from_path(get_rsa_public_key_file())
+
+
 def get_content_keyfile_from_path(keyfile_path):
     with open(keyfile_path, mode='r') as keyfile:
         key_content = keyfile.read()

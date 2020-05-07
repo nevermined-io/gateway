@@ -353,6 +353,31 @@ def test_encryption_rsa(client):
     assert len(result['public-key']) > 1
 
 
+def test_encryption_content(client):
+    test_urls = [
+        'url 00',
+        'url 11',
+        'url 22'
+    ]
+    message = json.dumps(test_urls)
+
+    methods = ['SecretStore', 'PSK-RSA', 'PSK-ECDSA']
+    did = DID.did({"0": str(uuid.uuid4())})
+
+    for method in methods:
+        print('Testing encrypt: ' + method)
+        payload = 'message=' + message + '&method=' + method + '&did=' + did
+        post_response = client.post(
+            BaseURLs.ASSETS_URL + '/encrypt?' + payload,
+            data='',
+            content_type='application/json'
+        )
+        assert post_response.status_code == 200
+        result = json.loads(post_response.data.decode('utf-8'))
+        assert len(result['hash']) > 1
+        assert len(result['public-key']) > 1
+
+
 def test_download_ipfs_file(client):
     cid = 'QmQfpdcMWnLTXKKW9GPV7NgtEugghgD6HgzSF6gSrp2mL9'
     url = f'ipfs://{cid}'
