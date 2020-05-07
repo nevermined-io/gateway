@@ -27,108 +27,6 @@ requests_session = get_requests_session()
 logger = logging.getLogger(__name__)
 
 
-@services.route("/encrypt-ecdsa", methods=['POST'])
-def encrypt_ecdsa():
-    """Encrypt a Secret using the Gateway keys: Elliptic Curve Digital Signature Algorithm
-
-    ---
-    tags:
-      - services
-    consumes:
-      - application/json
-    parameters:
-      - name: message
-        in: query
-        description: The message to encrypt
-        required: true
-        type: string
-        example: 'hi there!'
-
-    responses:
-      200:
-        description: Message encrypted successfully.
-      500:
-        description: Error
-    """
-    required_attributes = ['message']
-    data = request.args
-
-    msg, status = check_required_attributes(required_attributes, data, 'encrypt')
-    if msg:
-        return msg, status
-
-    try:
-        message = data.get('message')
-
-        hash, public_key_hex = ecdsa_encription_from_file(message)
-
-        # For testing we can decrypt the message we just encrypted
-        #(_x, private_key_hex) = get_keys_from_file(get_provider_key_file(), get_provider_password())
-        #decrypted_message = decrypt(private_key_hex, decode_hex(hash))
-        # print('decrypted_message=' + decrypted_message.decode())
-
-        output = dict()
-        output['public-key'] = public_key_hex
-        output['hash'] = hash
-
-        return jsonify(output)
-
-    except Exception as e:
-        logger.error(f'Error: {e}. ', exc_info=1)
-        return f'Error: {str(e)}', 500
-
-
-@services.route("/encrypt-rsa", methods=['POST'])
-def encrypt_rsa():
-    """Encrypt a Secret using the RSA Gateway keys
-
-    ---
-    tags:
-      - services
-    consumes:
-      - application/json
-    parameters:
-      - name: message
-        in: query
-        description: The message to encrypt
-        required: true
-        type: string
-        example: 'hi there!'
-
-    responses:
-      200:
-        description: Message encrypted successfully.
-      500:
-        description: Error
-    """
-    required_attributes = ['message']
-    data = request.args
-
-    msg, status = check_required_attributes(required_attributes, data, 'encrypt')
-    if msg:
-        return msg, status
-
-    try:
-        message = data.get('message')
-
-        hash, pub_key = rsa_encription_from_file(message)
-
-        # For testing we can decrypt the message we just encrypted
-        # priv_key = get_rsa_private_key_from_file(get_rsa_private_key_file())
-        # decrypted_message = rsa_decryption(priv_key, decode_hex(hash))
-        # print('decrypted_message=' + decrypted_message.decode())
-
-        output = dict()
-        output['public-key'] = get_content_keyfile_from_path(get_rsa_public_key_file())
-        output['hash'] = hash
-
-        return jsonify(output)
-
-    except Exception as e:
-        logger.error(f'Error: {e}. ', exc_info=1)
-        return f'Error: {str(e)}', 500
-
-
 @services.route("/encrypt", methods=['POST'])
 def encrypt_content():
     """Encrypt a Secret using the Secret Store, ECDSA or RSA methods
@@ -139,26 +37,37 @@ def encrypt_content():
     consumes:
       - application/json
     parameters:
-      - name: message
-        in: query
-        description: The message to encrypt
+      - in: body
+        name: body
         required: true
-        type: string
-        example: 'hi there!'
-      - name: method
-        in: query
-        description: The encryption method to use. Options (`SecretStore`, `PSK-ECDSA`, `PSK-RSA`)
-        required: true
-        type: string
-        example: 'PSK-RSA'
+        description: Asset urls encryption.
+        schema:
+          type: object
+          required:
+            - message
+            - method
+          properties:
+            message:
+              description: The message to encrypt
+              type: string
+              example: '{"url":"https://keyko.io/","index":0,"checksum":"efb21","contentLength":"45","contentType":"text/csv"}'
+            method:
+              description: The encryption method to use. Options (`SecretStore`, `PSK-ECDSA`, `PSK-RSA`)
+              type: string
+              example: 'PSK-RSA'
+            did:
+              description: Identifier of the asset.
+              type: string
+              example: 'did:nv:08a429b8529856d59867503f8056903a680935a76950bb9649785cc97869a43d'
     responses:
       200:
-        description: Message encrypted successfully.
+        description: document successfully encrypted.
       500:
         description: Error
     """
+
     required_attributes = ['message', 'method']
-    data = request.args
+    data = request.json
 
     msg, status = check_required_attributes(required_attributes, data, 'encrypt')
     if msg:
@@ -174,10 +83,9 @@ def encrypt_content():
                 return msg, status
 
             did = data.get('did').replace(NEVERMINED_PREFIX, '')
-            document = json.dumps(json.loads(message), separators=(',', ':'))
             hash = do_secret_store_encrypt(
                 remove_0x_prefix(did),
-                document,
+                message,
                 provider_acc,
                 get_config()
             )
