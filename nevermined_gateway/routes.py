@@ -8,10 +8,12 @@ from eth_utils import remove_0x_prefix
 from flask import Blueprint, jsonify, request
 from secret_store_client.client import RPCError
 
+from nevermined_gateway import constants
 from nevermined_gateway.log import setup_logging
 from nevermined_gateway.myapp import app
 from nevermined_gateway.util import (build_download_response, check_required_attributes, do_secret_store_encrypt,
-                                     get_asset_url_at_index, get_config, get_download_url, get_provider_account,
+                                     get_asset_url_at_index, get_config, get_download_url,
+                                     get_provider_account,
                                      is_access_granted, keeper_instance, setup_keeper, verify_signature,
                                      was_compute_triggered, get_provider_key_file, get_provider_password,
                                      get_ecdsa_public_key_from_file, get_rsa_public_key_file,
@@ -257,14 +259,13 @@ def consume():
     data = request.args
     required_attributes = [
         'serviceAgreementId',
-        'consumerAddress'
+        'consumerAddress',
+        'signature',
+        'index'
     ]
     msg, status = check_required_attributes(required_attributes, data, 'consume')
     if msg:
         return msg, status
-
-    if not (data.get('url') or (data.get('signature') and data.get('index'))):
-        return f'Either `url` or `signature and index` are required in the call to "consume".', 400
 
     try:
         keeper = keeper_instance()
@@ -285,21 +286,31 @@ def consume():
             return msg, 401
 
         asset = DIDResolver(keeper.did_registry).resolve(did)
-        content_type = None
-        url = data.get('url')
-        if not url:
-            signature = data.get('signature')
-            index = int(data.get('index'))
-            if not verify_signature(keeper, consumer_address, signature, agreement_id):
-                msg = f'Invalid signature {signature} for ' \
-                      f'publisherAddress {consumer_address} and documentId {agreement_id}.'
-                raise ValueError(msg)
+        signature = data.get('signature')
+        index = int(data.get('index'))
 
-            file_attributes = asset.metadata['main']['files'][index]
-            content_type = file_attributes.get('contentType', None)
-            url = get_asset_url_at_index(index, asset, provider_acc)
+        if not verify_signature(keeper, consumer_address, signature, agreement_id):
+            msg = f'Invalid signature {signature} for ' \
+                  f'publisherAddress {consumer_address} and documentId {agreement_id}.'
+            raise ValueError(msg)
 
+        file_attributes = asset.metadata['main']['files'][index]
+        content_type = file_attributes.get('contentType', None)
+
+        try:
+            auth_method = asset.authorization['service']
+        except Exception:
+            auth_method = constants.ConfigSections.DEFAULT_DECRYPTION_METHOD
+
+        if auth_method not in constants.ConfigSections.DECRYPTION_METHODS:
+            msg = ('The Authorization Method defined in the DDO is not part of the availble methods supported'
+                   'by the Gateway: ' + auth_method)
+            logger.warning(msg)
+            return msg, 400
+
+        url = get_asset_url_at_index(index, asset, provider_acc, auth_method)
         download_url = get_download_url(url, app.config['CONFIG_FILE'])
+
         logger.info(f'Done processing consume request for asset {did}, agreementId {agreement_id},'
                     f' url {download_url}')
         return build_download_response(request, requests_session, url, download_url, content_type)

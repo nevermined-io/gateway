@@ -254,17 +254,25 @@ def build_download_response(request, requests_session, url, download_url, conten
         raise
 
 
-def get_asset_url_at_index(url_index, asset, account):
+def get_asset_url_at_index(url_index, asset, account, auth_method='SecretStore'):
+
     logger.debug(
         f'get_asset_url_at_index(): url_index={url_index}, did={asset.did}, provider='
         f'{account.address}')
     try:
-        files_str = do_secret_store_decrypt(
-            remove_0x_prefix(asset.asset_id),
-            asset.encrypted_files,
-            account,
-            get_config()
-        )
+        if auth_method == 'SecretStore':
+            files_str = do_secret_store_decrypt(
+                remove_0x_prefix(asset.asset_id),
+                asset.encrypted_files,
+                account,
+                get_config()
+            )
+        elif auth_method == 'PSK-RSA':
+            files_str = rsa_decryption(asset.encrypted_files)
+        elif auth_method == 'PSK-ECDSA':
+            files_str = ecdsa_decryption(asset.encrypted_files)
+
+
         logger.debug(f'Got decrypted files str {files_str}')
         files_list = json.loads(files_str)
         if not isinstance(files_list, list):
@@ -340,11 +348,23 @@ def ecdsa_encription_from_file(message):
     return hash, public_key_hex
 
 
+def ecdsa_decryption(message):
+    (public_key_hex, private_key_hex) = get_keys_from_file(get_provider_key_file(), get_provider_password())
+    result = decryption(private_key_hex, message)
+    return result.decode()
+
+
 def rsa_encription_from_file(message):
     pub_key = get_rsa_public_key_from_file(get_rsa_public_key_file())
     encrypted_message = rsa_encryption(pub_key, message.encode())
     hash = to_hex(encrypted_message)
     return hash, get_content_keyfile_from_path(get_rsa_public_key_file())
+
+
+def rsa_decryption(message):
+    priv_key = get_rsa_private_key_from_file(get_rsa_private_key_file())
+    result = rsa_decryption(priv_key, message.encode())
+    return result.decode()
 
 
 def get_content_keyfile_from_path(keyfile_path):

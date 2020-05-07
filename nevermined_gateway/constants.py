@@ -2,6 +2,8 @@ class ConfigSections:
     KEEPER_CONTRACTS = 'keeper-contracts'
     RESOURCES = 'resources'
     OSMOSIS = 'osmosis'
+    DECRYPTION_METHODS = ['SecretStore', 'PSK-RSA', 'PSK-ECDSA']
+    DEFAULT_DECRYPTION_METHOD = 'SecretStore'
 
 
 class BaseURLs:

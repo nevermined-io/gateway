@@ -17,6 +17,7 @@ from contracts_lib_py.utils import add_ethereum_prefix_and_hash_msg
 from eth_utils import add_0x_prefix, remove_0x_prefix
 from werkzeug.utils import get_content_type
 
+from nevermined_gateway import constants
 from nevermined_gateway.constants import BaseURLs
 from nevermined_gateway.util import (build_download_response, check_auth_token,
                                      do_secret_store_decrypt, do_secret_store_encrypt,
@@ -33,18 +34,21 @@ def dummy_callback(*_):
     pass
 
 
-def get_registered_ddo(account, providers=None):
+def get_registered_ddo(account, providers=None, auth_service='SecretStore'):
     keeper = keeper_instance()
-    aqua = Metadata('http://localhost:5000')
+    metadata_api = Metadata('http://localhost:5000')
     metadata = get_sample_ddo()['service'][0]['attributes']
     metadata['main']['files'][0]['url'] = "https://raw.githubusercontent.com/tbertinmahieux/MSongsDB/master/Tasks_Demos/CoverSongs/shs_dataset_test.txt"
     metadata['main']['files'][0]['checksum'] = str(uuid.uuid4())
 
     ddo = DDO()
-    ddo_service_endpoint = aqua.get_service_endpoint()
+    ddo_service_endpoint = metadata_api.get_service_endpoint()
 
     metadata_service_desc = ServiceDescriptor.metadata_service_descriptor(metadata,
                                                                           ddo_service_endpoint)
+    authorization_service_attributes = {
+        "publicKey": "0xd7"
+    }
 
     access_service_attributes = {"main": {
         "name": "dataAssetAccessServiceAgreement",
@@ -55,7 +59,10 @@ def get_registered_ddo(account, providers=None):
     }}
 
     service_descriptors = [ServiceDescriptor.authorization_service_descriptor(
-        'http://localhost:12001')]
+        authorization_service_attributes,
+        'http://localhost:12001',
+        auth_service
+    )]
     service_descriptors += [ServiceDescriptor.access_service_descriptor(
         access_service_attributes,
         'http://localhost:8030'
@@ -66,7 +73,10 @@ def get_registered_ddo(account, providers=None):
     services = ServiceFactory.build_services(service_descriptors)
     checksums = dict()
     for service in services:
-        checksums[str(service.index)] = checksum(service.main)
+        try:
+            checksums[str(service.index)] = checksum(service.main)
+        except Exception as e:
+            pass
 
     # Adding proof to the ddo.
     ddo.add_proof(checksums, account)
@@ -91,9 +101,9 @@ def get_registered_ddo(account, providers=None):
     ddo.add_authentication(did, PUBLIC_KEY_TYPE_RSA)
 
     try:
-        _oldddo = aqua.get_asset_ddo(ddo.did)
+        _oldddo = metadata_api.get_asset_ddo(ddo.did)
         if _oldddo:
-            aqua.retire_asset_ddo(ddo.did)
+            metadata_api.retire_asset_ddo(ddo.did)
     except ValueError:
         pass
 
@@ -120,7 +130,7 @@ def get_registered_ddo(account, providers=None):
         account=account,
         providers=providers
     )
-    aqua.publish_asset_ddo(ddo)
+    metadata_api.publish_asset_ddo(ddo)
     return ddo
 
 
@@ -175,65 +185,56 @@ def test_consume(client):
     pub_acc = get_publisher_account()
     cons_acc = get_consumer_account()
 
-    ddo = get_registered_ddo(pub_acc, providers=[pub_acc.address])
+    # for method in ['PSK-ECDSA']:
+    for method in constants.ConfigSections.DECRYPTION_METHODS:
+        print('Testing Consume with Authorization Method: ' + method)
+        ddo = get_registered_ddo(pub_acc, providers=[pub_acc.address], auth_service=method)
 
-    # initialize an agreement
-    agreement_id = place_order(pub_acc, ddo, cons_acc)
-    payload = dict({
-        'serviceAgreementId': agreement_id,
-        'consumerAddress': cons_acc.address
-    })
+        # initialize an agreement
+        agreement_id = place_order(pub_acc, ddo, cons_acc)
+        payload = dict({
+            'serviceAgreementId': agreement_id,
+            'consumerAddress': cons_acc.address
+        })
 
-    keeper = keeper_instance()
-    agr_id_hash = add_ethereum_prefix_and_hash_msg(agreement_id)
-    signature = keeper.sign_hash(agr_id_hash, cons_acc)
-    index = 0
+        keeper = keeper_instance()
+        agr_id_hash = add_ethereum_prefix_and_hash_msg(agreement_id)
+        signature = keeper.sign_hash(agr_id_hash, cons_acc)
+        index = 0
 
-    event = keeper.escrow_access_secretstore_template.subscribe_agreement_created(
-        agreement_id, 15, None, (), wait=True, from_block=0
-    )
-    assert event, "Agreement event is not found, check the keeper node's logs"
+        event = keeper.escrow_access_secretstore_template.subscribe_agreement_created(
+            agreement_id, 15, None, (), wait=True, from_block=0
+        )
+        assert event, "Agreement event is not found, check the keeper node's logs"
 
-    consumer_balance = keeper.token.get_token_balance(cons_acc.address)
-    if consumer_balance < 50:
-        keeper.dispenser.request_tokens(50 - consumer_balance, cons_acc)
+        consumer_balance = keeper.token.get_token_balance(cons_acc.address)
+        if consumer_balance < 50:
+            keeper.dispenser.request_tokens(50 - consumer_balance, cons_acc)
 
-    sa = ServiceAgreement.from_ddo(ServiceTypes.ASSET_ACCESS, ddo)
-    lock_reward(agreement_id, sa, cons_acc)
-    event = keeper.lock_reward_condition.subscribe_condition_fulfilled(
-        agreement_id, 15, None, (), wait=True, from_block=0
-    )
-    assert event, "Lock reward condition fulfilled event is not found, check the keeper node's logs"
+        sa = ServiceAgreement.from_ddo(ServiceTypes.ASSET_ACCESS, ddo)
+        lock_reward(agreement_id, sa, cons_acc)
+        event = keeper.lock_reward_condition.subscribe_condition_fulfilled(
+            agreement_id, 15, None, (), wait=True, from_block=0
+        )
+        assert event, "Lock reward condition fulfilled event is not found, check the keeper node's logs"
 
-    grant_access(agreement_id, ddo, cons_acc, pub_acc)
-    event = keeper.access_secret_store_condition.subscribe_condition_fulfilled(
-        agreement_id, 15, None, (), wait=True, from_block=0
-    )
-    assert event or keeper.access_secret_store_condition.check_permissions(
-        ddo.asset_id, cons_acc.address
-    ), f'Failed to get access permission: agreement_id={agreement_id}, ' \
-       f'did={ddo.did}, consumer={cons_acc.address}'
+        grant_access(agreement_id, ddo, cons_acc, pub_acc)
+        event = keeper.access_secret_store_condition.subscribe_condition_fulfilled(
+            agreement_id, 15, None, (), wait=True, from_block=0
+        )
+        assert event or keeper.access_secret_store_condition.check_permissions(
+            ddo.asset_id, cons_acc.address
+        ), f'Failed to get access permission: agreement_id={agreement_id}, ' \
+           f'did={ddo.did}, consumer={cons_acc.address}'
 
-    # Consume using decrypted url
-    files_list = json.loads(
-        do_secret_store_decrypt(did_to_id(ddo.did), ddo.encrypted_files, pub_acc, get_config()))
-    payload['url'] = files_list[index]['url']
-    request_url = endpoint + '?' + '&'.join([f'{k}={v}' for k, v in payload.items()])
-
-    response = client.get(
-        request_url
-    )
-    assert response.status == '200 OK'
-
-    # Consume using url index and signature (let the gateway do the decryption)
-    payload.pop('url')
-    payload['signature'] = signature
-    payload['index'] = index
-    request_url = endpoint + '?' + '&'.join([f'{k}={v}' for k, v in payload.items()])
-    response = client.get(
-        request_url
-    )
-    assert response.status == '200 OK'
+        # Consume using url index and signature (let the gateway do the decryption)
+        payload['signature'] = signature
+        payload['index'] = index
+        request_url = endpoint + '?' + '&'.join([f'{k}={v}' for k, v in payload.items()])
+        response = client.get(
+            request_url
+        )
+        assert response.status == '200 OK'
 
 
 def test_empty_payload(client):
@@ -329,10 +330,9 @@ def test_encryption_content(client):
     ]
     message = json.dumps(content)
     print(message)
-    methods = ['SecretStore', 'PSK-RSA', 'PSK-ECDSA']
     did = DID.did({"0": str(uuid.uuid4())})
 
-    for method in methods:
+    for method in constants.ConfigSections.DECRYPTION_METHODS:
         print('Testing encrypt: ' + method)
 
         payload = {
