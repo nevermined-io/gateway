@@ -1,6 +1,5 @@
 Call the execution of a workflow.
-
-  ---
+---
 tags:
   - services
 consumes:

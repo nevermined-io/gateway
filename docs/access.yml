@@ -1,6 +1,5 @@
 Allows to get access to an asset data file.
-
-  ---
+---
 tags:
   - services
 consumes:
