@@ -20,7 +20,7 @@ from werkzeug.utils import get_content_type
 from nevermined_gateway import constants
 from nevermined_gateway.constants import BaseURLs
 from nevermined_gateway.util import (build_download_response, check_auth_token,
-                                     do_secret_store_decrypt, do_secret_store_encrypt,
+                                     do_secret_store_encrypt,
                                      generate_token, get_config, get_download_url,
                                      get_provider_account, is_token_valid, keeper_instance,
                                      verify_signature, web3)
@@ -38,7 +38,8 @@ def get_registered_ddo(account, providers=None, auth_service='SecretStore'):
     keeper = keeper_instance()
     metadata_api = Metadata('http://localhost:5000')
     metadata = get_sample_ddo()['service'][0]['attributes']
-    metadata['main']['files'][0]['url'] = "https://raw.githubusercontent.com/tbertinmahieux/MSongsDB/master/Tasks_Demos/CoverSongs/shs_dataset_test.txt"
+    metadata['main']['files'][0][
+        'url'] = "https://raw.githubusercontent.com/tbertinmahieux/MSongsDB/master/Tasks_Demos/CoverSongs/shs_dataset_test.txt"
     metadata['main']['files'][0]['checksum'] = str(uuid.uuid4())
 
     ddo = DDO()
@@ -235,6 +236,55 @@ def test_consume(client):
             request_url
         )
         assert response.status == '200 OK'
+
+
+def test_access(client):
+
+    pub_acc = get_publisher_account()
+    cons_acc = get_consumer_account()
+
+    ddo = get_registered_ddo(pub_acc, providers=[pub_acc.address], auth_service='PSK-RSA')
+
+    # initialize an agreement
+    agreement_id = place_order(pub_acc, ddo, cons_acc)
+
+    keeper = keeper_instance()
+    agr_id_hash = add_ethereum_prefix_and_hash_msg(agreement_id)
+    signature = keeper.sign_hash(agr_id_hash, cons_acc)
+    index = 0
+
+    event = keeper.escrow_access_secretstore_template.subscribe_agreement_created(
+        agreement_id, 15, None, (), wait=True, from_block=0
+    )
+    assert event, "Agreement event is not found, check the keeper node's logs"
+
+    consumer_balance = keeper.token.get_token_balance(cons_acc.address)
+    if consumer_balance < 50:
+        keeper.dispenser.request_tokens(50 - consumer_balance, cons_acc)
+
+    sa = ServiceAgreement.from_ddo(ServiceTypes.ASSET_ACCESS, ddo)
+    lock_reward(agreement_id, sa, cons_acc)
+    event = keeper.lock_reward_condition.subscribe_condition_fulfilled(
+        agreement_id, 15, None, (), wait=True, from_block=0
+    )
+    assert event, "Lock reward condition fulfilled event is not found, check the keeper node's logs"
+
+    # Consume using url index and signature (let the gateway do the decryption)
+
+    headers = dict({
+        'X-Consumer-Address': cons_acc.address,
+        'X-Signature': signature,
+        'X-DID': ddo.did
+    })
+
+    endpoint = BaseURLs.ASSETS_URL + '/access/%s/%d' % (agreement_id, index)
+    print(endpoint)
+    response = client.get(
+        endpoint,
+        headers=headers
+    )
+    assert response.status == '200 OK'
+
 
 
 def test_empty_payload(client):

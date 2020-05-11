@@ -1,9 +1,21 @@
+import enum
+
+
 class ConfigSections:
     KEEPER_CONTRACTS = 'keeper-contracts'
     RESOURCES = 'resources'
     OSMOSIS = 'osmosis'
     DECRYPTION_METHODS = ['SecretStore', 'PSK-RSA', 'PSK-ECDSA']
     DEFAULT_DECRYPTION_METHOD = 'SecretStore'
+    PING_ITERATIONS = 15
+    PING_SLEEP = 1500
+
+
+class ConditionState(enum.Enum):
+    Uninitialized = 0
+    Unfulfilled = 1
+    Fulfilled = 2
+    Aborted = 3
 
 
 class BaseURLs:

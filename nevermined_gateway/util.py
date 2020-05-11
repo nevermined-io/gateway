@@ -107,6 +107,7 @@ def do_secret_store_decrypt(did_id, encrypted_document, provider_acc, config):
 def is_access_granted(agreement_id, did, consumer_address, keeper):
     agreement_consumer = keeper.escrow_access_secretstore_template.get_agreement_consumer(
         agreement_id)
+    logger.info(agreement_consumer)
 
     if agreement_consumer is None:
         return False
@@ -118,9 +119,12 @@ def is_access_granted(agreement_id, did, consumer_address, keeper):
         return False
 
     document_id = did_to_id(did)
-    return keeper.access_secret_store_condition.check_permissions(
+
+    is_granted = keeper.access_secret_store_condition.check_permissions(
         document_id, consumer_address
     )
+    logger.info(is_granted)
+    return is_granted
 
 
 def was_compute_triggered(agreement_id, did, computer_consumer_address, keeper):
