@@ -419,6 +419,12 @@ def access(agreement_id, index=0):
                     agreement_id, asset_id, consumer_address, provider_acc
                 )
 
+            if escrowreward_condition_status != ConditionState.Fulfilled.value:
+                logger.debug('Fulfilling EscrowReward condition %s' % agreement_id)
+                keeper.escrow_reward_condition.fulfill(
+                    agreement_id, asset_id, consumer_address, provider_acc
+                )
+
             iteration = 0
             access_granted = False
             while iteration < ConfigSections.PING_ITERATIONS:
@@ -515,17 +521,58 @@ def execute(agreement_id):
     except Exception:
         return 'Unable to retrieve required parameters', 401
 
-
     try:
+        keeper = keeper_instance()
+
         asset_id = keeper_instance().agreement_manager.get_agreement(agreement_id).did
         did = id_to_did(asset_id)
         if not was_compute_triggered(agreement_id, did, consumer_address, keeper_instance()):
-            msg = (
-                'Checking if the compute was triggered failed. Either consumer address does not '
-                'have permission to executre this workflow or consumer address and/or service '
-                'agreement id is invalid.')
-            logger.warning(msg)
-            return msg, 401
+
+            agreement = keeper.agreement_manager.get_agreement(agreement_id)
+            cond_ids = agreement.condition_ids
+
+            compute_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
+            lockreward_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
+            escrowreward_condition_status = keeper.condition_manager.get_condition_state(cond_ids[2])
+            logger.debug('ComputeExecutionCondition: %d' % compute_condition_status)
+            logger.debug('LockRewardCondition: %d' % lockreward_condition_status)
+            logger.debug('EscrowRewardCondition: %d' % escrowreward_condition_status)
+
+            if lockreward_condition_status != ConditionState.Fulfilled.value:
+                logger.debug('ServiceAgreement %s was not paid. Forbidden' % agreement_id)
+                return 'ServiceAgreement %s was not paid, LockRewardCondition status is %d' \
+                       % (agreement_id, lockreward_condition_status), 401
+
+            if compute_condition_status != ConditionState.Fulfilled.value:
+                logger.debug('Fulfilling Compute Execution condition %s' % agreement_id)
+                keeper.access_secret_store_condition.fulfill(
+                    agreement_id, asset_id, consumer_address, provider_acc
+                )
+
+            if escrowreward_condition_status != ConditionState.Fulfilled.value:
+                logger.debug('Fulfilling EscrowReward condition %s' % agreement_id)
+                keeper.escrow_reward_condition.fulfill(
+                    agreement_id, asset_id, consumer_address, provider_acc
+                )
+
+            iteration = 0
+            access_granted = False
+            while iteration < ConfigSections.PING_ITERATIONS:
+                iteration = iteration + 1
+                logger.debug('Checking if compute was granted. Iteration %d' % iteration)
+                if not is_access_granted(agreement_id, did, consumer_address, keeper):
+                    time.sleep(ConfigSections.PING_SLEEP / 1000)
+                else:
+                    access_granted = True
+                    break
+
+            if not access_granted:
+                msg = (
+                    'Scheduling the compute execution failed. Either consumer address does not '
+                    'have permission to execute this workflow or consumer address and/or service '
+                    'agreement id is invalid.')
+                logger.warning(msg)
+                return msg, 401
 
         workflow = DIDResolver(keeper_instance().did_registry).resolve(workflow_did)
         body = {"serviceAgreementId": agreement_id, "workflow": workflow.as_dictionary()}
@@ -535,6 +582,7 @@ def execute(agreement_id):
             data=json.dumps(body),
             headers={'content-type': 'application/json'})
         return jsonify({"workflowId": response.content.decode('utf-8')})
+
     except Exception as e:
         logger.error(f'Error- {str(e)}', exc_info=1)
         return f'Error : {str(e)}', 500

@@ -368,7 +368,7 @@ def test_auth_token():
     assert good, f'invalid signature/auth-token {token}, {pub_address}, {doc_id}'
 
 
-def test_exec_endpoint():
+def test_execute_endpoint():
     pass
 
 
