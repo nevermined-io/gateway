@@ -1,0 +1,19 @@
+Call the execution of a workflow.
+---
+tags:
+  - services
+consumes:
+  - application/json
+parameters:
+  - name: message
+    in: query
+    description: The message to encrypt
+    required: true
+    type: string
+    example: 'hi there!'
+
+responses:
+  200:
+    description: Message encrypted successfully.
+  500:
+    description: Error

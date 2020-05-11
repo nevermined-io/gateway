@@ -1,0 +1,43 @@
+Allows to get access to an asset data file.
+
+  ---
+tags:
+  - services
+consumes:
+  - application/json
+parameters:
+  - name: agreement_id
+    in: path
+    description: The ID of the service agreement.
+    required: true
+    type: string
+  - name: index
+    in: path
+    description: Index of the file in the array of files.
+    required: true
+    schema:
+      type: integer
+      minimum: 0
+  - name: X-Consumer-Address
+    in: header
+    description: The consumer address.
+    required: true
+    type: string
+  - name: X-DID
+    in: header
+    description: The ID of the asset
+    required: true
+    type: string
+  - name: X-Signature
+    in: header
+    description: Signature of the documentId to verify that the consumer has rights to download the asset.
+    required: true
+responses:
+  200:
+    description: Redirect to valid asset url.
+  400:
+    description: One of the required attributes is missing.
+  401:
+    description: Invalid asset data.
+  500:
+    description: Error

@@ -18,8 +18,7 @@ from nevermined_gateway.util import (build_download_response, check_required_att
                                      get_provider_account,
                                      is_access_granted, keeper_instance, setup_keeper, verify_signature,
                                      was_compute_triggered, get_provider_key_file, get_provider_password,
-                                     get_ecdsa_public_key_from_file, get_rsa_public_key_file,
-                                     get_content_keyfile_from_path, rsa_encription_from_file,
+                                     get_ecdsa_public_key_from_file, rsa_encription_from_file,
                                      ecdsa_encription_from_file)
 
 setup_logging()
@@ -33,41 +32,8 @@ logger = logging.getLogger(__name__)
 
 @services.route("/encrypt", methods=['POST'])
 def encrypt_content():
-    """Encrypt a Secret using the Secret Store, ECDSA or RSA methods
-
-    ---
-    tags:
-      - services
-    consumes:
-      - application/json
-    parameters:
-      - in: body
-        name: body
-        required: true
-        description: Asset urls encryption.
-        schema:
-          type: object
-          required:
-            - message
-            - method
-          properties:
-            message:
-              description: The message to encrypt
-              type: string
-              example: '{"url":"https://keyko.io/","index":0,"checksum":"efb21","contentLength":"45","contentType":"text/csv"}'
-            method:
-              description: The encryption method to use. Options (`SecretStore`, `PSK-ECDSA`, `PSK-RSA`)
-              type: string
-              example: 'PSK-RSA'
-            did:
-              description: Identifier of the asset.
-              type: string
-              example: 'did:nv:08a429b8529856d59867503f8056903a680935a76950bb9649785cc97869a43d'
-    responses:
-      200:
-        description: document successfully encrypted.
-      500:
-        description: Error
+    """Call the execution of a workflow.
+    swagger_from_file: docs/encrypt.yml
     """
 
     required_attributes = ['message', 'method']
@@ -118,53 +84,7 @@ def encrypt_content():
 @services.route('/publish', methods=['POST'])
 def publish():
     """Encrypt document using the SecretStore and keyed by the given documentId.
-
-    This can be used by the publisher of an asset to encrypt the urls of the
-    asset data files before publishing the asset ddo. The publisher to use this
-    service is one that is using a front-end with a wallet app such as MetaMask.
-    In such scenario the publisher is not able to encrypt the urls using the
-    SecretStore interface and this service becomes necessary.
-
-    tags:
-      - services
-    consumes:
-      - application/json
-    parameters:
-      - in: body
-        name: body
-        required: true
-        description: Asset urls encryption.
-        schema:
-          type: object
-          required:
-            - documentId
-            - signature
-            - document
-            - publisherAddress:
-          properties:
-            documentId:
-              description: Identifier of the asset to be registered in ocean.
-              type: string
-              example: 'did:nv:08a429b8529856d59867503f8056903a680935a76950bb9649785cc97869a43d'
-            signature:
-              description: Publisher signature of the documentId
-              type: string
-              example: ''
-            document:
-              description: document
-              type: string
-              example: '/some-url'
-            publisherAddress:
-              description: Publisher address.
-              type: string
-              example: '0x00a329c0648769A73afAc7F9381E08FB43dBEA72'
-    responses:
-      201:
-        description: document successfully encrypted.
-      500:
-        description: Error
-
-    return: the encrypted document (hex str)
+    swagger_from_file: docs/publish.yml
     """
     required_attributes = [
         'documentId',
@@ -216,152 +136,11 @@ def publish():
         return f'Error: {str(e)}', 500
 
 
-@services.route('/consume', methods=['GET'])
-def consume():
-    """Allows download of asset data file.
-    Method deprecated, it will be replaced by `/access` in further versions
-
-    ---
-    tags:
-      - services
-    consumes:
-      - application/json
-    parameters:
-      - name: consumerAddress
-        in: query
-        description: The consumer address.
-        required: true
-        type: string
-      - name: serviceAgreementId
-        in: query
-        description: The ID of the service agreement.
-        required: true
-        type: string
-      - name: signature
-        in: query
-        description: Signature of the documentId to verify that the consumer has rights to download the asset.
-      - name: index
-        in: query
-        description: Index of the file in the array of files.
-    responses:
-      200:
-        description: Redirect to valid asset url.
-      400:
-        description: One of the required attributes is missing.
-      401:
-        description: Invalid asset data.
-      500:
-        description: Error
-    """
-    data = request.args
-    required_attributes = [
-        'serviceAgreementId',
-        'consumerAddress',
-        'signature',
-        'index'
-    ]
-    msg, status = check_required_attributes(required_attributes, data, 'consume')
-    if msg:
-        return msg, status
-
-    try:
-        keeper = keeper_instance()
-        agreement_id = data.get('serviceAgreementId')
-        consumer_address = data.get('consumerAddress')
-        asset_id = keeper.agreement_manager.get_agreement(agreement_id).did
-        did = id_to_did(asset_id)
-
-        if not is_access_granted(
-                agreement_id,
-                did,
-                consumer_address,
-                keeper):
-            msg = ('Checking access permissions failed. Either consumer address does not have '
-                   'permission to consume this asset or consumer address and/or service agreement '
-                   'id is invalid.')
-            logger.warning(msg)
-            return msg, 401
-
-        asset = DIDResolver(keeper.did_registry).resolve(did)
-        signature = data.get('signature')
-        index = int(data.get('index'))
-
-        if not verify_signature(keeper, consumer_address, signature, agreement_id):
-            msg = f'Invalid signature {signature} for ' \
-                  f'publisherAddress {consumer_address} and documentId {agreement_id}.'
-            raise ValueError(msg)
-
-        file_attributes = asset.metadata['main']['files'][index]
-        content_type = file_attributes.get('contentType', None)
-
-        try:
-            auth_method = asset.authorization['service']
-        except Exception:
-            auth_method = constants.ConfigSections.DEFAULT_DECRYPTION_METHOD
-
-        if auth_method not in constants.ConfigSections.DECRYPTION_METHODS:
-            msg = ('The Authorization Method defined in the DDO is not part of the availble methods supported'
-                   'by the Gateway: ' + auth_method)
-            logger.warning(msg)
-            return msg, 400
-
-        url = get_asset_url_at_index(index, asset, provider_acc, auth_method)
-        download_url = get_download_url(url, app.config['CONFIG_FILE'])
-
-        logger.info(f'Done processing consume request for asset {did}, agreementId {agreement_id},'
-                    f' url {download_url}')
-        return build_download_response(request, requests_session, url, download_url, content_type)
-    except (ValueError, Exception) as e:
-        logger.error(f'Error- {str(e)}', exc_info=1)
-        return f'Error : {str(e)}', 500
-
-
 @services.route('/access/<agreement_id>', methods=['GET'])
 @services.route('/access/<agreement_id>/<int:index>', methods=['GET'])
 def access(agreement_id, index=0):
     """Allows to get access to an asset data file.
-
-    ---
-    tags:
-      - services
-    consumes:
-      - application/json
-    parameters:
-      - name: agreement_id
-        in: path
-        description: The ID of the service agreement.
-        required: true
-        type: string
-      - name: index
-        in: path
-        description: Index of the file in the array of files.
-        required: true
-        schema:
-            type: integer
-            minimum: 0
-      - name: X-Consumer-Address
-        in: header
-        description: The consumer address.
-        required: true
-        type: string
-      - name: X-DID
-        in: header
-        description: The ID of the asset
-        required: true
-        type: string
-      - name: X-Signature
-        in: header
-        description: Signature of the documentId to verify that the consumer has rights to download the asset.
-        required: true
-    responses:
-      200:
-        description: Redirect to valid asset url.
-      400:
-        description: One of the required attributes is missing.
-      401:
-        description: Invalid asset data.
-      500:
-        description: Error
+    swagger_from_file: docs/access.yml
     """
 
     try:
@@ -375,8 +154,8 @@ def access(agreement_id, index=0):
         return 'Unable to retrieve required parameters', 401
 
     logger.info('Parameters:\nAgreementId: %s\nIndex: %d\nConsumerAddress: %s\n'
-                 'DID: %s\nSignature: %s'
-                 % (agreement_id, index, consumer_address, did, signature))
+                'DID: %s\nSignature: %s'
+                % (agreement_id, index, consumer_address, did, signature))
 
     try:
         keeper = keeper_instance()
@@ -474,41 +253,7 @@ def access(agreement_id, index=0):
 @services.route('/execute/<agreement_id>', methods=['POST'])
 def execute(agreement_id):
     """Call the execution of a workflow.
-
-    ---
-    tags:
-      - services
-    consumes:
-      - application/json
-    parameters:
-      - name: agreement_id
-        in: path
-        description: The ID of the service agreement.
-        required: true
-        type: string
-      - name: X-Consumer-Address
-        in: header
-        description: The consumer address.
-        required: true
-        type: string
-      - name: X-Workflow-DID
-        in: header
-        description: DID of the workflow that is going to start to be executed
-        required: true
-        type: string
-      - name: X-Signature
-        in: header
-        description: Signature of the documentId to verify that the consumer has rights to download the asset.
-        required: true
-    responses:
-      200:
-        description: Call to the operator-service was successful.
-      400:
-        description: One of the required attributes is missing.
-      401:
-        description: Invalid asset data.
-      500:
-        description: Error
+    swagger_from_file: docs/execute.yml
     """
 
     try:
@@ -588,43 +333,83 @@ def execute(agreement_id):
         return f'Error : {str(e)}', 500
 
 
+##### DEPRECATED METHODS ######
+
+
+@services.route('/consume', methods=['GET'])
+def consume():
+    """Allows download of asset data file.
+    Method deprecated, it will be replaced by `/access` in further versions
+    swagger_from_file: docs/consume.yml
+    """
+    data = request.args
+    required_attributes = [
+        'serviceAgreementId',
+        'consumerAddress',
+        'signature',
+        'index'
+    ]
+    msg, status = check_required_attributes(required_attributes, data, 'consume')
+    if msg:
+        return msg, status
+
+    try:
+        keeper = keeper_instance()
+        agreement_id = data.get('serviceAgreementId')
+        consumer_address = data.get('consumerAddress')
+        asset_id = keeper.agreement_manager.get_agreement(agreement_id).did
+        did = id_to_did(asset_id)
+
+        if not is_access_granted(
+                agreement_id,
+                did,
+                consumer_address,
+                keeper):
+            msg = ('Checking access permissions failed. Either consumer address does not have '
+                   'permission to consume this asset or consumer address and/or service agreement '
+                   'id is invalid.')
+            logger.warning(msg)
+            return msg, 401
+
+        asset = DIDResolver(keeper.did_registry).resolve(did)
+        signature = data.get('signature')
+        index = int(data.get('index'))
+
+        if not verify_signature(keeper, consumer_address, signature, agreement_id):
+            msg = f'Invalid signature {signature} for ' \
+                  f'publisherAddress {consumer_address} and documentId {agreement_id}.'
+            raise ValueError(msg)
+
+        file_attributes = asset.metadata['main']['files'][index]
+        content_type = file_attributes.get('contentType', None)
+
+        try:
+            auth_method = asset.authorization['service']
+        except Exception:
+            auth_method = constants.ConfigSections.DEFAULT_DECRYPTION_METHOD
+
+        if auth_method not in constants.ConfigSections.DECRYPTION_METHODS:
+            msg = ('The Authorization Method defined in the DDO is not part of the availble methods supported'
+                   'by the Gateway: ' + auth_method)
+            logger.warning(msg)
+            return msg, 400
+
+        url = get_asset_url_at_index(index, asset, provider_acc, auth_method)
+        download_url = get_download_url(url, app.config['CONFIG_FILE'])
+
+        logger.info(f'Done processing consume request for asset {did}, agreementId {agreement_id},'
+                    f' url {download_url}')
+        return build_download_response(request, requests_session, url, download_url, content_type)
+    except (ValueError, Exception) as e:
+        logger.error(f'Error- {str(e)}', exc_info=1)
+        return f'Error : {str(e)}', 500
+
+
 @services.route('/exec', methods=['POST'])
 def execute_compute_job():
     """Call the execution of a workflow.
     Method deprecated, it will be replaced by `/execute` in further versions
-    ---
-    tags:
-      - services
-    consumes:
-      - application/json
-    parameters:
-      - name: consumerAddress
-        in: query
-        description: The consumer address.
-        required: true
-        type: string
-      - name: serviceAgreementId
-        in: query
-        description: The ID of the service agreement.
-        required: true
-        type: string
-      - name: signature
-        in: query
-        description: Signature of the documentId to verify that the consumer has rights to download the asset.
-        type: string
-      - name: workflowDID
-        in: query
-        description: DID of the workflow that is going to start to be executed.
-        type: string
-    responses:
-      200:
-        description: Call to the operator-service was successful.
-      400:
-        description: One of the required attributes is missing.
-      401:
-        description: Invalid asset data.
-      500:
-        description: Error
+    swagger_from_file: docs/execute_compute_job.yml
     """
     data = request.args
     required_attributes = [
