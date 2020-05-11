@@ -29,25 +29,7 @@ logger = logging.getLogger(__name__)
 @services.route("/encrypt", methods=['POST'])
 def encrypt():
     """Call the execution of a workflow.
-
-    ---
-    tags:
-      - services
-    consumes:
-      - application/json
-    parameters:
-      - name: message
-        in: query
-        description: The message to encrypt
-        required: true
-        type: string
-        example: 'hi there!'
-
-    responses:
-      200:
-        description: Message encrypted successfully.
-      500:
-        description: Error
+    swagger_from_file: docs/encrypt.yml
     """
     required_attributes = ['message']
     data = request.args
@@ -86,53 +68,7 @@ def encrypt():
 @services.route('/publish', methods=['POST'])
 def publish():
     """Encrypt document using the SecretStore and keyed by the given documentId.
-
-    This can be used by the publisher of an asset to encrypt the urls of the
-    asset data files before publishing the asset ddo. The publisher to use this
-    service is one that is using a front-end with a wallet app such as MetaMask.
-    In such scenario the publisher is not able to encrypt the urls using the
-    SecretStore interface and this service becomes necessary.
-
-    tags:
-      - services
-    consumes:
-      - application/json
-    parameters:
-      - in: body
-        name: body
-        required: true
-        description: Asset urls encryption.
-        schema:
-          type: object
-          required:
-            - documentId
-            - signature
-            - document
-            - publisherAddress:
-          properties:
-            documentId:
-              description: Identifier of the asset to be registered in ocean.
-              type: string
-              example: 'did:nv:08a429b8529856d59867503f8056903a680935a76950bb9649785cc97869a43d'
-            signature:
-              description: Publisher signature of the documentId
-              type: string
-              example: ''
-            document:
-              description: document
-              type: string
-              example: '/some-url'
-            publisherAddress:
-              description: Publisher address.
-              type: string
-              example: '0x00a329c0648769A73afAc7F9381E08FB43dBEA72'
-    responses:
-      201:
-        description: document successfully encrypted.
-      500:
-        description: Error
-
-    return: the encrypted document (hex str)
+    swagger_from_file: docs/publish.yml
     """
     required_attributes = [
         'documentId',
@@ -185,44 +121,7 @@ def publish():
 @services.route('/consume', methods=['GET'])
 def consume():
     """Allows download of asset data file.
-
-    ---
-    tags:
-      - services
-    consumes:
-      - application/json
-    parameters:
-      - name: consumerAddress
-        in: query
-        description: The consumer address.
-        required: true
-        type: string
-      - name: serviceAgreementId
-        in: query
-        description: The ID of the service agreement.
-        required: true
-        type: string
-      - name: url
-        in: query
-        description: This URL is only valid if Nevermined Gateway acts as a proxy.
-                     Consumer can't download using the URL if it's not through Nevermined Gateway.
-        required: true
-        type: string
-      - name: signature
-        in: query
-        description: Signature of the documentId to verify that the consumer has rights to download the asset.
-      - name: index
-        in: query
-        description: Index of the file in the array of files.
-    responses:
-      200:
-        description: Redirect to valid asset url.
-      400:
-        description: One of the required attributes is missing.
-      401:
-        description: Invalid asset data.
-      500:
-        description: Error
+    swagger_from_file: docs/consume.yml
     """
     data = request.args
     required_attributes = [
@@ -281,40 +180,7 @@ def consume():
 @services.route('/exec', methods=['POST'])
 def execute_compute_job():
     """Call the execution of a workflow.
-
-    ---
-    tags:
-      - services
-    consumes:
-      - application/json
-    parameters:
-      - name: consumerAddress
-        in: query
-        description: The consumer address.
-        required: true
-        type: string
-      - name: serviceAgreementId
-        in: query
-        description: The ID of the service agreement.
-        required: true
-        type: string
-      - name: signature
-        in: query
-        description: Signature of the documentId to verify that the consumer has rights to download the asset.
-        type: string
-      - name: workflowDID
-        in: query
-        description: DID of the workflow that is going to start to be executed.
-        type: string
-    responses:
-      200:
-        description: Call to the operator-service was successful.
-      400:
-        description: One of the required attributes is missing.
-      401:
-        description: Invalid asset data.
-      500:
-        description: Error
+    swagger_from_file: docs/execute_compute_job.yml
     """
     data = request.args
     required_attributes = [
