@@ -8,6 +8,7 @@ from datetime import datetime
 from os import getenv
 
 import rsa
+from common_utils_py.agreements.service_types import ServiceTypes
 from common_utils_py.did import did_to_id
 from contracts_lib_py import Keeper
 from contracts_lib_py.contract_handler import ContractHandler

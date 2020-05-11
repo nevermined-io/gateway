@@ -2,9 +2,11 @@ import json
 import logging
 import time
 
+from common_utils_py.agreements.service_types import ServiceTypes
 from common_utils_py.did import id_to_did, NEVERMINED_PREFIX
 from common_utils_py.did_resolver.did_resolver import DIDResolver
 from common_utils_py.http_requests.requests_session import get_requests_session
+from contracts_lib_py.web3_provider import Web3Provider
 from eth_utils import remove_0x_prefix
 from flask import Blueprint, jsonify, request
 from secret_store_client.client import RPCError
@@ -170,6 +172,8 @@ def access(agreement_id, index=0):
                   f'publisherAddress {consumer_address} and documentId {agreement_id}.'
             raise ValueError(msg)
 
+        asset = DIDResolver(keeper.did_registry).resolve(did)
+
         # 2. Verification that access is granted
         if not is_access_granted(
                 agreement_id,
@@ -200,8 +204,17 @@ def access(agreement_id, index=0):
 
             if escrowreward_condition_status != ConditionState.Fulfilled.value:
                 logger.debug('Fulfilling EscrowReward condition %s' % agreement_id)
+                service_agreement = asset.get_service(ServiceTypes.ASSET_ACCESS)
+                did_owner = keeper.agreement_manager.get_agreement_did_owner(agreement_id)
+                access_id, lock_id = cond_ids[:2]
                 keeper.escrow_reward_condition.fulfill(
-                    agreement_id, asset_id, consumer_address, provider_acc
+                    agreement_id,
+                    service_agreement.get_price(),
+                    Web3Provider.get_web3().toChecksumAddress(did_owner),
+                    consumer_address,
+                    lock_id,
+                    access_id,
+                    provider_acc
                 )
 
             iteration = 0
@@ -221,8 +234,6 @@ def access(agreement_id, index=0):
                        'id is invalid.')
                 logger.warning(msg)
                 return msg, 401
-
-        asset = DIDResolver(keeper.did_registry).resolve(did)
 
         file_attributes = asset.metadata['main']['files'][index]
         content_type = file_attributes.get('contentType', None)
@@ -271,6 +282,8 @@ def execute(agreement_id):
 
         asset_id = keeper_instance().agreement_manager.get_agreement(agreement_id).did
         did = id_to_did(asset_id)
+        asset = DIDResolver(keeper.did_registry).resolve(did)
+
         if not was_compute_triggered(agreement_id, did, consumer_address, keeper_instance()):
 
             agreement = keeper.agreement_manager.get_agreement(agreement_id)
@@ -296,8 +309,17 @@ def execute(agreement_id):
 
             if escrowreward_condition_status != ConditionState.Fulfilled.value:
                 logger.debug('Fulfilling EscrowReward condition %s' % agreement_id)
+                service_agreement = asset.get_service(ServiceTypes.CLOUD_COMPUTE)
+                did_owner = keeper.agreement_manager.get_agreement_did_owner(agreement_id)
+                compute_id, lock_id = cond_ids[:2]
                 keeper.escrow_reward_condition.fulfill(
-                    agreement_id, asset_id, consumer_address, provider_acc
+                    agreement_id,
+                    service_agreement.get_price(),
+                    Web3Provider.get_web3().toChecksumAddress(did_owner),
+                    consumer_address,
+                    lock_id,
+                    compute_id,
+                    provider_acc
                 )
 
             iteration = 0
