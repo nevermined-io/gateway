@@ -2,7 +2,7 @@ import enum
 
 
 class ConfigSections:
-    KEEPER_CONTRACTS = 'keeper-contracts'
+    KEEPER_CONTRACTS = 'nevermined-contracts'
     RESOURCES = 'resources'
     OSMOSIS = 'osmosis'
     DECRYPTION_METHODS = ['SecretStore', 'PSK-RSA', 'PSK-ECDSA']

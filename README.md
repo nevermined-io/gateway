@@ -16,7 +16,7 @@
   - [Running Locally, for Dev and Test](#running-locally-for-dev-and-test)
   - [API documentation](#api-documentation)
   - [Configuration](#configuration)
-     - [The [keeper-contracts] and [resources] Sections](#the-keeper-contracts-and-resources-sections)
+     - [The [nevermined-contracts] and [resources] Sections](#the-nevermined-contracts-and-resources-sections)
      - [The [osmosis] Section](#the-osmosis-section)
   - [Dependencies](#dependencies)
   - [Testing](#testing)
@@ -125,11 +125,11 @@ that some settings in the config file can be overwritten by setting certain
 environment variables; there are more details below.
 
 See the [example config.ini file in this repo](config.ini). You will see that 
-there are three sections: `[keeper-contracts]`, `[resources]` and `[osmosis]`.
+there are three sections: `[nevermined-contracts]`, `[resources]` and `[osmosis]`.
 
-### The keeper-contracts and resources Sections
+### The nevermined-contracts and resources Sections
 
-The `[keeper-contracts]` section is used to setup connection to the blockchain nodes and load nevermined-contracts artifacts.
+The `[nevermined-contracts]` section is used to setup connection to the blockchain nodes and load nevermined-contracts artifacts.
 The `[resources]` sections is used to configure Metadata API and Gateway services. 
 
 ### The [osmosis] Section

@@ -35,8 +35,8 @@ class Config(configparser.ConfigParser):
 
         Options available:
 
-        [keeper-contracts]
-        keeper.url = http://localhost:8545                            # Keeper-contracts url.
+        [nevermined-contracts]
+        keeper.url = http://localhost:8545                            # nevermined-contracts url.
         keeper.path = artifacts                                       # Path of json abis.
         secret_store.url = http://localhost:12001                     # Secret store url.
         parity.url = http://localhost:8545                            # Parity client url.
@@ -50,7 +50,7 @@ class Config(configparser.ConfigParser):
         """
         configparser.ConfigParser.__init__(self)
 
-        self._section_name = 'keeper-contracts'
+        self._section_name = 'nevermined-contracts'
         self._logger = logging.getLogger('config')
 
         if filename:
@@ -77,7 +77,7 @@ class Config(configparser.ConfigParser):
 
     @property
     def keeper_path(self):
-        """Path where the keeper-contracts artifacts are allocated."""
+        """Path where the nevermined-contracts artifacts are allocated."""
         keeper_path_string = self.get(self._section_name, NAME_KEEPER_PATH, fallback=None)
         return Path(keeper_path_string).expanduser().resolve() if keeper_path_string else ''
 
