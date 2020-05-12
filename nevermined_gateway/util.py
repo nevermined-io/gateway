@@ -8,19 +8,17 @@ from datetime import datetime
 from os import getenv
 
 from common_utils_py.did import did_to_id
+from common_utils_py.utils.crypto import ecdsa_decryption, rsa_decryption
 from contracts_lib_py import Keeper
 from contracts_lib_py.contract_handler import ContractHandler
 from contracts_lib_py.utils import add_ethereum_prefix_and_hash_msg, get_account
 from contracts_lib_py.web3_provider import Web3Provider
-from ecies import encrypt, decrypt
-from eth_utils import remove_0x_prefix, to_hex
+from eth_utils import remove_0x_prefix
 from flask import Response
-from web3.auto import w3
-
-from nevermined_gateway.config import Config
 from osmosis_driver_interface.osmosis import Osmosis
 from secret_store_client.client import Client as SecretStore
-from eth_keys import keys, KeyAPI
+
+from nevermined_gateway.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +38,7 @@ def setup_keeper(config_file=None):
                              f'ethereum account. Account address was not found in the environment'
                              f'variable `PROVIDER_ADDRESS`. Please set the following evnironment '
                              f'variables and try again: `PROVIDER_ADDRESS`, `PROVIDER_PASSWORD`, '
-                             f'and `PROVIDER_KEYFILE`.')
+                             f', `PROVIDER_KEYFILE`, `RSA_KEYFILE` and `RSA_PASSWORD`.')
     if not account.key_file and not (account.password and account.key_file):
         raise AssertionError(f'Nevermined Gateway cannot run without a valid '
                              f'ethereum account with either a password and '
@@ -54,6 +52,9 @@ def init_account_envvars():
     os.environ['PARITY_ADDRESS'] = os.getenv('PROVIDER_ADDRESS', '')
     os.environ['PARITY_PASSWORD'] = os.getenv('PROVIDER_PASSWORD', '')
     os.environ['PARITY_KEYFILE'] = os.getenv('PROVIDER_KEYFILE', '')
+    os.environ['PSK-RSA_PRIVKEY_FILE'] = os.getenv('RSA_PRIVKEY_FILE', '')
+    os.environ['PSK-RSA_PUBKEY_FILE'] = os.getenv('RSA_PUBKEY_FILE', '')
+
 
 
 def get_provider_key_file():
@@ -62,6 +63,14 @@ def get_provider_key_file():
 
 def get_provider_password():
     return os.getenv('PROVIDER_PASSWORD', '')
+
+
+def get_rsa_private_key_file():
+    return os.getenv('RSA_PRIVKEY_FILE', '')
+
+
+def get_rsa_public_key_file():
+    return os.getenv('RSA_PUBKEY_FILE', '')
 
 
 def get_config():
@@ -95,6 +104,7 @@ def do_secret_store_decrypt(did_id, encrypted_document, provider_acc, config):
 def is_access_granted(agreement_id, did, consumer_address, keeper):
     agreement_consumer = keeper.escrow_access_secretstore_template.get_agreement_consumer(
         agreement_id)
+    logger.info(agreement_consumer)
 
     if agreement_consumer is None:
         return False
@@ -106,9 +116,12 @@ def is_access_granted(agreement_id, did, consumer_address, keeper):
         return False
 
     document_id = did_to_id(did)
-    return keeper.access_secret_store_condition.check_permissions(
+
+    is_granted = keeper.access_secret_store_condition.check_permissions(
         document_id, consumer_address
     )
+    logger.info(is_granted)
+    return is_granted
 
 
 def was_compute_triggered(agreement_id, did, computer_consumer_address, keeper):
@@ -242,17 +255,25 @@ def build_download_response(request, requests_session, url, download_url, conten
         raise
 
 
-def get_asset_url_at_index(url_index, asset, account):
+def get_asset_url_at_index(url_index, asset, account, auth_method='SecretStore'):
+
     logger.debug(
         f'get_asset_url_at_index(): url_index={url_index}, did={asset.did}, provider='
         f'{account.address}')
     try:
-        files_str = do_secret_store_decrypt(
-            remove_0x_prefix(asset.asset_id),
-            asset.encrypted_files,
-            account,
-            get_config()
-        )
+        if auth_method == 'SecretStore':
+            files_str = do_secret_store_decrypt(
+                remove_0x_prefix(asset.asset_id),
+                asset.encrypted_files,
+                account,
+                get_config()
+            )
+        elif auth_method == 'PSK-RSA':
+            files_str = rsa_decryption(asset.encrypted_files, get_rsa_private_key_file())
+        elif auth_method == 'PSK-ECDSA':
+            files_str = ecdsa_decryption(asset.encrypted_files, get_provider_key_file(), get_provider_password())
+
+
         logger.debug(f'Got decrypted files str {files_str}')
         files_list = json.loads(files_str)
         if not isinstance(files_list, list):
@@ -299,31 +320,3 @@ def check_required_attributes(required_attributes, data, method):
             return '"%s" is required in the call to %s' % (attr, method), 400
     return None, None
 
-
-def get_keys_from_file(keyfile_path, keyfile_password):
-    with open(keyfile_path) as keyfile:
-        encrypted_key = keyfile.read()
-    private_key = w3.eth.account.decrypt(encrypted_key, keyfile_password)
-    pk = keys.PrivateKey(private_key)
-
-    private_key_hex = to_hex(private_key)  # hex string
-    public_key_hex = to_hex(pk.public_key._raw_key)  # hex string
-
-    return public_key_hex, private_key_hex
-
-
-def get_public_key_from_file(keyfile_path, keyfile_password):
-    with open(keyfile_path) as keyfile:
-        encrypted_key = keyfile.read()
-    private_key = w3.eth.account.decrypt(encrypted_key, keyfile_password)
-    pk = keys.PrivateKey(private_key)
-
-    return to_hex(pk.public_key._raw_key)  # hex string
-
-
-def encryption(public_key_hex, data):
-    return encrypt(public_key_hex, data)
-
-
-def decryption(private_key_hex, encrypted_data):
-    return decrypt(private_key_hex, encrypted_data)

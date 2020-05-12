@@ -46,5 +46,8 @@ jobs:
         export PROVIDER_ADDRESS=0x00bd138abd70e2f00903268f3db08f2d25677c9e
         export PROVIDER_PASSWORD=node0
         export PROVIDER_KEYFILE=tests/resources/data/publisher_key_file.json
+        export RSA_PRIVKEY_FILE=tests/resources/data/rsa_priv_key.pem
+        export RSA_PUBKEY_FILE=tests/resources/data/rsa_pub_key.pem
+
         pip install pytest
         pytest

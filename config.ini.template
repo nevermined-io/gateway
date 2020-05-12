@@ -1,4 +1,4 @@
-[keeper-contracts]
+[nevermined-contracts]
 keeper.url = ${KEEPER_URL}
 secret_store.url = ${SECRET_STORE_URL}
 parity.url = ${PARITY_URL}

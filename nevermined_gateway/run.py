@@ -2,6 +2,7 @@ import configparser
 import logging
 
 from common_utils_py.http_requests.requests_session import get_requests_session
+from common_utils_py.utils.crypto import get_ecdsa_public_key_from_file, get_content_keyfile_from_path
 from flask import jsonify
 from flask_swagger import swagger
 from flask_swagger_ui import get_swaggerui_blueprint
@@ -10,8 +11,8 @@ from nevermined_gateway.config import Config
 from nevermined_gateway.constants import BaseURLs, ConfigSections, Metadata
 from nevermined_gateway.myapp import app
 from nevermined_gateway.routes import services
-from nevermined_gateway.util import keeper_instance, get_provider_account, get_provider_key_file, get_provider_password, \
-    get_public_key_from_file
+from nevermined_gateway.util import keeper_instance, get_provider_account, get_provider_key_file, \
+    get_provider_password, get_rsa_public_key_file
 
 config = Config(filename=app.config['CONFIG_FILE'])
 gateway_url = config.get(ConfigSections.RESOURCES, 'gateway.url')
@@ -51,7 +52,12 @@ def version():
     info['contracts']['TemplateStoreManager'] = keeper.template_manager.address
     info['keeper-version'] = keeper.token.version
     info['provider-address'] = get_provider_account().address
-    info['public-key'] = get_public_key_from_file(get_provider_key_file(), get_provider_password())
+
+    info['ecdsa-public-key'] = get_ecdsa_public_key_from_file(get_provider_key_file(), get_provider_password())
+    try:
+        info['rsa-public-key'] = get_content_keyfile_from_path(get_rsa_public_key_file())
+    except Exception as e:
+        logger.warning(f'Unable to load RSA Public Key: {e}. ', exc_info=1)
 
     return jsonify(info)
 
