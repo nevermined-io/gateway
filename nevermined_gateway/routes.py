@@ -6,6 +6,8 @@ from common_utils_py.agreements.service_types import ServiceTypes
 from common_utils_py.did import id_to_did, NEVERMINED_PREFIX
 from common_utils_py.did_resolver.did_resolver import DIDResolver
 from common_utils_py.http_requests.requests_session import get_requests_session
+from common_utils_py.utils.crypto import get_ecdsa_public_key_from_file, ecdsa_encription_from_file, \
+    rsa_encription_from_file
 from contracts_lib_py.web3_provider import Web3Provider
 from eth_utils import remove_0x_prefix
 from flask import Blueprint, jsonify, request
@@ -20,8 +22,7 @@ from nevermined_gateway.util import (build_download_response, check_required_att
                                      get_provider_account,
                                      is_access_granted, keeper_instance, setup_keeper, verify_signature,
                                      was_compute_triggered, get_provider_key_file, get_provider_password,
-                                     get_ecdsa_public_key_from_file, rsa_encription_from_file,
-                                     ecdsa_encription_from_file)
+                                     get_rsa_public_key_file)
 
 setup_logging()
 services = Blueprint('services', __name__)
@@ -64,10 +65,10 @@ def encrypt_content():
             public_key = get_ecdsa_public_key_from_file(get_provider_key_file(), get_provider_password())
 
         elif (method == 'PSK-ECDSA'):
-            hash, public_key = ecdsa_encription_from_file(message)
+            hash, public_key = ecdsa_encription_from_file(message, get_provider_key_file(), get_provider_password())
 
         elif (method == 'PSK-RSA'):
-            hash, public_key = rsa_encription_from_file(message)
+            hash, public_key = rsa_encription_from_file(message, get_rsa_public_key_file())
         else:
             return f'Unknown method: {method}\n' \
                    f'Options available are (`SecretStore`, `PSK-ECDSA`, `PSK-RSA`)', 500

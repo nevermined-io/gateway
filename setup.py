@@ -14,7 +14,7 @@ with open('CHANGELOG.md') as history_file:
 # or pip install -e .
 install_requirements = [
     # Install squid-py and all its dependencies first
-    'common-utils-py==0.2.2',
+    'common-utils-py==0.2.3',
     'contracts-lib-py==0.2.2',
     'ocean-secret-store-client==0.0.2',
     'Flask==1.1.2',
@@ -30,9 +30,6 @@ install_requirements = [
     'osmosis-on-premise-driver==0.0.6',
     'osmosis-ipfs-driver==0.0.1',
     'Werkzeug>=0.15.3',
-    'eciespy==0.3.5',
-    'eth-keys==0.3.3',
-    'rsa==4.0',
 ]
 
 # Required to run setup.py:

@@ -127,9 +127,9 @@ environment variables; there are more details below.
 See the [example config.ini file in this repo](config.ini). You will see that 
 there are three sections: `[keeper-contracts]`, `[resources]` and `[osmosis]`.
 
-### The nevermined-contracts and resources Sections
+### The keeper-contracts and resources Sections
 
-The `[nevermined-contracts]` section is used to setup connection to the blockchain nodes and load nevermined-contracts artifacts.
+The `[keeper-contracts]` section is used to setup connection to the blockchain nodes and load nevermined-contracts artifacts.
 The `[resources]` sections is used to configure Metadata API and Gateway services. 
 
 ### The [osmosis] Section
