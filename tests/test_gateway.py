@@ -39,7 +39,8 @@ def get_registered_ddo(account, providers=None, auth_service='SecretStore'):
     metadata_api = Metadata('http://localhost:5000')
     metadata = get_sample_ddo()['service'][0]['attributes']
     metadata['main']['files'][0][
-        'url'] = "https://raw.githubusercontent.com/tbertinmahieux/MSongsDB/master/Tasks_Demos/CoverSongs/shs_dataset_test.txt"
+        'url'] = "https://raw.githubusercontent.com/tbertinmahieux/MSongsDB/master/Tasks_Demos" \
+                 "/CoverSongs/shs_dataset_test.txt"
     metadata['main']['files'][0]['checksum'] = str(uuid.uuid4())
 
     ddo = DDO()
@@ -47,9 +48,10 @@ def get_registered_ddo(account, providers=None, auth_service='SecretStore'):
 
     metadata_service_desc = ServiceDescriptor.metadata_service_descriptor(metadata,
                                                                           ddo_service_endpoint)
-    authorization_service_attributes = {
+    authorization_service_attributes = {"main": {
+        "service": auth_service,
         "publicKey": "0xd7"
-    }
+    }}
 
     access_service_attributes = {"main": {
         "name": "dataAssetAccessServiceAgreement",
@@ -61,8 +63,7 @@ def get_registered_ddo(account, providers=None, auth_service='SecretStore'):
 
     service_descriptors = [ServiceDescriptor.authorization_service_descriptor(
         authorization_service_attributes,
-        'http://localhost:12001',
-        auth_service
+        'http://localhost:12001'
     )]
     service_descriptors += [ServiceDescriptor.access_service_descriptor(
         access_service_attributes,
@@ -217,7 +218,8 @@ def test_consume(client):
         event = keeper.lock_reward_condition.subscribe_condition_fulfilled(
             agreement_id, 15, None, (), wait=True, from_block=0
         )
-        assert event, "Lock reward condition fulfilled event is not found, check the keeper node's logs"
+        assert event, "Lock reward condition fulfilled event is not found, check the keeper " \
+                      "node's logs"
 
         grant_access(agreement_id, ddo, cons_acc, pub_acc)
         event = keeper.access_secret_store_condition.subscribe_condition_fulfilled(
@@ -239,7 +241,6 @@ def test_consume(client):
 
 
 def test_access(client):
-
     pub_acc = get_publisher_account()
     cons_acc = get_consumer_account()
 
@@ -284,7 +285,6 @@ def test_access(client):
         headers=headers
     )
     assert response.status == '200 OK'
-
 
 
 def test_empty_payload(client):
@@ -360,6 +360,7 @@ def test_auth_token():
     assert is_token_valid(token), f'cannot recognize auth-token {token}'
     address = check_auth_token(token)
     assert address and address.lower() == pub_address.lower(), f'address mismatch, got {address}, ' \
+                                                               f'' \
                                                                f'' \
                                                                f'' \
                                                                f'' \
