@@ -6,8 +6,8 @@ from common_utils_py.agreements.service_types import ServiceTypes
 from common_utils_py.did import id_to_did, NEVERMINED_PREFIX
 from common_utils_py.did_resolver.did_resolver import DIDResolver
 from common_utils_py.http_requests.requests_session import get_requests_session
-from common_utils_py.utils.crypto import get_ecdsa_public_key_from_file, ecdsa_encription_from_file, \
-    rsa_encription_from_file
+from common_utils_py.utils.crypto import get_ecdsa_public_key_from_file, ecdsa_encryption_from_file, \
+    rsa_encryption_from_file
 from contracts_lib_py.web3_provider import Web3Provider
 from eth_utils import remove_0x_prefix
 from flask import Blueprint, jsonify, request
@@ -65,10 +65,10 @@ def encrypt_content():
             public_key = get_ecdsa_public_key_from_file(get_provider_key_file(), get_provider_password())
 
         elif (method == 'PSK-ECDSA'):
-            hash, public_key = ecdsa_encription_from_file(message, get_provider_key_file(), get_provider_password())
+            hash, public_key = ecdsa_encryption_from_file(message, get_provider_key_file(), get_provider_password())
 
         elif (method == 'PSK-RSA'):
-            hash, public_key = rsa_encription_from_file(message, get_rsa_public_key_file())
+            hash, public_key = rsa_encryption_from_file(message, get_rsa_public_key_file())
         else:
             return f'Unknown method: {method}\n' \
                    f'Options available are (`SecretStore`, `PSK-ECDSA`, `PSK-RSA`)', 500
@@ -240,7 +240,7 @@ def access(agreement_id, index=0):
         content_type = file_attributes.get('contentType', None)
 
         try:
-            auth_method = asset.authorization['service']
+            auth_method = asset.authorization['attributes']['main']['service']
         except Exception:
             auth_method = constants.ConfigSections.DEFAULT_DECRYPTION_METHOD
 
@@ -407,12 +407,12 @@ def consume():
         content_type = file_attributes.get('contentType', None)
 
         try:
-            auth_method = asset.authorization['service']
+            auth_method = asset.authorization['attributes']['main']['service']
         except Exception:
             auth_method = constants.ConfigSections.DEFAULT_DECRYPTION_METHOD
 
         if auth_method not in constants.ConfigSections.DECRYPTION_METHODS:
-            msg = ('The Authorization Method defined in the DDO is not part of the availble methods supported'
+            msg = ('The Authorization Method defined in the DDO is not part of the available methods supported'
                    'by the Gateway: ' + auth_method)
             logger.warning(msg)
             return msg, 400
