@@ -1,6 +1,10 @@
 History
 =======
 
+0.3.1 (May, 2020)
+-------------------------
+* [#12](https://github.com/keyko-io/nevermined-gateway/pull/12) Fix rsa and ecdsa encryption with long messages
+
 0.3.0 (May, 2020)
 -------------------------
 

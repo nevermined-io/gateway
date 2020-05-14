@@ -8,7 +8,7 @@ from datetime import datetime
 from os import getenv
 
 from common_utils_py.did import did_to_id
-from common_utils_py.utils.crypto import ecdsa_decryption, rsa_decryption
+from common_utils_py.utils.crypto import ecdsa_decryption, rsa_decryption_aes
 from contracts_lib_py import Keeper
 from contracts_lib_py.contract_handler import ContractHandler
 from contracts_lib_py.utils import add_ethereum_prefix_and_hash_msg, get_account
@@ -269,7 +269,7 @@ def get_asset_url_at_index(url_index, asset, account, auth_method='SecretStore')
                 get_config()
             )
         elif auth_method == 'PSK-RSA':
-            files_str = rsa_decryption(asset.encrypted_files, get_rsa_private_key_file())
+            files_str = rsa_decryption_aes(asset.encrypted_files, get_rsa_private_key_file())
         elif auth_method == 'PSK-ECDSA':
             files_str = ecdsa_decryption(asset.encrypted_files, get_provider_key_file(), get_provider_password())
 

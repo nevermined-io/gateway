@@ -14,7 +14,7 @@ with open('CHANGELOG.md') as history_file:
 # or pip install -e .
 install_requirements = [
     # Install squid-py and all its dependencies first
-    'common-utils-py==0.2.4',
+    'common-utils-py==0.2.8',
     'contracts-lib-py==0.2.3',
     'ocean-secret-store-client==0.0.2',
     'Flask==1.1.2',
@@ -83,6 +83,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/keyko-io/nevermined-gateway',
-    version='0.3.0',
+    version='0.3.1',
     zip_safe=False,
 )
