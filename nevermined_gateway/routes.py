@@ -407,7 +407,7 @@ def consume():
         content_type = file_attributes.get('contentType', None)
 
         try:
-            auth_method = asset.authorization['attributes']['main']['service']
+            auth_method = asset.authorization.main['service']
         except Exception:
             auth_method = constants.ConfigSections.DEFAULT_DECRYPTION_METHOD
 
