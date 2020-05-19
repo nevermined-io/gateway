@@ -5,13 +5,14 @@ from unittest.mock import MagicMock, Mock
 
 from common_utils_py.agreements.service_agreement import ServiceAgreement
 from common_utils_py.agreements.service_factory import ServiceDescriptor, ServiceFactory
-from common_utils_py.agreements.service_types import ServiceTypes
+from common_utils_py.agreements.service_types import ServiceAuthorizationTypes, ServiceTypes
 from common_utils_py.ddo.ddo import DDO
 from common_utils_py.ddo.metadata import MetadataMain
 from common_utils_py.ddo.public_key_rsa import PUBLIC_KEY_TYPE_RSA
 from common_utils_py.did import DID, did_to_id, did_to_id_bytes
 from common_utils_py.http_requests.requests_session import get_requests_session
 from common_utils_py.metadata.metadata import Metadata
+from common_utils_py.utils.crypto import ecdsa_encryption_from_file, rsa_encryption_from_file
 from common_utils_py.utils.utilities import checksum
 from contracts_lib_py.utils import add_ethereum_prefix_and_hash_msg
 from eth_utils import add_0x_prefix, remove_0x_prefix
@@ -20,10 +21,10 @@ from werkzeug.utils import get_content_type
 from nevermined_gateway import constants
 from nevermined_gateway.constants import BaseURLs
 from nevermined_gateway.util import (build_download_response, check_auth_token,
-                                     do_secret_store_encrypt,
-                                     generate_token, get_config, get_download_url,
-                                     get_provider_account, is_token_valid, keeper_instance,
-                                     verify_signature, web3)
+                                     do_secret_store_encrypt, generate_token, get_config,
+                                     get_download_url, get_provider_account, get_provider_key_file,
+                                     get_provider_password, get_rsa_public_key_file, is_token_valid,
+                                     keeper_instance, verify_signature, web3)
 from tests.conftest import get_consumer_account, get_publisher_account, get_sample_ddo
 
 PURCHASE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/access/initialize'
@@ -109,12 +110,20 @@ def get_registered_ddo(account, providers=None, auth_service='SecretStore'):
     except ValueError:
         pass
 
-    encrypted_files = do_secret_store_encrypt(
-        remove_0x_prefix(ddo.asset_id),
-        json.dumps(metadata['main']['files']),
-        account,
-        get_config()
-    )
+    if auth_service == ServiceAuthorizationTypes.SECRET_STORE:
+        encrypted_files = do_secret_store_encrypt(
+            remove_0x_prefix(ddo.asset_id),
+            json.dumps(metadata['main']['files']),
+            account,
+            get_config()
+        )
+    elif auth_service == ServiceAuthorizationTypes.PSK_RSA:
+        encrypted_files, public_key = rsa_encryption_from_file(
+            json.dumps(metadata['main']['files']), get_rsa_public_key_file())
+    else:
+        encrypted_files, public_key = ecdsa_encryption_from_file(
+            json.dumps(metadata['main']['files']), get_provider_key_file(), get_provider_password())
+
     _files = metadata['main']['files']
     # only assign if the encryption worked
     if encrypted_files:
@@ -244,47 +253,48 @@ def test_access(client):
     pub_acc = get_publisher_account()
     cons_acc = get_consumer_account()
 
-    ddo = get_registered_ddo(pub_acc, providers=[pub_acc.address], auth_service='PSK-RSA')
+    for method in constants.ConfigSections.DECRYPTION_METHODS:
+        ddo = get_registered_ddo(pub_acc, providers=[pub_acc.address], auth_service=method)
 
-    # initialize an agreement
-    agreement_id = place_order(pub_acc, ddo, cons_acc)
+        # initialize an agreement
+        agreement_id = place_order(pub_acc, ddo, cons_acc)
 
-    keeper = keeper_instance()
-    agr_id_hash = add_ethereum_prefix_and_hash_msg(agreement_id)
-    signature = keeper.sign_hash(agr_id_hash, cons_acc)
-    index = 0
+        keeper = keeper_instance()
+        agr_id_hash = add_ethereum_prefix_and_hash_msg(agreement_id)
+        signature = keeper.sign_hash(agr_id_hash, cons_acc)
+        index = 0
 
-    event = keeper.escrow_access_secretstore_template.subscribe_agreement_created(
-        agreement_id, 15, None, (), wait=True, from_block=0
-    )
-    assert event, "Agreement event is not found, check the keeper node's logs"
+        event = keeper.escrow_access_secretstore_template.subscribe_agreement_created(
+            agreement_id, 15, None, (), wait=True, from_block=0
+        )
+        assert event, "Agreement event is not found, check the keeper node's logs"
 
-    consumer_balance = keeper.token.get_token_balance(cons_acc.address)
-    if consumer_balance < 50:
-        keeper.dispenser.request_tokens(50 - consumer_balance, cons_acc)
+        consumer_balance = keeper.token.get_token_balance(cons_acc.address)
+        if consumer_balance < 50:
+            keeper.dispenser.request_tokens(50 - consumer_balance, cons_acc)
 
-    sa = ServiceAgreement.from_ddo(ServiceTypes.ASSET_ACCESS, ddo)
-    lock_reward(agreement_id, sa, cons_acc)
-    event = keeper.lock_reward_condition.subscribe_condition_fulfilled(
-        agreement_id, 15, None, (), wait=True, from_block=0
-    )
-    assert event, "Lock reward condition fulfilled event is not found, check the keeper node's logs"
+        sa = ServiceAgreement.from_ddo(ServiceTypes.ASSET_ACCESS, ddo)
+        lock_reward(agreement_id, sa, cons_acc)
+        event = keeper.lock_reward_condition.subscribe_condition_fulfilled(
+            agreement_id, 15, None, (), wait=True, from_block=0
+        )
+        assert event, "Lock reward condition fulfilled event is not found, check the keeper node's logs"
 
-    # Consume using url index and signature (let the gateway do the decryption)
+        # Consume using url index and signature (let the gateway do the decryption)
 
-    headers = dict({
-        'X-Consumer-Address': cons_acc.address,
-        'X-Signature': signature,
-        'X-DID': ddo.did
-    })
+        headers = dict({
+            'X-Consumer-Address': cons_acc.address,
+            'X-Signature': signature,
+            'X-DID': ddo.did
+        })
 
-    endpoint = BaseURLs.ASSETS_URL + '/access/%s/%d' % (agreement_id, index)
-    print(endpoint)
-    response = client.get(
-        endpoint,
-        headers=headers
-    )
-    assert response.status == '200 OK'
+        endpoint = BaseURLs.ASSETS_URL + '/access/%s/%d' % (agreement_id, index)
+        print(endpoint)
+        response = client.get(
+            endpoint,
+            headers=headers
+        )
+        assert response.status == '200 OK'
 
 
 def test_empty_payload(client):
@@ -360,6 +370,7 @@ def test_auth_token():
     assert is_token_valid(token), f'cannot recognize auth-token {token}'
     address = check_auth_token(token)
     assert address and address.lower() == pub_address.lower(), f'address mismatch, got {address}, ' \
+                                                               f'' \
                                                                f'' \
                                                                f'' \
                                                                f'' \
