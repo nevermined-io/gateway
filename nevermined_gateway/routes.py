@@ -14,6 +14,7 @@ from flask import Blueprint, jsonify, request
 from secret_store_client.client import RPCError
 
 from nevermined_gateway import constants
+from nevermined_gateway.conditions import fulfill_access_condition, fulfill_escrow_reward_condition
 from nevermined_gateway.constants import ConditionState, ConfigSections
 from nevermined_gateway.log import setup_logging
 from nevermined_gateway.myapp import app
@@ -188,6 +189,7 @@ def access(agreement_id, index=0):
             access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
             lockreward_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
             escrowreward_condition_status = keeper.condition_manager.get_condition_state(cond_ids[2])
+
             logger.debug('AccessCondition: %d' % access_condition_status)
             logger.debug('LockRewardCondition: %d' % lockreward_condition_status)
             logger.debug('EscrowRewardCondition: %d' % escrowreward_condition_status)
@@ -197,37 +199,9 @@ def access(agreement_id, index=0):
                 return 'ServiceAgreement %s was not paid, LockRewardCondition status is %d' \
                        % (agreement_id, lockreward_condition_status), 401
 
-            recheck_condition = False
-            if access_condition_status != ConditionState.Fulfilled.value:
-                logger.debug('Fulfilling Access condition')
-                try:
-                    keeper.access_secret_store_condition.fulfill(
-                        agreement_id, asset_id, consumer_address, provider_acc
-                    )
-                except Exception:
-                    recheck_condition = True
 
-            if recheck_condition:
-                access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
-                if access_condition_status != ConditionState.Fulfilled.value:
-                    logger.error('Error in access condition fulfill')
-                else:
-                    logger.info('The access condition was already fulfilled')
-
-            if escrowreward_condition_status != ConditionState.Fulfilled.value:
-                logger.debug('Fulfilling EscrowReward condition %s' % agreement_id)
-                service_agreement = asset.get_service(ServiceTypes.ASSET_ACCESS)
-                did_owner = keeper.agreement_manager.get_agreement_did_owner(agreement_id)
-                access_id, lock_id = cond_ids[:2]
-                keeper.escrow_reward_condition.fulfill(
-                    agreement_id,
-                    service_agreement.get_price(),
-                    Web3Provider.get_web3().toChecksumAddress(did_owner),
-                    consumer_address,
-                    lock_id,
-                    access_id,
-                    provider_acc
-                )
+            fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address, provider_acc)
+            fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consumer_address, provider_acc)
 
             iteration = 0
             access_granted = False
@@ -313,26 +287,8 @@ def execute(agreement_id):
                 return 'ServiceAgreement %s was not paid, LockRewardCondition status is %d' \
                        % (agreement_id, lockreward_condition_status), 401
 
-            if compute_condition_status != ConditionState.Fulfilled.value:
-                logger.debug('Fulfilling Compute Execution condition %s' % agreement_id)
-                keeper.access_secret_store_condition.fulfill(
-                    agreement_id, asset_id, consumer_address, provider_acc
-                )
-
-            if escrowreward_condition_status != ConditionState.Fulfilled.value:
-                logger.debug('Fulfilling EscrowReward condition %s' % agreement_id)
-                service_agreement = asset.get_service(ServiceTypes.CLOUD_COMPUTE)
-                did_owner = keeper.agreement_manager.get_agreement_did_owner(agreement_id)
-                compute_id, lock_id = cond_ids[:2]
-                keeper.escrow_reward_condition.fulfill(
-                    agreement_id,
-                    service_agreement.get_price(),
-                    Web3Provider.get_web3().toChecksumAddress(did_owner),
-                    consumer_address,
-                    lock_id,
-                    compute_id,
-                    provider_acc
-                )
+            fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address, provider_acc)
+            fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consumer_address, provider_acc)
 
             iteration = 0
             access_granted = False
