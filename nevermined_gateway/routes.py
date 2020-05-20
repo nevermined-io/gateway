@@ -197,11 +197,22 @@ def access(agreement_id, index=0):
                 return 'ServiceAgreement %s was not paid, LockRewardCondition status is %d' \
                        % (agreement_id, lockreward_condition_status), 401
 
+            recheck_condition = False
             if access_condition_status != ConditionState.Fulfilled.value:
-                logger.debug('Fulfilling Access condition %s' % agreement_id)
-                keeper.access_secret_store_condition.fulfill(
-                    agreement_id, asset_id, consumer_address, provider_acc
-                )
+                logger.debug('Fulfilling Access condition')
+                try:
+                    keeper.access_secret_store_condition.fulfill(
+                        agreement_id, asset_id, consumer_address, provider_acc
+                    )
+                except Exception:
+                    recheck_condition = True
+
+            if recheck_condition:
+                access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
+                if access_condition_status != ConditionState.Fulfilled.value:
+                    logger.error('Error in access condition fulfill')
+                else:
+                    logger.info('The access condition was already fulfilled')
 
             if escrowreward_condition_status != ConditionState.Fulfilled.value:
                 logger.debug('Fulfilling EscrowReward condition %s' % agreement_id)

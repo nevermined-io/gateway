@@ -151,7 +151,7 @@ def check_auth_token(token):
     parts = token.split('-')
     if len(parts) < 2:
         return '0x0'
-    # :HACK: alert, this should be part of ocean-utils, ocean-keeper, or a stand-alone library
+    # :HACK: alert, this should be part of common-utils, common-contracts, or a stand-alone library
     sig, timestamp = parts
     auth_token_message = get_config().auth_token_message or "Nevermined Protocol Authentication"
     default_exp = 30 * 24 * 60 * 60
