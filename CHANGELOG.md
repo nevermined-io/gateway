@@ -1,6 +1,10 @@
 History
 =======
 
+0.3.3 (May, 2020)
+-------------------------
+* [#14](https://github.com/keyko-io/nevermined-gateway/pull/14) Re-check of access fulfill condition
+
 0.3.2 (May, 2020)
 -------------------------
 * [#13](https://github.com/keyko-io/nevermined-gateway/pull/13) Update contracts-lib-py dependency 
