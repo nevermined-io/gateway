@@ -313,7 +313,7 @@ def execute(agreement_id):
         body = {"serviceAgreementId": agreement_id, "workflow": workflow.as_dictionary()}
 
         response = requests_session.post(
-            get_config().operator_service_url + '/api/v1/operator/init',
+            get_config().operator_service_url + '/api/v1/nevermined-compute-api/init',
             data=json.dumps(body),
             headers={'content-type': 'application/json'})
         return jsonify({"workflowId": response.content.decode('utf-8')})
@@ -432,7 +432,7 @@ def execute_compute_job():
         body = {"serviceAgreementId": agreement_id, "workflow": workflow.as_dictionary()}
 
         response = requests_session.post(
-            get_config().operator_service_url + '/api/v1/operator/init',
+            get_config().operator_service_url + '/api/v1/nevermined-compute-api/init',
             data=json.dumps(body),
             headers={'content-type': 'application/json'})
         return jsonify({"workflowId": response.content.decode('utf-8')})
