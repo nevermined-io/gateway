@@ -28,7 +28,7 @@ jobs:
         git clone https://github.com/keyko-io/nevermined-tools
         cd nevermined-tools
         rm -rf "${HOME}/.nevermined/nevermined-contracts/artifacts"
-        bash -x start_nevermined.sh --no-commons --no-gateway 2>&1 > start_nevermined.log &
+        bash -x start_nevermined.sh --no-commons --no-gateway --latest 2>&1 > start_nevermined.log &
         cd ..
         for i in $(seq 1 50); do
           sleep 5
