@@ -26,7 +26,7 @@ jobs:
       run: |
         git clone https://github.com/keyko-io/nevermined-tools
         cd nevermined-tools
-        export KEEPER_VERSION=v0.2.0
+        export KEEPER_VERSION=v0.4.1
         export METADATA_VERSION=latest
         export EVENTS_HANDLER_VERSION=v0.2.0
         rm -rf "${HOME}/.nevermined/nevermined-contracts/artifacts"
