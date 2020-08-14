@@ -27,7 +27,6 @@ jobs:
         docker login -u ${{ secrets.NEVERMINED_DOCKER_USERNAME }} -p ${{ secrets.NEVERMINED_DOCKER_TOKEN}}
         git clone https://github.com/keyko-io/nevermined-tools
         cd nevermined-tools
-        export KEEPER_VERSION=v0.4.1
         rm -rf "${HOME}/.nevermined/nevermined-contracts/artifacts"
         bash -x start_nevermined.sh --no-commons --no-gateway 2>&1 > start_nevermined.log &
         cd ..
