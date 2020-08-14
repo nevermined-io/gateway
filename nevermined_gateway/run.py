@@ -48,7 +48,7 @@ def version():
     info['contracts']['HashLockCondition'] = keeper.hash_lock_condition.address
     info['contracts']['LockRewardCondition'] = keeper.lock_reward_condition.address
     info['contracts']['SignCondition'] = keeper.sign_condition.address
-    info['contracts']['OceanToken'] = keeper.token.address
+    info['contracts']['NeverminedToken'] = keeper.token.address
     info['contracts']['TemplateStoreManager'] = keeper.template_manager.address
     info['keeper-version'] = keeper.token.version
     info['provider-address'] = get_provider_account().address
