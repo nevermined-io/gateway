@@ -171,7 +171,7 @@ def access(agreement_id, index=0):
         # 1. Verification of signature
         if not verify_signature(keeper, consumer_address, signature, agreement_id):
             msg = f'Invalid signature {signature} for ' \
-                  f'publisherAddress {consumer_address} and documentId {agreement_id}.'
+                  f'consumerAddress {consumer_address} and agreementId {agreement_id}.'
             raise ValueError(msg)
 
         asset = DIDResolver(keeper.did_registry).resolve(did)
@@ -265,6 +265,12 @@ def execute(agreement_id):
 
     try:
         keeper = keeper_instance()
+        
+        # 1. Verification of signature
+        if not verify_signature(keeper, consumer_address, signature, agreement_id):
+            msg = f'Invalid signature {signature} for ' \
+                  f'consumerAddress {consumer_address} and agreementId {agreement_id}.'
+            raise ValueError(msg)
 
         asset_id = keeper_instance().agreement_manager.get_agreement(agreement_id).did
         did = id_to_did(asset_id)

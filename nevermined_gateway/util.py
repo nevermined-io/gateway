@@ -124,21 +124,21 @@ def is_access_granted(agreement_id, did, consumer_address, keeper):
     return is_granted
 
 
-def was_compute_triggered(agreement_id, did, computer_consumer_address, keeper):
+def was_compute_triggered(agreement_id, did, compute_consumer_address, keeper):
     agreement_consumer = keeper.escrow_compute_execution_template.get_agreement_consumer(
         agreement_id)
     if agreement_consumer is None:
         return False
 
-    if agreement_consumer != computer_consumer_address:
-        logger.warning(f'Invalid consumer address {computer_consumer_address} and/or '
+    if agreement_consumer != compute_consumer_address:
+        logger.warning(f'Invalid consumer address {compute_consumer_address} and/or '
                        f'service agreement id {agreement_id} (did {did})'
                        f', agreement consumer is {agreement_consumer}')
         return False
 
     document_id = did_to_id(did)
     return keeper.compute_execution_condition.was_compute_triggered(
-        document_id, computer_consumer_address
+        document_id, compute_consumer_address
     )
 
 
