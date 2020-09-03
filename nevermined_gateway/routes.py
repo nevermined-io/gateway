@@ -14,7 +14,8 @@ from flask import Blueprint, jsonify, request
 from secret_store_client.client import RPCError
 
 from nevermined_gateway import constants
-from nevermined_gateway.conditions import fulfill_access_condition, fulfill_escrow_reward_condition
+from nevermined_gateway.conditions import fulfill_access_condition, fulfill_escrow_reward_condition, \
+    fulfill_compute_condition
 from nevermined_gateway.constants import ConditionState, ConfigSections
 from nevermined_gateway.log import setup_logging
 from nevermined_gateway.myapp import app
@@ -293,7 +294,7 @@ def execute(agreement_id):
                 return 'ServiceAgreement %s was not paid, LockRewardCondition status is %d' \
                        % (agreement_id, lockreward_condition_status), 401
 
-            fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address, provider_acc)
+            fulfill_compute_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address, provider_acc)
             fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consumer_address, provider_acc)
 
             iteration = 0
@@ -301,7 +302,7 @@ def execute(agreement_id):
             while iteration < ConfigSections.PING_ITERATIONS:
                 iteration = iteration + 1
                 logger.debug('Checking if compute was granted. Iteration %d' % iteration)
-                if not is_access_granted(agreement_id, did, consumer_address, keeper):
+                if not was_compute_triggered(agreement_id, did, consumer_address, keeper):
                     time.sleep(ConfigSections.PING_SLEEP / 1000)
                 else:
                     access_granted = True

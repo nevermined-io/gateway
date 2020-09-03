@@ -34,6 +34,30 @@ def fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_
     return True
 
 
+def fulfill_compute_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address, provider_acc):
+    compute_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
+
+    recheck_condition = False
+    if compute_condition_status != ConditionState.Fulfilled.value:
+        logger.debug('Fulfilling Compute condition')
+        try:
+            keeper.compute_execution_condition.fulfill(
+                agreement_id, asset_id, consumer_address, provider_acc
+            )
+        except Exception:
+            recheck_condition = True
+
+    if recheck_condition:
+        compute_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
+        if compute_condition_status != ConditionState.Fulfilled.value:
+            logger.error('Error in compute condition fulfill')
+            return False
+        else:
+            logger.info('The compute condition was already fulfilled')
+
+    return True
+
+
 def fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consumer_address, provider_acc):
     escrowreward_condition_status = keeper.condition_manager.get_condition_state(cond_ids[2])
 
