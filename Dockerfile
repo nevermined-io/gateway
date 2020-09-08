@@ -1,20 +1,11 @@
-FROM python:3.6-alpine
+FROM python:3.8-slim-buster
 LABEL maintainer="Keyko <root@keyko.io>"
 
 ARG VERSION
 
-RUN apk add --no-cache --update\
-    build-base \
-    gcc \
-    gettext\
-    gmp \
-    gmp-dev \
-    libffi-dev \
-    openssl-dev \
-    py-pip \
-    python3 \
-    python3-dev \
-  && pip install virtualenv
+RUN apt-get update \
+    && apt-get install gcc -y \
+    && apt-get clean
 
 COPY . /nevermined-gateway
 WORKDIR /nevermined-gateway
