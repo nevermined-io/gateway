@@ -4,7 +4,7 @@ LABEL maintainer="Keyko <root@keyko.io>"
 ARG VERSION
 
 RUN apt-get update \
-    && apt-get install gcc -y \
+    && apt-get install gcc gettext-base -y \
     && apt-get clean
 
 COPY . /nevermined-gateway
