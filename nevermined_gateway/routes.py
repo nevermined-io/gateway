@@ -163,7 +163,6 @@ def download(index=0):
 
     try:
         keeper = keeper_instance()
-        asset_id = did.replace(NEVERMINED_PREFIX, '')
 
         ## Access flow
         # 1. Verification of signature
