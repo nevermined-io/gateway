@@ -58,12 +58,13 @@ def fulfill_compute_condition(keeper, agreement_id, cond_ids, asset_id, consumer
     return True
 
 
-def fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consumer_address, provider_acc):
+def fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consumer_address, provider_acc,
+                                    service_type=ServiceTypes.ASSET_ACCESS):
     escrowreward_condition_status = keeper.condition_manager.get_condition_state(cond_ids[2])
 
     if escrowreward_condition_status != ConditionState.Fulfilled.value:
         logger.debug('Fulfilling EscrowReward condition %s' % agreement_id)
-        service_agreement = asset.get_service(ServiceTypes.ASSET_ACCESS)
+        service_agreement = asset.get_service(service_type)
         did_owner = keeper.agreement_manager.get_agreement_did_owner(agreement_id)
         access_id, lock_id = cond_ids[:2]
 
@@ -89,4 +90,3 @@ def fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consu
             else:
                 logger.info('The escrowReward condition was already fulfilled')
     return True
-
