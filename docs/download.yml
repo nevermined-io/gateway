@@ -1,15 +1,10 @@
-Allows to get access to an asset data file.
+Allows to download the files of an asset if you are the owner or provider of the asset.
 ---
 tags:
   - services
 consumes:
   - application/json
 parameters:
-  - name: agreement_id
-    in: path
-    description: The ID of the service agreement.
-    required: true
-    type: string
   - name: index
     in: path
     description: Index of the file in the array of files.
@@ -33,7 +28,7 @@ parameters:
     required: true
 responses:
   200:
-    description: Returns the file binary
+    description: Returns the valid file binary.
   400:
     description: One of the required attributes is missing.
   401:

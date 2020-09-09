@@ -56,7 +56,6 @@ def init_account_envvars():
     os.environ['PSK-RSA_PUBKEY_FILE'] = os.getenv('RSA_PUBKEY_FILE', '')
 
 
-
 def get_provider_key_file():
     return os.getenv('PROVIDER_KEYFILE', '')
 
@@ -99,6 +98,15 @@ def do_secret_store_decrypt(did_id, encrypted_document, provider_acc, config):
     return secret_store.decrypt_document(
         did_id, encrypted_document
     )
+
+
+def is_owner_granted(did, consumer_address, keeper):
+    document_id = did_to_id(did)
+    is_granted = keeper.access_secret_store_condition.check_permissions(
+        document_id, consumer_address
+    )
+    logger.info(is_granted)
+    return is_granted
 
 
 def is_access_granted(agreement_id, did, consumer_address, keeper):
@@ -256,7 +264,6 @@ def build_download_response(request, requests_session, url, download_url, conten
 
 
 def get_asset_url_at_index(url_index, asset, account, auth_method='SecretStore'):
-
     logger.debug(
         f'get_asset_url_at_index(): url_index={url_index}, did={asset.did}, provider='
         f'{account.address}')
@@ -272,7 +279,6 @@ def get_asset_url_at_index(url_index, asset, account, auth_method='SecretStore')
             files_str = rsa_decryption_aes(asset.encrypted_files, get_rsa_private_key_file())
         elif auth_method == 'PSK-ECDSA':
             files_str = ecdsa_decryption(asset.encrypted_files, get_provider_key_file(), get_provider_password())
-
 
         logger.debug(f'Got decrypted files str {files_str}')
         files_list = json.loads(files_str)
@@ -319,4 +325,3 @@ def check_required_attributes(required_attributes, data, method):
             logger.error('%s request failed: required attr %s missing.' % (method, attr))
             return '"%s" is required in the call to %s' % (attr, method), 400
     return None, None
-
