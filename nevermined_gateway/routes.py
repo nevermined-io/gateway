@@ -295,7 +295,8 @@ def execute(agreement_id):
                        % (agreement_id, lockreward_condition_status), 401
 
             fulfill_compute_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address, provider_acc)
-            fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consumer_address, provider_acc)
+            fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consumer_address, provider_acc,
+                                            ServiceTypes.CLOUD_COMPUTE)
 
             iteration = 0
             access_granted = False
