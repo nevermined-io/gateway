@@ -297,6 +297,32 @@ def test_access(client):
         assert response.status == '200 OK'
 
 
+def test_download(client):
+    pub_acc = get_publisher_account()
+
+    ddo = get_registered_ddo(pub_acc, providers=[pub_acc.address])
+    keeper = keeper_instance()
+    did_hash = add_ethereum_prefix_and_hash_msg(ddo.did)
+    signature = keeper.sign_hash(did_hash, pub_acc)
+    index = 0
+
+    headers = dict({
+        'X-Consumer-Address': pub_acc.address,
+        'X-Signature': signature,
+        'X-DID': ddo.did
+    })
+
+    endpoint = BaseURLs.ASSETS_URL + '/download/%d' % (index)
+    print(endpoint)
+    response = client.get(
+        endpoint,
+        headers=headers
+    )
+
+    assert response.status == '200 OK'
+
+
+
 def test_empty_payload(client):
     consume = client.get(
         BaseURLs.ASSETS_URL + '/consume',
