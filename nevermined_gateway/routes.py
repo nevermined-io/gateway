@@ -1,14 +1,13 @@
 import json
 import logging
-import time
 
+import time
 from common_utils_py.agreements.service_types import ServiceTypes
 from common_utils_py.did import id_to_did, NEVERMINED_PREFIX
 from common_utils_py.did_resolver.did_resolver import DIDResolver
 from common_utils_py.http_requests.requests_session import get_requests_session
 from common_utils_py.utils.crypto import get_ecdsa_public_key_from_file, ecdsa_encryption_from_file, \
     rsa_encryption_from_file
-from contracts_lib_py.web3_provider import Web3Provider
 from eth_utils import remove_0x_prefix
 from flask import Blueprint, jsonify, request
 from secret_store_client.client import RPCError
@@ -179,11 +178,11 @@ def download(index=0):
                 consumer_address,
                 keeper):
 
-                msg = ('Checking access permissions failed. Consumer address does not have '
-                       'permission to download this asset or consumer address and/or did '
-                       'is invalid.')
-                logger.warning(msg)
-                return msg, 401
+            msg = ('Checking access permissions failed. Consumer address does not have '
+                   'permission to download this asset or consumer address and/or did '
+                   'is invalid.')
+            logger.warning(msg)
+            return msg, 401
 
         file_attributes = asset.metadata['main']['files'][index]
         content_type = file_attributes.get('contentType', None)
@@ -335,7 +334,7 @@ def execute(agreement_id):
 
     try:
         keeper = keeper_instance()
-        
+
         # 1. Verification of signature
         if not verify_signature(keeper, consumer_address, signature, agreement_id):
             msg = f'Invalid signature {signature} for ' \
@@ -394,6 +393,58 @@ def execute(agreement_id):
             data=json.dumps(body),
             headers={'content-type': 'application/json'})
         return jsonify({"workflowId": response.content.decode('utf-8')})
+
+    except Exception as e:
+        logger.error(f'Error- {str(e)}', exc_info=1)
+        return f'Error : {str(e)}', 500
+
+
+@services.route('/compute/logs/<agreement_id>/<execution_id>', methods=['GET'])
+def compute_logs(agreement_id, execution_id):
+    """Allows to get access to an asset data file.
+    swagger_from_file: docs/compute_logs.yml
+    """
+
+    try:
+        consumer_address = request.headers.get('X-Consumer-Address')
+        signature = request.headers.get('X-Signature')
+
+        if not consumer_address or not signature:
+            return 'Unable to get params from headers', 401
+    except Exception:
+        return 'Unable to retrieve required parameters', 401
+
+    logger.info('Parameters:\nConsumerAddress: %s\n'
+                'DID: %s\nSignature: %s'
+                % (consumer_address, signature))
+
+    try:
+        keeper = keeper_instance()
+        logger.debug('AgreementID :' + agreement_id)
+
+        ## Access flow
+        # 1. Verification of signature
+        if not verify_signature(keeper, consumer_address, signature, execution_id):
+            msg = f'Invalid signature {signature} for ' \
+                  f'consumerAddress {consumer_address} and executionId {execution_id}.'
+            raise ValueError(msg)
+
+        asset_id = keeper_instance().agreement_manager.get_agreement(agreement_id).did
+        did = id_to_did(asset_id)
+        asset = DIDResolver(keeper.did_registry).resolve(did)
+
+        if not was_compute_triggered(agreement_id, did, consumer_address, keeper_instance()):
+            msg = (
+                'Getting access failed. Either consumer address does not '
+                'have permission to execute this agreement or consumer address and/or service '
+                'agreement id is invalid.')
+            logger.warning(msg)
+            return msg, 401
+
+        response = requests_session.get(
+            get_config().operator_service_url + '/api/v1/nevermined-compute-api/logs',
+            headers={'content-type': 'application/json'})
+        return response.content.decode('utf-8'), 200
 
     except Exception as e:
         logger.error(f'Error- {str(e)}', exc_info=1)
