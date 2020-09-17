@@ -1,0 +1,41 @@
+Allows to get access to logs associated to a compute execution status
+---
+tags:
+  - services
+consumes:
+  - application/json
+parameters:
+  - name: agreement_id
+    in: path
+    description: The ID of the service agreement.
+    required: true
+    type: string
+  - name: execution_id
+    in: path
+    description: The ID of the execution associated to a service agreement.
+    required: true
+    type: string
+  - name: X-Consumer-Address
+    in: header
+    description: The consumer address.
+    required: true
+    type: string
+  - name: X-Signature
+    in: header
+    description: Signature of the execution_id to verify that the consumer has rights to access to the execution logs.
+    required: true
+responses:
+  200:
+    description: Returns the execution status
+    example: [
+      { "podName": "configurator", "content": "line1" },
+      { "podName": "configurator", "content": "line2" },
+      { "podName": "configurator", "content": "line3" },
+      { "podName": "transformation", "content": "line1" }
+    ]
+  400:
+    description: One of the required attributes is missing.
+  401:
+    description: Invalid data.
+  500:
+    description: Error

@@ -13,6 +13,7 @@ from flask import Blueprint, jsonify, request
 from secret_store_client.client import RPCError
 
 from nevermined_gateway import constants
+from nevermined_gateway.compute_validations import is_allowed_read_compute
 from nevermined_gateway.conditions import (fulfill_access_condition, fulfill_compute_condition,
                                            fulfill_escrow_reward_condition)
 from nevermined_gateway.constants import ConditionState, ConfigSections
@@ -426,45 +427,55 @@ def compute_logs(agreement_id, execution_id):
         signature = request.headers.get('X-Signature')
 
         if not consumer_address or not signature:
-            return 'Unable to get params from headers', 401
+            return 'Unable to get params from headers', 400
     except Exception:
-        return 'Unable to retrieve required parameters', 401
+        return 'Unable to retrieve required parameters', 400
 
     logger.info('Parameters:\nConsumerAddress: %s\n'
                 'DID: %s\nSignature: %s'
                 % (consumer_address, signature))
 
+    message, is_allowed = is_allowed_read_compute(agreement_id, execution_id, consumer_address, signature)
+
+    if not is_allowed:
+        return message, 401
+
+    response = requests_session.get(
+        get_config().operator_service_url + '/api/v1/nevermined-compute-api/logs',
+        headers={'content-type': 'application/json'})
+    return response.content.decode('utf-8'), 200
+
+
+@services.route('/compute/status/<agreement_id>/<execution_id>', methods=['GET'])
+def compute_status(agreement_id, execution_id):
+    """Allows to get access to an asset data file.
+    swagger_from_file: docs/compute_logs.yml
+    """
+
     try:
-        keeper = keeper_instance()
-        logger.debug('AgreementID :' + agreement_id)
+        consumer_address = request.headers.get('X-Consumer-Address')
+        signature = request.headers.get('X-Signature')
 
-        ## Access flow
-        # 1. Verification of signature
-        if not verify_signature(keeper, consumer_address, signature, execution_id):
-            msg = f'Invalid signature {signature} for ' \
-                  f'consumerAddress {consumer_address} and executionId {execution_id}.'
-            raise ValueError(msg)
+        if not consumer_address or not signature:
+            return 'Unable to get params from headers', 400
+    except Exception:
+        return 'Unable to retrieve required parameters', 400
 
-        asset_id = keeper_instance().agreement_manager.get_agreement(agreement_id).did
-        did = id_to_did(asset_id)
-        asset = DIDResolver(keeper.did_registry).resolve(did)
+    logger.info('Parameters:\nConsumerAddress: %s\n'
+                'DID: %s\nSignature: %s'
+                % (consumer_address, signature))
 
-        if not was_compute_triggered(agreement_id, did, consumer_address, keeper_instance()):
-            msg = (
-                'Getting access failed. Either consumer address does not '
-                'have permission to execute this agreement or consumer address and/or service '
-                'agreement id is invalid.')
-            logger.warning(msg)
-            return msg, 401
+    message, is_allowed = is_allowed_read_compute(agreement_id, execution_id, consumer_address, signature)
 
-        response = requests_session.get(
-            get_config().operator_service_url + '/api/v1/nevermined-compute-api/logs',
-            headers={'content-type': 'application/json'})
-        return response.content.decode('utf-8'), 200
+    if not is_allowed:
+        return message, 401
 
-    except Exception as e:
-        logger.error(f'Error- {str(e)}', exc_info=1)
-        return f'Error : {str(e)}', 500
+    response = requests_session.get(
+        get_config().operator_service_url + '/api/v1/nevermined-compute-api/status',
+        headers={'content-type': 'application/json'})
+    return response.content.decode('utf-8'), 200
+
+
 
 
 ##### DEPRECATED METHODS ######
