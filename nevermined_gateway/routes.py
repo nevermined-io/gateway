@@ -13,17 +13,17 @@ from flask import Blueprint, jsonify, request
 from secret_store_client.client import RPCError
 
 from nevermined_gateway import constants
-from nevermined_gateway.conditions import fulfill_access_condition, fulfill_escrow_reward_condition, \
-    fulfill_compute_condition
+from nevermined_gateway.conditions import (fulfill_access_condition, fulfill_compute_condition,
+                                           fulfill_escrow_reward_condition)
 from nevermined_gateway.constants import ConditionState, ConfigSections
 from nevermined_gateway.log import setup_logging
 from nevermined_gateway.myapp import app
-from nevermined_gateway.util import (build_download_response, check_required_attributes, do_secret_store_encrypt,
-                                     get_asset_url_at_index, get_config, get_download_url,
-                                     get_provider_account,
-                                     is_access_granted, keeper_instance, setup_keeper, verify_signature,
-                                     was_compute_triggered, get_provider_key_file, get_provider_password,
-                                     get_rsa_public_key_file, is_owner_granted)
+from nevermined_gateway.util import (build_download_response, check_required_attributes,
+                                     do_secret_store_encrypt, get_asset_url_at_index, get_config,
+                                     get_download_url, get_provider_account, get_provider_key_file,
+                                     get_provider_password, get_rsa_public_key_file,
+                                     is_access_granted, is_owner_granted, keeper_instance,
+                                     setup_keeper, verify_signature, was_compute_triggered)
 
 setup_logging()
 services = Blueprint('services', __name__)
@@ -63,10 +63,12 @@ def encrypt_content():
                 provider_acc,
                 get_config()
             )
-            public_key = get_ecdsa_public_key_from_file(get_provider_key_file(), get_provider_password())
+            public_key = get_ecdsa_public_key_from_file(get_provider_key_file(),
+                                                        get_provider_password())
 
         elif (method == 'PSK-ECDSA'):
-            hash, public_key = ecdsa_encryption_from_file(message, get_provider_key_file(), get_provider_password())
+            hash, public_key = ecdsa_encryption_from_file(message, get_provider_key_file(),
+                                                          get_provider_password())
 
         elif (method == 'PSK-RSA'):
             hash, public_key = rsa_encryption_from_file(message, get_rsa_public_key_file())
@@ -193,8 +195,10 @@ def download(index=0):
             auth_method = constants.ConfigSections.DEFAULT_DECRYPTION_METHOD
 
         if auth_method not in constants.ConfigSections.DECRYPTION_METHODS:
-            msg = ('The Authorization Method defined in the DDO is not part of the available methods supported'
-                   'by the Gateway: ' + auth_method)
+            msg = (
+                    'The Authorization Method defined in the DDO is not part of the available '
+                    'methods supported'
+                    'by the Gateway: ' + auth_method)
             logger.warning(msg)
             return msg, 400
 
@@ -257,7 +261,8 @@ def access(agreement_id, index=0):
 
             access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
             lockreward_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
-            escrowreward_condition_status = keeper.condition_manager.get_condition_state(cond_ids[2])
+            escrowreward_condition_status = keeper.condition_manager.get_condition_state(
+                cond_ids[2])
 
             logger.debug('AccessCondition: %d' % access_condition_status)
             logger.debug('LockRewardCondition: %d' % lockreward_condition_status)
@@ -268,9 +273,10 @@ def access(agreement_id, index=0):
                 return 'ServiceAgreement %s was not paid, LockRewardCondition status is %d' \
                        % (agreement_id, lockreward_condition_status), 401
 
-
-            fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address, provider_acc)
-            fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consumer_address, provider_acc)
+            fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address,
+                                     provider_acc)
+            fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consumer_address,
+                                            provider_acc)
 
             iteration = 0
             access_granted = False
@@ -285,7 +291,8 @@ def access(agreement_id, index=0):
 
             if not access_granted:
                 msg = ('Checking access permissions failed. Either consumer address does not have '
-                       'permission to consume this asset or consumer address and/or service agreement '
+                       'permission to consume this asset or consumer address and/or service '
+                       'agreement '
                        'id is invalid.')
                 logger.warning(msg)
                 return msg, 401
@@ -299,8 +306,10 @@ def access(agreement_id, index=0):
             auth_method = constants.ConfigSections.DEFAULT_DECRYPTION_METHOD
 
         if auth_method not in constants.ConfigSections.DECRYPTION_METHODS:
-            msg = ('The Authorization Method defined in the DDO is not part of the available methods supported'
-                   'by the Gateway: ' + auth_method)
+            msg = (
+                    'The Authorization Method defined in the DDO is not part of the available '
+                    'methods supported'
+                    'by the Gateway: ' + auth_method)
             logger.warning(msg)
             return msg, 400
 
@@ -352,7 +361,8 @@ def execute(agreement_id):
 
             compute_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
             lockreward_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
-            escrowreward_condition_status = keeper.condition_manager.get_condition_state(cond_ids[2])
+            escrowreward_condition_status = keeper.condition_manager.get_condition_state(
+                cond_ids[2])
             logger.debug('ComputeExecutionCondition: %d' % compute_condition_status)
             logger.debug('LockRewardCondition: %d' % lockreward_condition_status)
             logger.debug('EscrowRewardCondition: %d' % escrowreward_condition_status)
@@ -362,8 +372,10 @@ def execute(agreement_id):
                 return 'ServiceAgreement %s was not paid, LockRewardCondition status is %d' \
                        % (agreement_id, lockreward_condition_status), 401
 
-            fulfill_compute_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address, provider_acc)
-            fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consumer_address, provider_acc,
+            fulfill_compute_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address,
+                                      provider_acc)
+            fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consumer_address,
+                                            provider_acc,
                                             ServiceTypes.CLOUD_COMPUTE)
 
             iteration = 0
@@ -392,6 +404,10 @@ def execute(agreement_id):
             get_config().operator_service_url + '/api/v1/nevermined-compute-api/init',
             data=json.dumps(body),
             headers={'content-type': 'application/json'})
+        if response.status_code != 200:
+            msg = f'The compute API was not able to create the workflow. {response.content}'
+            logger.warning(msg)
+            return msg, 401
         return jsonify({"workflowId": response.content.decode('utf-8')})
 
     except Exception as e:
@@ -507,8 +523,10 @@ def consume():
             auth_method = constants.ConfigSections.DEFAULT_DECRYPTION_METHOD
 
         if auth_method not in constants.ConfigSections.DECRYPTION_METHODS:
-            msg = ('The Authorization Method defined in the DDO is not part of the available methods supported'
-                   'by the Gateway: ' + auth_method)
+            msg = (
+                    'The Authorization Method defined in the DDO is not part of the available '
+                    'methods supported'
+                    'by the Gateway: ' + auth_method)
             logger.warning(msg)
             return msg, 400
 
