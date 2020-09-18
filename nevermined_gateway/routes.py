@@ -422,28 +422,35 @@ def compute_logs(agreement_id, execution_id):
     swagger_from_file: docs/compute_logs.yml
     """
 
-    try:
-        consumer_address = request.headers.get('X-Consumer-Address')
-        signature = request.headers.get('X-Signature')
+    consumer_address = request.headers.get('X-Consumer-Address')
+    signature = request.headers.get('X-Signature')
 
-        if not consumer_address or not signature:
-            return 'Unable to get params from headers', 400
-    except Exception:
-        return 'Unable to retrieve required parameters', 400
+    if not consumer_address or not signature:
+        return 'Unable to get params from headers', 400
 
-    logger.info('Parameters:\nConsumerAddress: %s\n'
-                'DID: %s\nSignature: %s'
-                % (consumer_address, signature))
+    logger.info(('Parameters:\n'
+                 'ConsumerAddress: %s\n'
+                 'AgreementId: %s\n'
+                 'ExecutionId: %s\n'
+                 'Signature: %s'),
+                consumer_address, agreement_id, execution_id, signature)
 
-    message, is_allowed = is_allowed_read_compute(agreement_id, execution_id, consumer_address, signature)
+    message, is_allowed = is_allowed_read_compute(agreement_id, execution_id, consumer_address,
+                                                  signature)
 
     if not is_allowed:
         return message, 401
 
     response = requests_session.get(
-        get_config().operator_service_url + '/api/v1/nevermined-compute-api/logs',
+        get_config().operator_service_url + f'/api/v1/nevermined-compute-api/logs/{execution_id}',
         headers={'content-type': 'application/json'})
-    return response.content.decode('utf-8'), 200
+
+    if response.status_code != 200:
+        msg = f'The compute API was not able to return the logs. {response.content}'
+        logger.warning(msg)
+        return message, 401
+
+    return jsonify(response.json()), 200
 
 
 @services.route('/compute/status/<agreement_id>/<execution_id>', methods=['GET'])
@@ -452,30 +459,29 @@ def compute_status(agreement_id, execution_id):
     swagger_from_file: docs/compute_logs.yml
     """
 
-    try:
-        consumer_address = request.headers.get('X-Consumer-Address')
-        signature = request.headers.get('X-Signature')
+    consumer_address = request.headers.get('X-Consumer-Address')
+    signature = request.headers.get('X-Signature')
 
-        if not consumer_address or not signature:
-            return 'Unable to get params from headers', 400
-    except Exception:
-        return 'Unable to retrieve required parameters', 400
+    if not consumer_address or not signature:
+        return 'Unable to get params from headers', 400
 
-    logger.info('Parameters:\nConsumerAddress: %s\n'
-                'DID: %s\nSignature: %s'
-                % (consumer_address, signature))
+    logger.info(('Parameters:\n'
+                 'ConsumerAddress: %s\n'
+                 'AgreementId: %s\n'
+                 'ExecutionId: %s\n'
+                 'Signature: %s'),
+                consumer_address, agreement_id, execution_id, signature)
 
-    message, is_allowed = is_allowed_read_compute(agreement_id, execution_id, consumer_address, signature)
+    message, is_allowed = is_allowed_read_compute(agreement_id, execution_id, consumer_address,
+                                                  signature)
 
     if not is_allowed:
         return message, 401
 
     response = requests_session.get(
-        get_config().operator_service_url + '/api/v1/nevermined-compute-api/status',
+        get_config().operator_service_url + f'/api/v1/nevermined-compute-api/status/{execution_id}',
         headers={'content-type': 'application/json'})
     return response.content.decode('utf-8'), 200
-
-
 
 
 ##### DEPRECATED METHODS ######

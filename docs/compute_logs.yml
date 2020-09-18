@@ -28,11 +28,11 @@ responses:
   200:
     description: Returns the execution logs
     example: [
-      { "podName": "configurator", "content": "line1" },
-      { "podName": "configurator", "content": "line2" },
-      { "podName": "configurator", "content": "line3" },
-      { "podName": "transformation", "content": "line1" }
-    ]
+               { "podName": "configurator", "content": "line1" },
+               { "podName": "configurator", "content": "line2" },
+               { "podName": "configurator", "content": "line3" },
+               { "podName": "transformation", "content": "line1" }
+             ]
   400:
     description: One of the required attributes is missing.
   401:
