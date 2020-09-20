@@ -1,19 +1,19 @@
 import json
 import logging
-import time
 
+import time
 from common_utils_py.agreements.service_types import ServiceTypes
 from common_utils_py.did import id_to_did, NEVERMINED_PREFIX
 from common_utils_py.did_resolver.did_resolver import DIDResolver
 from common_utils_py.http_requests.requests_session import get_requests_session
-from common_utils_py.utils.crypto import (ecdsa_encryption_from_file,
-                                          get_ecdsa_public_key_from_file,
-                                          rsa_encryption_from_file)
+from common_utils_py.utils.crypto import get_ecdsa_public_key_from_file, ecdsa_encryption_from_file, \
+    rsa_encryption_from_file
 from eth_utils import remove_0x_prefix
 from flask import Blueprint, jsonify, request
 from secret_store_client.client import RPCError
 
 from nevermined_gateway import constants
+from nevermined_gateway.compute_validations import is_allowed_read_compute
 from nevermined_gateway.conditions import (fulfill_access_condition, fulfill_compute_condition,
                                            fulfill_escrow_reward_condition)
 from nevermined_gateway.constants import ConditionState, ConfigSections
@@ -197,9 +197,9 @@ def download(index=0):
 
         if auth_method not in constants.ConfigSections.DECRYPTION_METHODS:
             msg = (
-                        'The Authorization Method defined in the DDO is not part of the available '
-                        'methods supported'
-                        'by the Gateway: ' + auth_method)
+                    'The Authorization Method defined in the DDO is not part of the available '
+                    'methods supported'
+                    'by the Gateway: ' + auth_method)
             logger.warning(msg)
             return msg, 400
 
@@ -308,9 +308,9 @@ def access(agreement_id, index=0):
 
         if auth_method not in constants.ConfigSections.DECRYPTION_METHODS:
             msg = (
-                        'The Authorization Method defined in the DDO is not part of the available '
-                        'methods supported'
-                        'by the Gateway: ' + auth_method)
+                    'The Authorization Method defined in the DDO is not part of the available '
+                    'methods supported'
+                    'by the Gateway: ' + auth_method)
             logger.warning(msg)
             return msg, 400
 
@@ -416,6 +416,74 @@ def execute(agreement_id):
         return f'Error : {str(e)}', 500
 
 
+@services.route('/compute/logs/<agreement_id>/<execution_id>', methods=['GET'])
+def compute_logs(agreement_id, execution_id):
+    """Allows to get access to an asset data file.
+    swagger_from_file: docs/compute_logs.yml
+    """
+
+    consumer_address = request.headers.get('X-Consumer-Address')
+    signature = request.headers.get('X-Signature')
+
+    if not consumer_address or not signature:
+        return 'Unable to get params from headers', 400
+
+    logger.info(('Parameters:\n'
+                 'ConsumerAddress: %s\n'
+                 'AgreementId: %s\n'
+                 'ExecutionId: %s\n'
+                 'Signature: %s'),
+                consumer_address, agreement_id, execution_id, signature)
+
+    message, is_allowed = is_allowed_read_compute(agreement_id, execution_id, consumer_address,
+                                                  signature)
+
+    if not is_allowed:
+        return message, 401
+
+    response = requests_session.get(
+        get_config().operator_service_url + f'/api/v1/nevermined-compute-api/logs/{execution_id}',
+        headers={'content-type': 'application/json'})
+
+    if response.status_code != 200:
+        msg = f'The compute API was not able to return the logs. {response.content}'
+        logger.warning(msg)
+        return message, 401
+
+    return jsonify(response.json()), 200
+
+
+@services.route('/compute/status/<agreement_id>/<execution_id>', methods=['GET'])
+def compute_status(agreement_id, execution_id):
+    """Allows to get access to an asset data file.
+    swagger_from_file: docs/compute_logs.yml
+    """
+
+    consumer_address = request.headers.get('X-Consumer-Address')
+    signature = request.headers.get('X-Signature')
+
+    if not consumer_address or not signature:
+        return 'Unable to get params from headers', 400
+
+    logger.info(('Parameters:\n'
+                 'ConsumerAddress: %s\n'
+                 'AgreementId: %s\n'
+                 'ExecutionId: %s\n'
+                 'Signature: %s'),
+                consumer_address, agreement_id, execution_id, signature)
+
+    message, is_allowed = is_allowed_read_compute(agreement_id, execution_id, consumer_address,
+                                                  signature)
+
+    if not is_allowed:
+        return message, 401
+
+    response = requests_session.get(
+        get_config().operator_service_url + f'/api/v1/nevermined-compute-api/status/{execution_id}',
+        headers={'content-type': 'application/json'})
+    return response.content.decode('utf-8'), 200
+
+
 ##### DEPRECATED METHODS ######
 
 
@@ -473,9 +541,9 @@ def consume():
 
         if auth_method not in constants.ConfigSections.DECRYPTION_METHODS:
             msg = (
-                        'The Authorization Method defined in the DDO is not part of the available '
-                        'methods supported'
-                        'by the Gateway: ' + auth_method)
+                    'The Authorization Method defined in the DDO is not part of the available '
+                    'methods supported'
+                    'by the Gateway: ' + auth_method)
             logger.warning(msg)
             return msg, 400
 
