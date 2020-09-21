@@ -445,10 +445,10 @@ def compute_logs(agreement_id, execution_id):
         get_config().operator_service_url + f'/api/v1/nevermined-compute-api/logs/{execution_id}',
         headers={'content-type': 'application/json'})
 
-    if response.status_code != 200:
+    if not response.ok:
         msg = f'The compute API was not able to return the logs. {response.content}'
         logger.warning(msg)
-        return message, 401
+        return msg, response.status_code
 
     return jsonify(response.json()), 200
 
@@ -481,6 +481,12 @@ def compute_status(agreement_id, execution_id):
     response = requests_session.get(
         get_config().operator_service_url + f'/api/v1/nevermined-compute-api/status/{execution_id}',
         headers={'content-type': 'application/json'})
+
+    if not response.ok:
+        msg = f'The compute API was not able to return the logs. {response.content}'
+        logger.warning(msg)
+        return msg, response.status_code
+
     return response.content.decode('utf-8'), 200
 
 
