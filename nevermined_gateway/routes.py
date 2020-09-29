@@ -402,7 +402,7 @@ def execute(agreement_id):
         body = {"serviceAgreementId": agreement_id, "workflow": workflow.as_dictionary()}
 
         response = requests_session.post(
-            get_config().operator_service_url + '/api/v1/nevermined-compute-api/init',
+            get_config().compute_api_url + '/api/v1/nevermined-compute-api/init',
             data=json.dumps(body),
             headers={'content-type': 'application/json'})
         if response.status_code != 200:
@@ -442,7 +442,7 @@ def compute_logs(agreement_id, execution_id):
         return message, 401
 
     response = requests_session.get(
-        get_config().operator_service_url + f'/api/v1/nevermined-compute-api/logs/{execution_id}',
+        get_config().compute_api_url + f'/api/v1/nevermined-compute-api/logs/{execution_id}',
         headers={'content-type': 'application/json'})
 
     if not response.ok:
@@ -479,7 +479,7 @@ def compute_status(agreement_id, execution_id):
         return message, 401
 
     response = requests_session.get(
-        get_config().operator_service_url + f'/api/v1/nevermined-compute-api/status/{execution_id}',
+        get_config().compute_api_url + f'/api/v1/nevermined-compute-api/status/{execution_id}',
         headers={'content-type': 'application/json'})
 
     if not response.ok:
@@ -601,7 +601,7 @@ def execute_compute_job():
         body = {"serviceAgreementId": agreement_id, "workflow": workflow.as_dictionary()}
 
         response = requests_session.post(
-            get_config().operator_service_url + '/api/v1/nevermined-compute-api/init',
+            get_config().compute_api_url + '/api/v1/nevermined-compute-api/init',
             data=json.dumps(body),
             headers={'content-type': 'application/json'})
         return jsonify({"workflowId": response.content.decode('utf-8')})
