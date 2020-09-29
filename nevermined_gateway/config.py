@@ -11,7 +11,7 @@ NAME_AUTH_TOKEN_EXPIRATION = 'auth_token_expiration'
 
 NAME_SECRET_STORE_URL = 'secret_store.url'
 NAME_PARITY_URL = 'parity.url'
-NAME_OPERATOR_SERVICE_URL = 'operator_service.url'
+NAME_COMPUTE_API_URL = 'compute_api.url'
 
 environ_names = {
     NAME_KEEPER_URL: ['KEEPER_URL', 'Keeper URL'],
@@ -22,7 +22,7 @@ environ_names = {
                                  'Auth token expiration time expressed in seconds'],
     NAME_SECRET_STORE_URL: ['SECRET_STORE_URL', 'Secret Store URL'],
     NAME_PARITY_URL: ['PARITY_URL', 'Parity URL'],
-    NAME_OPERATOR_SERVICE_URL: ['OPERATOR_SERVICE_URL', 'Operator service URL'],
+    NAME_COMPUTE_API_URL: ['COMPUTE_API_URL', 'Compute API URL'],
 }
 
 
@@ -97,9 +97,9 @@ class Config(configparser.ConfigParser):
         return self.get(self._section_name, NAME_PARITY_URL, fallback=None)
 
     @property
-    def operator_service_url(self):
-        """URL of the operator service component. (e.g.): http://myoperatorservice:8050."""
-        return self.get(self._section_name, NAME_OPERATOR_SERVICE_URL, fallback=None)
+    def compute_api_url(self):
+        """URL of the compute api service component. (e.g.): http://compute-api:8050."""
+        return self.get(self._section_name, NAME_COMPUTE_API_URL, fallback=None)
 
     @property
     def auth_token_message(self):

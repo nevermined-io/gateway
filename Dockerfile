@@ -42,6 +42,7 @@ ENV GATEWAY_URL='http://0.0.0.0:8030'
 # docker-entrypoint.sh configuration file variables
 ENV GATEWAY_WORKERS='1'
 ENV GATEWAY_TIMEOUT='9000'
+ENV COMPUTE_API_URL='http://0.0.0.0:8050'
 
 ENTRYPOINT ["/nevermined-gateway/docker-entrypoint.sh"]
 

@@ -26,7 +26,7 @@ parameters:
     required: true
 responses:
   200:
-    description: Call to the operator-service was successful.
+    description: Call to the compute-api was successful.
   400:
     description: One of the required attributes is missing.
   401:
