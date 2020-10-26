@@ -8,10 +8,7 @@ from contracts_lib_py.contract_handler import ContractHandler
 from contracts_lib_py.utils import get_account
 from contracts_lib_py.web3_provider import Web3Provider
 
-from nevermined_gateway.run import app
 from nevermined_gateway.util import get_config, init_account_envvars
-
-app = app
 
 
 def get_resource_path(dir_name, file_name):
@@ -22,8 +19,27 @@ def get_resource_path(dir_name, file_name):
         return pathlib.Path(os.path.join(os.path.sep, *base, file_name))
 
 
+@pytest.fixture(autouse=True)
+def env_setup(monkeypatch):
+    """Set test environment variables so that we can run the tests without having
+    to set them.
+    """
+    provider_keyfile = pathlib.Path(__file__).parent / "resources/data/publisher_key_file.json"
+    rsa_priv_keyfile = pathlib.Path(__file__).parent / "resources/data/rsa_priv_key.pem"
+    rsa_pub_keyfile = pathlib.Path(__file__).parent / "resources/data/rsa_pub_key.pem"
+    monkeypatch.setenv("PROVIDER_ADDRESS", "0x00bd138abd70e2f00903268f3db08f2d25677c9e")
+    monkeypatch.setenv("PROVIDER_PASSWORD", "node0")
+    monkeypatch.setenv("PROVIDER_KEYFILE", provider_keyfile.as_posix())
+    monkeypatch.setenv("RSA_PRIVKEY_FILE", rsa_priv_keyfile.as_posix())
+    monkeypatch.setenv("RSA_PUBKEY_FILE", rsa_pub_keyfile.as_posix())
+
+
 @pytest.fixture
 def client():
+    # This import is done here so that the `env_setup` fixture is called before we
+    # initialize the flask app.
+    from nevermined_gateway.run import app
+
     client = app.test_client()
     yield client
 
