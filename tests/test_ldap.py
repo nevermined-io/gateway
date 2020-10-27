@@ -1,4 +1,4 @@
-from nevermined_gateway.identity.ldap import IdentityLdap
+from nevermined_gateway.identity.ldap import LDAPIdentity
 
 ALICE_ADDRESS = "0x068ed00cf0441e4829d9784fcbe7b9e26d4bd8d0"
 BOB_ADDRESS = "0xa99d43d86a0758d5632313b8fa3972b6088a21bb"
@@ -7,7 +7,7 @@ INVALID_ADDRESS = "0000000000000000000000000000000000000000"
 
 
 def test_single_user():
-    identity = IdentityLdap(
+    identity = LDAPIdentity(
         "localhost:1389",
         "cn=admin,dc=nevermined,dc=io",
         "nevermined",
@@ -39,7 +39,7 @@ def test_single_user():
 
 
 def test_group():
-    identity = IdentityLdap(
+    identity = LDAPIdentity(
         "localhost:1389",
         "cn=admin,dc=nevermined,dc=io",
         "nevermined",
@@ -63,7 +63,7 @@ def test_group():
 
 
 def test_group_or_users():
-    identity = IdentityLdap(
+    identity = LDAPIdentity(
         "localhost:1389",
         "cn=admin,dc=nevermined,dc=io",
         "nevermined",
