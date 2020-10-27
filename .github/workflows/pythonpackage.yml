@@ -22,13 +22,13 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
+    - name: Start Nevermined
       run: |
         docker login -u ${{ secrets.NEVERMINED_DOCKER_USERNAME }} -p ${{ secrets.NEVERMINED_DOCKER_TOKEN}}
         git clone https://github.com/keyko-io/nevermined-tools
         cd nevermined-tools
         rm -rf "${HOME}/.nevermined/nevermined-contracts/artifacts"
-        bash -x start_nevermined.sh --no-commons --no-gateway --ldap --latest 2>&1 > start_nevermined.log &
+        bash start_nevermined.sh --no-commons --no-gateway --ldap --latest 2>&1 > start_nevermined.log &
         cd ..
         for i in $(seq 1 50); do
           sleep 5
@@ -36,6 +36,7 @@ jobs:
         done
         ls -la "${HOME}/.nevermined/nevermined-contracts/artifacts/"
         ./scripts/wait_for_migration_and_extract_keeper_artifacts.sh
+    - name: Install python package
         python -m pip install --upgrade pip
         pip install -r requirements_dev.txt
     - name: Test with pytest
@@ -46,5 +47,4 @@ jobs:
         export RSA_PRIVKEY_FILE=tests/resources/data/rsa_priv_key.pem
         export RSA_PUBKEY_FILE=tests/resources/data/rsa_pub_key.pem
 
-        pip install pytest
-        pytest
+        pytest -v
