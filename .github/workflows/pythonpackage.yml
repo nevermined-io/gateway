@@ -48,4 +48,6 @@ jobs:
         export RSA_PRIVKEY_FILE=tests/resources/data/rsa_priv_key.pem
         export RSA_PUBKEY_FILE=tests/resources/data/rsa_pub_key.pem
 
+        docker images
+
         pytest -v
