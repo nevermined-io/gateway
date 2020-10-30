@@ -108,3 +108,29 @@ class Config(configparser.ConfigParser):
     @property
     def auth_token_expiration(self):
         return self.get('resources', NAME_AUTH_TOKEN_EXPIRATION, fallback=None)
+
+    @property
+    def ldap_url(self):
+        """URL of the ldap server"""
+        return self.get("identity-ldap", "ldap.url", fallback=None)
+
+    @property
+    def ldap_user(self):
+        """User to login to the LDAP server"""
+        return self.get("identity-ldap", "ldap.user", fallback=None)
+
+    @property
+    def ldap_password(self):
+        """Password to login to the LDAP server"""
+        return self.get("identity-ldap", "ldap.password", fallback=None)
+
+    @property
+    def ldap_address_key(self):
+        """The attribute name under which the user's ethereum address is stored"""
+        return self.get("identity-ldap", "ldap.address.key", fallback=None)
+
+    @property
+    def ldap_dns(self):
+        """A list of Distinguished Names to be queried when searching for a user"""
+        dns = self.get("identity-ldap", "ldap.dns", fallback=None)
+        return dns.split() if dns else []
