@@ -3,7 +3,7 @@
 
 # Nevermined Gateway
 
-> Nevermined gate keeper helping to data publishers & owners to provide extended data services
+> Nevermined gate keeper helping data publishers & owners to provide extended data services
 > [keyko.io](https://keyko.io/)
 
 
