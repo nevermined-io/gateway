@@ -57,8 +57,8 @@ dev_requirements = [
 ]
 
 setup(
-    author="keyko-io",
-    author_email='root@keyko.io',
+    author="nevermined-io",
+    author_email='root@nevermined.io',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
@@ -83,7 +83,7 @@ setup(
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
-    url='https://github.com/keyko-io/nevermined-gateway',
+    url='https://github.com/nevermined-io/gateway',
     version='0.4.3',
     zip_safe=False,
 )
