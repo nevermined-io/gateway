@@ -7,7 +7,7 @@
 > [nevermined.io](https://nevermined.io/)
 
 
-[![Docker Build Status](https://img.shields.io/docker/cloud/build/keykoio/nevermined-gateway.svg)](https://hub.docker.com/r/keykoio/nevermined-gateway/)
+[![Docker Build Status](https://img.shields.io/docker/cloud/build/neverminedio/gateway.svg)](https://hub.docker.com/r/neverminedio/gateway)
 [![Python package](https://github.com/nevermined-io/gateway/workflows/Python%20package/badge.svg)](https://github.com/nevermined-io/gateway/actions)
 
 
