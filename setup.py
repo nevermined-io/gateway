@@ -28,7 +28,7 @@ install_requirements = [
     'nevermined-metadata-driver-aws>=0.1.0',
     'nevermined-metadata-driver-interface>=0.1.4',
     'nevermined-metadata-driver-onprem>=0.1.0',
-    # 'osmosis-ipfs-driver==0.0.1',
+    'nevermined-metadata-driver-ipfs>=0.1.0',
     'Werkzeug>=0.15.3',
     'ldap3==2.8.1',
 ]
