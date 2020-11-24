@@ -8,7 +8,7 @@ compute_api.url = ${COMPUTE_API_URL}
 [resources]
 gateway.url = ${GATEWAY_URL}
 
-[osmosis]
+[metadata-driver]
 azure.account.name = ${AZURE_ACCOUNT_NAME}
 azure.account.key = ${AZURE_ACCOUNT_KEY}
 azure.resource_group = ${AZURE_RESOURCE_GROUP}
