@@ -18,7 +18,7 @@
   - [API documentation](#api-documentation)
   - [Configuration](#configuration)
      - [The [nevermined-contracts] and [resources] Sections](#the-nevermined-contracts-and-resources-sections)
-     - [The [osmosis] Section](#the-osmosis-section)
+     - [The [metadata driver] Section](#the-metadata-driver-section)
   - [Dependencies](#dependencies)
   - [Testing](#testing)
   - [New Version](#new-version)
@@ -126,17 +126,17 @@ that some settings in the config file can be overwritten by setting certain
 environment variables; there are more details below.
 
 See the [example config.ini file in this repo](config.ini). You will see that
-there are three sections: `[nevermined-contracts]`, `[resources]` and `[osmosis]`.
+there are three sections: `[nevermined-contracts]`, `[resources]` and `[metadata driver]`.
 
 ### The nevermined-contracts and resources Sections
 
 The `[nevermined-contracts]` section is used to setup connection to the blockchain nodes and load nevermined-contracts artifacts.
 The `[resources]` sections is used to configure Metadata API and Gateway services.
 
-### The [osmosis] Section
+### The [metadata driver] Section
 
-The `[osmosis]` section of the config file is where a publisher puts their own credentials for various third-party services, such as Azure Storage.
-At the time of writing, Brizo could support files with three kinds of URLs:
+The `[metadata driver]` section of the config file is where a publisher puts their own credentials for various third-party services, such as Azure Storage.
+At the time of writing, Gateway could support files with three kinds of URLs:
 
 - files in Azure Storage: files with "core.windows.net" in their URLs
 - files in Amazon S3 storage: files with "s3://" in their URLs
@@ -147,11 +147,11 @@ Initial work has also been done to support Azure Compute but it's not officially
 A publisher can choose to support none, one, two or all of the above. It depends on which cloud providers they use.
 
 If a publisher wants to store some files in Azure Storage (and make them available
-from there), then they must get and set the following config settings in the [osmosis]
+from there), then they must get and set the following config settings in the [metadata-driver]
 section of the config file.
 
 ```ini
-[osmosis]
+[metadata-driver]
 azure.account.name = <Azure Storage Account Name (for storing files)>
 azure.account.key = <Azure Storage Account key>
 azure.resource_group = <Azure resource group>
@@ -191,7 +191,7 @@ in the config file. AWS credentials actually get stored elsewhere.
 
 If a publisher wants to store some files on-premise (and make them available
 from there), then there are no special config settings to set in the config
-file. The only requirement is that the file URLs must be resolvable by Brizo.
+file. The only requirement is that the file URLs must be resolvable by the Gateway.
 
 ## Dependencies
 
@@ -199,10 +199,10 @@ Nevermined Gateway relies on the following libraries:
 
 - [common-utils-py](https://github.com/nevermined-io/common-utils-py) provides common functions and data-structures for interaction with the Nevermined components
 - [contracts-lib-py](https://github.com/nevermined-io/contracts-lib-py) handles all of the `keeper` interactions
-- [ocean-secret-store-client](https://github.com/oceanprotocol/secret-store-client-py) to encrypt/decrypt the dataset urls
-- [osmosis-azure-driver](https://github.com/oceanprotocol/osmosis-azure-driver) mediates access to assets in Azure
-- [osmosis-aws-driver](https://github.com/oceanprotocol/osmosis-aws-driver) mediates access to assets in AWS
-- [osmosis-on-premise-driver](https://github.com/oceanprotocol/osmosis-on-premise-driver) mediates access to on-premise assets
+- [secret-store-client](https://github.com/nevermined-io/secret-store-client-py) to encrypt/decrypt the dataset urls
+- [metadata-driver-azure](https://github.com/nevermined-io/metadata-driver-azure) mediates access to assets in Azure
+- [metadata-driver-aws](https://github.com/nevermined-io/metadata-driver-aws) mediates access to assets in AWS
+- [metadata-driver-onprem](https://github.com/nevermined-io/metadata-driver-onprem) mediates access to on-premise assets
 
 ## Testing
 
