@@ -14,9 +14,9 @@ with open('CHANGELOG.md') as history_file:
 # or pip install -e .
 install_requirements = [
     # Install squid-py and all its dependencies first
-    'common-utils-py==0.2.8',
-    'contracts-lib-py==0.4.0',
-    'ocean-secret-store-client==0.0.2',
+    'common-utils-py==0.3.0',
+    'contracts-lib-py==0.5.1',
+    'nevermined-secret-store==0.1.0',
     'Flask==1.1.2',
     'Flask-Cors==3.0.8',
     'flask-swagger==0.2.14',
@@ -24,11 +24,11 @@ install_requirements = [
     'Jinja2>=2.10.1',
     'requests>=2.23.0',
     'gunicorn==19.9.0',
-    'osmosis-azure-driver==0.0.4',
-    'osmosis-aws-driver==0.0.4',
-    'osmosis-driver-interface==0.0.7',
-    'osmosis-on-premise-driver==0.0.6',
-    'osmosis-ipfs-driver==0.0.1',
+    'nevermined-metadata-driver-azure>=0.1.0',
+    'nevermined-metadata-driver-aws>=0.1.0',
+    'nevermined-metadata-driver-interface>=0.1.4',
+    'nevermined-metadata-driver-onprem>=0.1.0',
+    'nevermined-metadata-driver-ipfs>=0.1.0',
     'Werkzeug>=0.15.3',
     'ldap3==2.8.1',
     # secp256k1 support was added recently and the latest release does not included it yet
@@ -59,8 +59,8 @@ dev_requirements = [
 ]
 
 setup(
-    author="keyko-io",
-    author_email='root@keyko.io',
+    author="nevermined-io",
+    author_email='root@nevermined.io',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
@@ -85,7 +85,7 @@ setup(
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
-    url='https://github.com/keyko-io/nevermined-gateway',
-    version='0.4.3',
+    url='https://github.com/nevermined-io/gateway',
+    version='0.4.6',
     zip_safe=False,
 )

@@ -265,17 +265,17 @@ def test_execute_endpoint():
 
 def test_encryption_content(client):
     content = [
-        'https://github.com/keyko-io/321321321321321321321321321321321',
-        'https://github.com/keyko-io/dsadsadsadsadasdasdasdasdasdasdasdas',
-        'https://github.com/keyko-io/321321321321321321321321321321321',
-        'https://github.com/keyko-io/dsadsadsadsadasdasdasdasdasdasdasdas',
-        'https://github.com/keyko-io/321321321321321321321321321321321',
-        'https://github.com/keyko-io/dsadsadsadsadasdasdasdasdasdasdasdas',
-        'https://github.com/keyko-io/321321321321321321321321321321321',
-        'https://github.com/keyko-io/dsadsadsadsadasdasdasdasdasdasdasdas',
-        'https://github.com/keyko-io/321321321321321321321321321321321',
-        'https://github.com/keyko-io/dsadsadsadsadasdasdasdasdasdasdasdas',
-        'https://github.com/keyko-io/h65h5h6hrh6rhrh6rhrhrhrh6rhr6hr66h'
+        'https://github.com/nevermined-io/321321321321321321321321321321321',
+        'https://github.com/nevermined-io/dsadsadsadsadasdasdasdasdasdasdasdas',
+        'https://github.com/nevermined-io/321321321321321321321321321321321',
+        'https://github.com/nevermined-io/dsadsadsadsadasdasdasdasdasdasdasdas',
+        'https://github.com/nevermined-io/321321321321321321321321321321321',
+        'https://github.com/nevermined-io/dsadsadsadsadasdasdasdasdasdasdasdas',
+        'https://github.com/nevermined-io/321321321321321321321321321321321',
+        'https://github.com/nevermined-io/dsadsadsadsadasdasdasdasdasdasdasdas',
+        'https://github.com/nevermined-io/321321321321321321321321321321321',
+        'https://github.com/nevermined-io/dsadsadsadsadasdasdasdasdasdasdasdas',
+        'https://github.com/nevermined-io/h65h5h6hrh6rhrh6rhrhrhrh6rhr6hr66h'
     ]
     message = json.dumps(content)
     print(message)

@@ -15,7 +15,7 @@ from contracts_lib_py.utils import add_ethereum_prefix_and_hash_msg, get_account
 from contracts_lib_py.web3_provider import Web3Provider
 from eth_utils import remove_0x_prefix
 from flask import Response
-from osmosis_driver_interface.osmosis import Osmosis
+from metadata_driver_interface.driver_interface import DriverInterface
 from secret_store_client.client import Client as SecretStore
 
 from nevermined_gateway.config import Config
@@ -197,7 +197,7 @@ def get_provider_account():
 def get_env_property(env_variable, property_name):
     return getenv(
         env_variable,
-        get_config().get('osmosis', property_name)
+        get_config().get('metadata-driver', property_name)
     )
 
 
@@ -304,13 +304,13 @@ def get_asset_url_at_index(url_index, asset, account, auth_method='SecretStore')
 
 def get_download_url(url, config_file):
     try:
-        logger.info('Connecting through Osmosis to generate the signed url.')
-        osm = Osmosis(url, config_file)
+        logger.info('Connecting through Metadata Driver Interface to generate the signed url.')
+        osm = DriverInterface(url, config_file)
         download_url = osm.data_plugin.generate_url(url)
-        logger.debug(f'Osmosis generated the url: {download_url}')
+        logger.debug(f'Metadata Driver Interface generated the url: {download_url}')
         return download_url
     except Exception as e:
-        logger.error(f'Error generating url (using Osmosis): {str(e)}')
+        logger.error(f'Error generating url (using Metadata Driver Interface): {str(e)}')
         raise
 
 

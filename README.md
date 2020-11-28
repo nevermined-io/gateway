@@ -1,14 +1,14 @@
-[![banner](https://raw.githubusercontent.com/keyko-io/assets/master/images/logo/nevermined_logo_1.png)](https://nevermined.io)
+[![banner](https://raw.githubusercontent.com/nevermined-io/assets/main/images/logo/banner_logo.png)](https://nevermined.io)
 
 
 # Nevermined Gateway
 
 > Nevermined gate keeper helping data publishers & owners to provide extended data services
-> [keyko.io](https://keyko.io/)
+> [nevermined.io](https://nevermined.io/)
 
 
-[![Docker Build Status](https://img.shields.io/docker/cloud/build/keykoio/nevermined-gateway.svg)](https://hub.docker.com/r/keykoio/nevermined-gateway/)
-[![Python package](https://github.com/keyko-io/nevermined-gateway/workflows/Python%20package/badge.svg)](https://github.com/keyko-io/nevermined-gateway/actions)
+[![Docker Build Status](https://img.shields.io/docker/cloud/build/neverminedio/gateway.svg)](https://hub.docker.com/r/neverminedio/gateway)
+[![Python package](https://github.com/nevermined-io/gateway/workflows/Python%20package/badge.svg)](https://github.com/nevermined-io/gateway/actions)
 
 
 ## Table of Contents
@@ -18,7 +18,7 @@
   - [API documentation](#api-documentation)
   - [Configuration](#configuration)
      - [The [nevermined-contracts] and [resources] Sections](#the-nevermined-contracts-and-resources-sections)
-     - [The [osmosis] Section](#the-osmosis-section)
+     - [The [metadata driver] Section](#the-metadata-driver-section)
   - [Dependencies](#dependencies)
   - [Testing](#testing)
   - [New Version](#new-version)
@@ -28,9 +28,9 @@
 
 ## Features
 
-In the Nevermined ecosystem, Gateway is the technical component executed by the Publishers 
-allowing them to provide extended data services (e.g. storage and compute). 
-Nevermined Gateway, as part of the Publisher ecosystem, includes the credentials to interact 
+In the Nevermined ecosystem, Gateway is the technical component executed by the Publishers
+allowing them to provide extended data services (e.g. storage and compute).
+Nevermined Gateway, as part of the Publisher ecosystem, includes the credentials to interact
 with the infrastructure (initially cloud, but could be on-premise).
 
 ## Running Locally, for Dev and Test
@@ -40,25 +40,25 @@ If you want to contribute to the development of Nevermined Gateway, then you cou
 First, clone this repository:
 
 ```bash
-git clone git@github.com:keyko-io/nevermined-gateway.git
+git clone git@github.com:nevermined-io/gateway.git
 cd nevermined-gateway/
 ```
 
 Then run some things that Nevermined Gateway expects to be running:
 
 ```bash
-git clone git@github.com:keyko-io/nevermined-tools.git
+git clone git@github.com:nevermined-io/tools.git
 cd nevermined-tools
 bash start_nevermined.sh --no-gateway --local-spree-node
 ```
 
-Nevermined Tools is the repository where all the Nevermined Docker Compose files are located. 
-We are running the script `start_nevermined.sh`: the easy way to have Nevermined projects 
+Nevermined Tools is the repository where all the Nevermined Docker Compose files are located.
+We are running the script `start_nevermined.sh`: the easy way to have Nevermined projects
 up and running. We run without Gateway instance.
 
-To learn more about Nevermined Tools, visit [the Tools repository](https://github.com/keyko-io/nevermined-tools).
+To learn more about Nevermined Tools, visit [the Tools repository](https://github.com/nevermined-io/tools).
 
-Note that it runs an Nevermined Metadata instance and an Elasticsearch instance but Nevermined Metadata can 
+Note that it runs an Nevermined Metadata instance and an Elasticsearch instance but Nevermined Metadata can
 also work with MongoDB.
 
 The most simple way to start is:
@@ -119,24 +119,24 @@ https://127.0.0.1:8030/api/v1/docs
 
 ## Configuration
 
-To get configuration settings, Nevermined Gateway first checks to see if there is a non-empty 
-environment variable named CONFIG_FILE. It there is, it will look in a config file 
-at that path. Otherwise it will look in a config file named `config.ini`. Note 
-that some settings in the config file can be overwritten by setting certain 
+To get configuration settings, Nevermined Gateway first checks to see if there is a non-empty
+environment variable named CONFIG_FILE. It there is, it will look in a config file
+at that path. Otherwise it will look in a config file named `config.ini`. Note
+that some settings in the config file can be overwritten by setting certain
 environment variables; there are more details below.
 
-See the [example config.ini file in this repo](config.ini). You will see that 
-there are three sections: `[nevermined-contracts]`, `[resources]` and `[osmosis]`.
+See the [example config.ini file in this repo](config.ini). You will see that
+there are three sections: `[nevermined-contracts]`, `[resources]` and `[metadata driver]`.
 
 ### The nevermined-contracts and resources Sections
 
 The `[nevermined-contracts]` section is used to setup connection to the blockchain nodes and load nevermined-contracts artifacts.
-The `[resources]` sections is used to configure Metadata API and Gateway services. 
+The `[resources]` sections is used to configure Metadata API and Gateway services.
 
-### The [osmosis] Section
+### The [metadata driver] Section
 
-The `[osmosis]` section of the config file is where a publisher puts their own credentials for various third-party services, such as Azure Storage.
-At the time of writing, Brizo could support files with three kinds of URLs:
+The `[metadata driver]` section of the config file is where a publisher puts their own credentials for various third-party services, such as Azure Storage.
+At the time of writing, Gateway could support files with three kinds of URLs:
 
 - files in Azure Storage: files with "core.windows.net" in their URLs
 - files in Amazon S3 storage: files with "s3://" in their URLs
@@ -146,12 +146,12 @@ Initial work has also been done to support Azure Compute but it's not officially
 
 A publisher can choose to support none, one, two or all of the above. It depends on which cloud providers they use.
 
-If a publisher wants to store some files in Azure Storage (and make them available 
-from there), then they must get and set the following config settings in the [osmosis] 
-section of the config file. 
+If a publisher wants to store some files in Azure Storage (and make them available
+from there), then they must get and set the following config settings in the [metadata-driver]
+section of the config file.
 
 ```ini
-[osmosis]
+[metadata-driver]
 azure.account.name = <Azure Storage Account Name (for storing files)>
 azure.account.key = <Azure Storage Account key>
 azure.resource_group = <Azure resource group>
@@ -185,24 +185,24 @@ AZURE_SHARE_INPUT='compute'
 AZURE_SHARE_OUTPUT='output'
 ```
 
-If a publisher wants to store some files in Amazon S3 storage (and make them 
-available from there), then there are no AWS-related config settings to set 
-in the config file. AWS credentials actually get stored elsewhere. 
+If a publisher wants to store some files in Amazon S3 storage (and make them
+available from there), then there are no AWS-related config settings to set
+in the config file. AWS credentials actually get stored elsewhere.
 
-If a publisher wants to store some files on-premise (and make them available 
-from there), then there are no special config settings to set in the config 
-file. The only requirement is that the file URLs must be resolvable by Brizo. 
+If a publisher wants to store some files on-premise (and make them available
+from there), then there are no special config settings to set in the config
+file. The only requirement is that the file URLs must be resolvable by the Gateway.
 
 ## Dependencies
 
 Nevermined Gateway relies on the following libraries:
 
-- [common-utils-py](https://github.com/keyko-io/common-utils-py) provides common functions and datastructures for interaction with the Ocean Protocol components
-- [contracts-lib-py](https://github.com/keyko-io/contracts-lib-py) handles all of the `keeper` interactions
-- [ocean-secret-store-client](https://github.com/oceanprotocol/secret-store-client-py) to encrypt/decrypt the dataset urls
-- [osmosis-azure-driver](https://github.com/oceanprotocol/osmosis-azure-driver) mediates access to assets in Azure
-- [osmosis-aws-driver](https://github.com/oceanprotocol/osmosis-aws-driver) mediates access to assets in AWS
-- [osmosis-on-premise-driver](https://github.com/oceanprotocol/osmosis-on-premise-driver) mediates access to on-premise assets
+- [common-utils-py](https://github.com/nevermined-io/common-utils-py) provides common functions and data-structures for interaction with the Nevermined components
+- [contracts-lib-py](https://github.com/nevermined-io/contracts-lib-py) handles all of the `keeper` interactions
+- [secret-store-client](https://github.com/nevermined-io/secret-store-client-py) to encrypt/decrypt the dataset urls
+- [metadata-driver-azure](https://github.com/nevermined-io/metadata-driver-azure) mediates access to assets in Azure
+- [metadata-driver-aws](https://github.com/nevermined-io/metadata-driver-aws) mediates access to assets in AWS
+- [metadata-driver-onprem](https://github.com/nevermined-io/metadata-driver-onprem) mediates access to on-premise assets
 
 ## Testing
 
@@ -212,7 +212,7 @@ Our tests use the pytest framework.
 
 ## New Version
 
-The `bumpversion.sh` script helps to bump the project version. You can execute 
+The `bumpversion.sh` script helps to bump the project version. You can execute
 the script using as first argument {major|minor|patch} to bump accordingly the version.
 
 ## Attribution

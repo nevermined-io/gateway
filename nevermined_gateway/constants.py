@@ -4,7 +4,7 @@ import enum
 class ConfigSections:
     KEEPER_CONTRACTS = 'nevermined-contracts'
     RESOURCES = 'resources'
-    OSMOSIS = 'osmosis'
+    METADATA_DRIVER = 'metadata-driver'
     DECRYPTION_METHODS = ['SecretStore', 'PSK-RSA', 'PSK-ECDSA']
     DEFAULT_DECRYPTION_METHOD = 'SecretStore'
     PING_ITERATIONS = 15
