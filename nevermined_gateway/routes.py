@@ -1,7 +1,7 @@
 import json
 import logging
-
 import time
+
 from common_utils_py.agreements.service_types import ServiceTypes
 from common_utils_py.did import id_to_did, NEVERMINED_PREFIX
 from common_utils_py.did_resolver.did_resolver import DIDResolver
@@ -11,6 +11,7 @@ from common_utils_py.utils.crypto import get_ecdsa_public_key_from_file, ecdsa_e
 from eth_utils import remove_0x_prefix
 from flask import Blueprint, jsonify, request
 from secret_store_client.client import RPCError
+from authlib.integrations.flask_oauth2 import current_token
 
 from nevermined_gateway import constants
 from nevermined_gateway.compute_validations import is_allowed_read_compute
@@ -25,6 +26,7 @@ from nevermined_gateway.util import (build_download_response, check_required_att
                                      get_provider_password, get_rsa_public_key_file,
                                      is_access_granted, is_owner_granted, keeper_instance,
                                      setup_keeper, verify_signature, was_compute_triggered)
+from nevermined_gateway.identity.jwt import authorization, require_oauth
 
 setup_logging()
 services = Blueprint('services', __name__)
@@ -220,16 +222,27 @@ def access(agreement_id, index=0):
     """Allows to get access to an asset data file.
     swagger_from_file: docs/access.yml
     """
+    
+    has_bearer_token = False
+    if "Authorization" in request.headers:
+        has_bearer_token = True
+        with require_oauth.acquire() as token:
+            consumer_address = token["client_id"]
+            did = token["did"]
+            agreement_id = token["sub"]
+            signature = None
+    else:
+        # For backwards compatibility
+        # TODO: Should be removed once the sdks are using oauth
+        try:
+            consumer_address = request.headers.get('X-Consumer-Address')
+            did = request.headers.get('X-DID')
+            signature = request.headers.get('X-Signature')
 
-    try:
-        consumer_address = request.headers.get('X-Consumer-Address')
-        did = request.headers.get('X-DID')
-        signature = request.headers.get('X-Signature')
-
-        if not consumer_address or not did or not signature:
-            return 'Unable to get params from headers', 401
-    except Exception:
-        return 'Unable to retrieve required parameters', 401
+            if not consumer_address or not did or not signature:
+                return 'Unable to get params from headers', 401
+        except Exception:
+            return 'Unable to retrieve required parameters', 401
 
     logger.info('Parameters:\nAgreementId: %s\nIndex: %d\nConsumerAddress: %s\n'
                 'DID: %s\nSignature: %s'
@@ -243,10 +256,14 @@ def access(agreement_id, index=0):
 
         ## Access flow
         # 1. Verification of signature
-        if not verify_signature(keeper, consumer_address, signature, agreement_id):
-            msg = f'Invalid signature {signature} for ' \
-                  f'consumerAddress {consumer_address} and agreementId {agreement_id}.'
-            raise ValueError(msg)
+
+        # When using bearer token the signature is verified at token issue time
+        # TODO: This should be removed once the sdks are using oauth
+        if not has_bearer_token:
+            if not verify_signature(keeper, consumer_address, signature, agreement_id):
+                msg = f'Invalid signature {signature} for ' \
+                    f'consumerAddress {consumer_address} and agreementId {agreement_id}.'
+                raise ValueError(msg)
 
         asset = DIDResolver(keeper.did_registry).resolve(did)
 
@@ -608,3 +625,16 @@ def execute_compute_job():
     except Exception as e:
         logger.error(f'Error- {str(e)}', exc_info=1)
         return f'Error : {str(e)}', 500
+
+@services.route('/test', methods=['GET'])
+@require_oauth()
+def test():
+    """Allows to get access to an asset data file.
+    swagger_from_file: docs/test.yml
+    """
+    user = current_token["client_id"]
+    return jsonify(user)
+
+@services.route('/oauth/token', methods=['POST'])
+def issue_token():
+    return authorization.create_token_response()

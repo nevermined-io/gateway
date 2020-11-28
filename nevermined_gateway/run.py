@@ -1,5 +1,6 @@
 import configparser
 import logging
+import sys
 
 from common_utils_py.http_requests.requests_session import get_requests_session
 from common_utils_py.utils.crypto import get_ecdsa_public_key_from_file, get_content_keyfile_from_path
@@ -19,6 +20,11 @@ gateway_url = config.get(ConfigSections.RESOURCES, 'gateway.url')
 
 requests_session = get_requests_session()
 logger = logging.getLogger(__name__)
+
+log = logging.getLogger('authlib')
+log.addHandler(logging.StreamHandler(sys.stdout))
+log.setLevel(logging.DEBUG)
+
 
 def get_version():
     conf = configparser.ConfigParser()

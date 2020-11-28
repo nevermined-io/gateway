@@ -53,11 +53,13 @@ def setup_all():
     init_account_envvars()
 
 
-def get_publisher_account():
+@pytest.fixture
+def provider_account():
     return get_account(0)
 
 
-def get_consumer_account():
+@pytest.fixture
+def consumer_account():
     os.environ['PARITY_ADDRESS1'] = '0x068ed00cf0441e4829d9784fcbe7b9e26d4bd8d0'
     os.environ['PARITY_PASSWORD1'] = 'secret'
     os.environ['PARITY_KEYFILE1'] = 'tests/resources/data/consumer_key_file.json'

@@ -31,6 +31,8 @@ install_requirements = [
     'osmosis-ipfs-driver==0.0.1',
     'Werkzeug>=0.15.3',
     'ldap3==2.8.1',
+    # secp256k1 support was added recently and the latest release does not included it yet
+    'authlib @ git+https://github.com/lepture/authlib.git@ffeeaa9fd7b5bc4ea7cae9fcf0c2ad9d7f5cf22a'
 ]
 
 # Required to run setup.py:
