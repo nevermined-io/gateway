@@ -213,7 +213,9 @@ class NeverminedJWTTokenValidator(TokenValidator):
 
 def validate_sub(claims, value):
     if claims["aud"] == BaseURLs.ASSETS_URL + '/access' and value is None:
-        raise InvalidClaimError("sub")
+        return False
+
+    return True
 
 
 def genereate_access_token(client, grant_type, user, scope):
