@@ -1,11 +1,12 @@
-from nevermined_gateway.identity.oauth2.token import NeverminedJWTBearerGrant
-from nevermined_gateway.constants import BaseURLs
+import os
+
 from common_utils_py.agreements.service_agreement import ServiceAgreement
 from common_utils_py.agreements.service_types import ServiceTypes
-from nevermined_gateway.util import keeper_instance
-import os
+from nevermined_gateway.constants import BaseURLs
 from nevermined_gateway.identity.jwk_utils import account_to_jwk
-from authlib.oauth2.rfc7523.jwt_bearer import JWTBearerGrant
+from nevermined_gateway.identity.oauth2.token import NeverminedJWTBearerGrant
+from nevermined_gateway.util import keeper_instance
+
 from tests.utils import get_registered_ddo, lock_reward, place_order
 
 # In Production JWT should only be used with https
@@ -36,7 +37,7 @@ def test_access_endpoint(client, provider_account, consumer_account):
     
     # create jwt bearer grant
     jwk = account_to_jwk(consumer_account)
-    assertion = JWTBearerGrant.sign(
+    assertion = NeverminedJWTBearerGrant.sign(
         jwk,
         issuer=consumer_account.address,
         audience=BaseURLs.ASSETS_URL + "/access",
@@ -49,7 +50,7 @@ def test_access_endpoint(client, provider_account, consumer_account):
         })
 
     response = client.post("/api/v1/gateway/services/oauth/token", data={
-        "grant_type": JWTBearerGrant.GRANT_TYPE,
+        "grant_type": NeverminedJWTBearerGrant.GRANT_TYPE,
         "assertion": assertion
     })
     assert response.status_code == 200
@@ -89,7 +90,7 @@ def test_access_endpoint_bad_signature(client, provider_account, consumer_accoun
     
     # create jwt bearer grant
     jwk = account_to_jwk(consumer_account)
-    assertion = JWTBearerGrant.sign(
+    assertion = NeverminedJWTBearerGrant.sign(
         jwk,
         issuer=consumer_account.address,
         audience=BaseURLs.ASSETS_URL + '/access',
@@ -102,7 +103,7 @@ def test_access_endpoint_bad_signature(client, provider_account, consumer_accoun
         })
 
     response = client.post("/api/v1/gateway/services/oauth/token", data={
-        "grant_type": JWTBearerGrant.GRANT_TYPE,
+        "grant_type": NeverminedJWTBearerGrant.GRANT_TYPE,
         "assertion": assertion
     })
     assert response.status_code == 400

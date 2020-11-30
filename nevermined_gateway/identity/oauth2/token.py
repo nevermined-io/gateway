@@ -17,7 +17,7 @@ from nevermined_gateway.constants import (BaseURLs, ConditionState,
                                           ConfigSections)
 from nevermined_gateway.identity.jwk_utils import (
     account_to_jwk, jwk_to_eth_address, recover_public_keys_from_assertion)
-from nevermined_gateway.util import (get_provider_account, is_access_granted,
+from nevermined_gateway.util import (get_provider_account, is_access_granted, is_owner_granted,
                                      keeper_instance)
 from web3 import Web3
 
@@ -28,7 +28,7 @@ class NeverminedOauthClient(ClientMixin):
     def __init__(self, claims):
         self.address = claims["iss"]
         self.resource = claims["aud"]
-        self.service_agreement_id = claims["sub"]
+        self.service_agreement_id = claims.get("sub")
         self.did = claims["did"]
 
     def check_grant_type(self, grant_type):
@@ -57,11 +57,11 @@ class NeverminedJWTBearerGrant(JWTBearerGrant):
                 'values': [
                     BaseURLs.ASSETS_URL + '/access',
                     BaseURLs.ASSETS_URL + '/compute',
-                    BaseURLs.ASSETS_URL + 'download',
+                    BaseURLs.ASSETS_URL + '/download',
+                    BaseURLs.ASSETS_URL + '/execute'
                ],
             },
             'exp': {'essential': True},
-            'sub': {'essential': True},
         }
         claims.update(public_claims)
         
@@ -97,8 +97,15 @@ class NeverminedJWTBearerGrant(JWTBearerGrant):
         if not received_address in possible_eth_addresses:
             raise InvalidClientError(f"iss: {claims['iss']} does not match with the public key used to sign the JwTBearerGrant")
 
-        # check if client has access
-        self.validate_access(claims["sub"], claims["did"], claims["iss"])
+        if claims["aud"] == BaseURLs.ASSETS_URL + "/access":
+            # check if client has access
+            self.validate_access(claims["sub"], claims["did"], claims["iss"])
+        elif claims["aud"] == BaseURLs.ASSETS_URL + "/download":
+            self.validate_owner(claims["did"], claims["iss"])
+        elif claims["aud"] == BaseURLs.ASSETS_URL + "/compute":
+            raise NotImplementedError()
+        elif claims["aud"] == BaseURLs.ASSETS_URL + "/execute":
+            raise NotImplementedError
 
         return NeverminedOauthClient(claims)
 
@@ -154,6 +161,20 @@ class NeverminedJWTBearerGrant(JWTBearerGrant):
                        'id is invalid.')
                 logger.warning(msg)
                 raise InvalidClientError(msg)
+
+    def validate_owner(self, did, consumer_address):
+        keeper = keeper_instance()
+
+        if not is_owner_granted(
+                did,
+                consumer_address,
+                keeper):
+
+            msg = ('Checking access permissions failed. Consumer address does not have '
+                'permission to download this asset or consumer address and/or did '
+                'is invalid.')
+            logger.warning(msg)
+            raise InvalidClientError(msg)
             
 
 class NeverminedJWTTokenValidator(TokenValidator):
@@ -189,11 +210,10 @@ class NeverminedJWTTokenValidator(TokenValidator):
             error.error = InvalidClaimError.error
             raise error
 
+
 def validate_sub(claims, value):
     if claims["aud"] == BaseURLs.ASSETS_URL + '/access' and value is None:
         raise InvalidClaimError("sub")
-
-
 
 
 def genereate_access_token(client, grant_type, user, scope):

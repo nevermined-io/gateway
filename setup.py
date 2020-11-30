@@ -32,7 +32,10 @@ install_requirements = [
     'Werkzeug>=0.15.3',
     'ldap3==2.8.1',
     # secp256k1 support was added recently and the latest release does not included it yet
-    'authlib @ git+https://github.com/lepture/authlib.git@ffeeaa9fd7b5bc4ea7cae9fcf0c2ad9d7f5cf22a'
+    'authlib @ git+https://github.com/lepture/authlib.git@ffeeaa9fd7b5bc4ea7cae9fcf0c2ad9d7f5cf22a',
+    'cryptography==3.2.1',
+    'ecdsa==0.16.1',
+    'eth-keys==0.3.3'
 ]
 
 # Required to run setup.py:

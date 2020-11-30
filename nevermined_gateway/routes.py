@@ -154,15 +154,23 @@ def download(index=0):
     swagger_from_file: docs/download.yml
     """
 
-    try:
-        consumer_address = request.headers.get('X-Consumer-Address')
-        did = request.headers.get('X-DID')
-        signature = request.headers.get('X-Signature')
+    has_bearer_token = False
+    if "Authorization" in request.headers:
+        has_bearer_token = True
+        with require_oauth.acquire() as token:
+            consumer_address = token["client_id"]
+            did = token["did"]
+            signature = None
+    else:
+        try:
+            consumer_address = request.headers.get('X-Consumer-Address')
+            did = request.headers.get('X-DID')
+            signature = request.headers.get('X-Signature')
 
-        if not consumer_address or not did or not signature:
-            return 'Unable to get params from headers', 401
-    except Exception:
-        return 'Unable to retrieve required parameters', 401
+            if not consumer_address or not did or not signature:
+                return 'Unable to get params from headers', 401
+        except Exception:
+            return 'Unable to retrieve required parameters', 401
 
     logger.info('Parameters:\nIndex: %d\nConsumerAddress: %s\n'
                 'DID: %s\nSignature: %s'
@@ -170,27 +178,27 @@ def download(index=0):
 
     try:
         keeper = keeper_instance()
-
-        ## Access flow
-        # 1. Verification of signature
-        if not verify_signature(keeper, consumer_address, signature, did):
-            msg = f'Invalid signature {signature} for ' \
-                  f'consumerAddress {consumer_address} and did {did}.'
-            raise ValueError(msg)
-
         asset = DIDResolver(keeper.did_registry).resolve(did)
 
-        # 2. Verification that access is granted
-        if not is_owner_granted(
-                did,
-                consumer_address,
-                keeper):
+        if not has_bearer_token:
+            ## Access flow
+            # 1. Verification of signature
+            if not verify_signature(keeper, consumer_address, signature, did):
+                msg = f'Invalid signature {signature} for ' \
+                    f'consumerAddress {consumer_address} and did {did}.'
+                raise ValueError(msg)
 
-            msg = ('Checking access permissions failed. Consumer address does not have '
-                   'permission to download this asset or consumer address and/or did '
-                   'is invalid.')
-            logger.warning(msg)
-            return msg, 401
+            # 2. Verification that access is granted
+            if not is_owner_granted(
+                    did,
+                    consumer_address,
+                    keeper):
+
+                msg = ('Checking access permissions failed. Consumer address does not have '
+                    'permission to download this asset or consumer address and/or did '
+                    'is invalid.')
+                logger.warning(msg)
+                return msg, 401
 
         file_attributes = asset.metadata['main']['files'][index]
         content_type = file_attributes.get('contentType', None)
@@ -629,14 +637,6 @@ def execute_compute_job():
         logger.error(f'Error- {str(e)}', exc_info=1)
         return f'Error : {str(e)}', 500
 
-@services.route('/test', methods=['GET'])
-@require_oauth()
-def test():
-    """Allows to get access to an asset data file.
-    swagger_from_file: docs/test.yml
-    """
-    user = current_token["client_id"]
-    return jsonify(user)
 
 @services.route('/oauth/token', methods=['POST'])
 def issue_token():
