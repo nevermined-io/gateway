@@ -25,7 +25,7 @@ from nevermined_gateway.util import (build_download_response, check_auth_token,
                                      get_download_url, get_provider_account, get_provider_key_file,
                                      get_provider_password, get_rsa_public_key_file, is_token_valid,
                                      keeper_instance, verify_signature, web3)
-from tests.conftest import get_consumer_account, get_publisher_account, get_sample_ddo
+from .utils import get_registered_ddo, place_order, lock_reward
 
 PURCHASE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/access/initialize'
 SERVICE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/consume'
@@ -35,182 +35,38 @@ def dummy_callback(*_):
     pass
 
 
-def get_registered_ddo(account, providers=None, auth_service='SecretStore'):
-    keeper = keeper_instance()
-    metadata_api = Metadata('http://localhost:5000')
-    metadata = get_sample_ddo()['service'][0]['attributes']
-    metadata['main']['files'][0][
-        'url'] = "https://raw.githubusercontent.com/tbertinmahieux/MSongsDB/master/Tasks_Demos" \
-                 "/CoverSongs/shs_dataset_test.txt"
-    metadata['main']['files'][0]['checksum'] = str(uuid.uuid4())
-
-    ddo = DDO()
-    ddo_service_endpoint = metadata_api.get_service_endpoint()
-
-    metadata_service_desc = ServiceDescriptor.metadata_service_descriptor(metadata,
-                                                                          ddo_service_endpoint)
-    authorization_service_attributes = {"main": {
-        "service": auth_service,
-        "publicKey": "0xd7"
-    }}
-
-    access_service_attributes = {"main": {
-        "name": "dataAssetAccessServiceAgreement",
-        "creator": account.address,
-        "price": metadata[MetadataMain.KEY]['price'],
-        "timeout": 3600,
-        "datePublished": metadata[MetadataMain.KEY]['dateCreated']
-    }}
-
-    service_descriptors = [ServiceDescriptor.authorization_service_descriptor(
-        authorization_service_attributes,
-        'http://localhost:12001'
-    )]
-    service_descriptors += [ServiceDescriptor.access_service_descriptor(
-        access_service_attributes,
-        'http://localhost:8030'
-    )]
-
-    service_descriptors = [metadata_service_desc] + service_descriptors
-
-    services = ServiceFactory.build_services(service_descriptors)
-    checksums = dict()
-    for service in services:
-        try:
-            checksums[str(service.index)] = checksum(service.main)
-        except Exception as e:
-            pass
-
-    # Adding proof to the ddo.
-    ddo.add_proof(checksums, account)
-
-    did = ddo.assign_did(DID.did(ddo.proof['checksum']))
-
-    access_service = ServiceFactory.complete_access_service(did,
-                                                            'http://localhost:8030',
-                                                            access_service_attributes,
-                                                            keeper.escrow_access_secretstore_template.address,
-                                                            keeper.escrow_reward_condition.address)
-    for service in services:
-        if service.type == 'access':
-            ddo.add_service(access_service)
-        else:
-            ddo.add_service(service)
-
-    ddo.proof['signatureValue'] = keeper.sign_hash(did_to_id_bytes(did), account)
-
-    ddo.add_public_key(did, account.address)
-
-    ddo.add_authentication(did, PUBLIC_KEY_TYPE_RSA)
-
-    try:
-        _oldddo = metadata_api.get_asset_ddo(ddo.did)
-        if _oldddo:
-            metadata_api.retire_asset_ddo(ddo.did)
-    except ValueError:
-        pass
-
-    if auth_service == ServiceAuthorizationTypes.SECRET_STORE:
-        encrypted_files = do_secret_store_encrypt(
-            remove_0x_prefix(ddo.asset_id),
-            json.dumps(metadata['main']['files']),
-            account,
-            get_config()
-        )
-    elif auth_service == ServiceAuthorizationTypes.PSK_RSA:
-        encrypted_files, public_key = rsa_encryption_from_file(
-            json.dumps(metadata['main']['files']), get_rsa_public_key_file())
-    else:
-        encrypted_files, public_key = ecdsa_encryption_from_file(
-            json.dumps(metadata['main']['files']), get_provider_key_file(), get_provider_password())
-
-    _files = metadata['main']['files']
-    # only assign if the encryption worked
-    if encrypted_files:
-        index = 0
-        for file in metadata['main']['files']:
-            file['index'] = index
-            index = index + 1
-            del file['url']
-        metadata['encryptedFiles'] = encrypted_files
-
-    keeper_instance().did_registry.register(
-        ddo.asset_id,
-        checksum=web3().toBytes(hexstr=ddo.asset_id),
-        url=ddo_service_endpoint,
-        account=account,
-        providers=providers
-    )
-    metadata_api.publish_asset_ddo(ddo)
-    return ddo
 
 
-def place_order(publisher_account, ddo, consumer_account):
-    keeper = keeper_instance()
-    agreement_id = ServiceAgreement.create_new_agreement_id()
-    agreement_template = keeper.escrow_access_secretstore_template
-    publisher_address = publisher_account.address
-    # balance = keeper.token.get_token_balance(consumer_account.address)/(2**18)
-    # if balance < 20:
-    #     keeper.dispenser.request_tokens(100, consumer_account)
-
-    service_agreement = ServiceAgreement.from_ddo(ServiceTypes.ASSET_ACCESS, ddo)
-    condition_ids = service_agreement.generate_agreement_condition_ids(
-        agreement_id, ddo.asset_id, consumer_account.address, publisher_address, keeper)
-    time_locks = service_agreement.conditions_timelocks
-    time_outs = service_agreement.conditions_timeouts
-    agreement_template.create_agreement(
-        agreement_id,
-        ddo.asset_id,
-        condition_ids,
-
-        time_locks,
-        time_outs,
-        consumer_account.address,
-        consumer_account
-    )
-
-    return agreement_id
 
 
-def lock_reward(agreement_id, service_agreement, consumer_account):
-    keeper = keeper_instance()
-    price = service_agreement.get_price()
-    keeper.token.token_approve(keeper.lock_reward_condition.address, price, consumer_account)
-    tx_hash = keeper.lock_reward_condition.fulfill(
-        agreement_id, keeper.escrow_reward_condition.address, price, consumer_account)
-    keeper.lock_reward_condition.get_tx_receipt(tx_hash)
 
 
-def grant_access(agreement_id, ddo, consumer_account, publisher_account):
+def grant_access(agreement_id, ddo, consumer_account, provider_account):
     keeper = keeper_instance()
     tx_hash = keeper.access_secret_store_condition.fulfill(
-        agreement_id, ddo.asset_id, consumer_account.address, publisher_account
+        agreement_id, ddo.asset_id, consumer_account.address, provider_account
     )
     keeper.access_secret_store_condition.get_tx_receipt(tx_hash)
 
 
-def test_consume(client):
+def test_consume(client, provider_account, consumer_account):
     endpoint = BaseURLs.ASSETS_URL + '/consume'
-
-    pub_acc = get_publisher_account()
-    cons_acc = get_consumer_account()
 
     # for method in ['PSK-ECDSA']:
     for method in constants.ConfigSections.DECRYPTION_METHODS:
         print('Testing Consume with Authorization Method: ' + method)
-        ddo = get_registered_ddo(pub_acc, providers=[pub_acc.address], auth_service=method)
+        ddo = get_registered_ddo(provider_account, providers=[provider_account.address], auth_service=method)
 
         # initialize an agreement
-        agreement_id = place_order(pub_acc, ddo, cons_acc)
+        agreement_id = place_order(provider_account, ddo, consumer_account)
         payload = dict({
             'serviceAgreementId': agreement_id,
-            'consumerAddress': cons_acc.address
+            'consumerAddress': consumer_account.address
         })
 
         keeper = keeper_instance()
         agr_id_hash = add_ethereum_prefix_and_hash_msg(agreement_id)
-        signature = keeper.sign_hash(agr_id_hash, cons_acc)
+        signature = keeper.sign_hash(agr_id_hash, consumer_account)
         index = 0
 
         event = keeper.escrow_access_secretstore_template.subscribe_agreement_created(
@@ -218,26 +74,26 @@ def test_consume(client):
         )
         assert event, "Agreement event is not found, check the keeper node's logs"
 
-        consumer_balance = keeper.token.get_token_balance(cons_acc.address)
+        consumer_balance = keeper.token.get_token_balance(consumer_account.address)
         if consumer_balance < 50:
-            keeper.dispenser.request_tokens(50 - consumer_balance, cons_acc)
+            keeper.dispenser.request_tokens(50 - consumer_balance, consumer_account)
 
         sa = ServiceAgreement.from_ddo(ServiceTypes.ASSET_ACCESS, ddo)
-        lock_reward(agreement_id, sa, cons_acc)
+        lock_reward(agreement_id, sa, consumer_account)
         event = keeper.lock_reward_condition.subscribe_condition_fulfilled(
             agreement_id, 15, None, (), wait=True, from_block=0
         )
         assert event, "Lock reward condition fulfilled event is not found, check the keeper " \
                       "node's logs"
 
-        grant_access(agreement_id, ddo, cons_acc, pub_acc)
+        grant_access(agreement_id, ddo, consumer_account, provider_account)
         event = keeper.access_secret_store_condition.subscribe_condition_fulfilled(
             agreement_id, 15, None, (), wait=True, from_block=0
         )
         assert event or keeper.access_secret_store_condition.check_permissions(
-            ddo.asset_id, cons_acc.address
+            ddo.asset_id, consumer_account.address
         ), f'Failed to get access permission: agreement_id={agreement_id}, ' \
-           f'did={ddo.did}, consumer={cons_acc.address}'
+           f'did={ddo.did}, consumer={consumer_account.address}'
 
         # Consume using url index and signature (let the gateway do the decryption)
         payload['signature'] = signature
@@ -249,19 +105,17 @@ def test_consume(client):
         assert response.status == '200 OK'
 
 
-def test_access(client):
-    pub_acc = get_publisher_account()
-    cons_acc = get_consumer_account()
+def test_access(client, provider_account, consumer_account):
 
     for method in constants.ConfigSections.DECRYPTION_METHODS:
-        ddo = get_registered_ddo(pub_acc, providers=[pub_acc.address], auth_service=method)
+        ddo = get_registered_ddo(provider_account, providers=[provider_account.address], auth_service=method)
 
         # initialize an agreement
-        agreement_id = place_order(pub_acc, ddo, cons_acc)
+        agreement_id = place_order(provider_account, ddo, consumer_account)
 
         keeper = keeper_instance()
         agr_id_hash = add_ethereum_prefix_and_hash_msg(agreement_id)
-        signature = keeper.sign_hash(agr_id_hash, cons_acc)
+        signature = keeper.sign_hash(agr_id_hash, consumer_account)
         index = 0
 
         event = keeper.escrow_access_secretstore_template.subscribe_agreement_created(
@@ -269,12 +123,12 @@ def test_access(client):
         )
         assert event, "Agreement event is not found, check the keeper node's logs"
 
-        consumer_balance = keeper.token.get_token_balance(cons_acc.address)
+        consumer_balance = keeper.token.get_token_balance(consumer_account.address)
         if consumer_balance < 50:
-            keeper.dispenser.request_tokens(50 - consumer_balance, cons_acc)
+            keeper.dispenser.request_tokens(50 - consumer_balance, consumer_account)
 
         sa = ServiceAgreement.from_ddo(ServiceTypes.ASSET_ACCESS, ddo)
-        lock_reward(agreement_id, sa, cons_acc)
+        lock_reward(agreement_id, sa, consumer_account)
         event = keeper.lock_reward_condition.subscribe_condition_fulfilled(
             agreement_id, 15, None, (), wait=True, from_block=0
         )
@@ -283,7 +137,7 @@ def test_access(client):
         # Consume using url index and signature (let the gateway do the decryption)
 
         headers = dict({
-            'X-Consumer-Address': cons_acc.address,
+            'X-Consumer-Address': consumer_account.address,
             'X-Signature': signature,
             'X-DID': ddo.did
         })
@@ -297,17 +151,16 @@ def test_access(client):
         assert response.status == '200 OK'
 
 
-def test_download(client):
-    pub_acc = get_publisher_account()
+def test_download(client, provider_account):
 
-    ddo = get_registered_ddo(pub_acc, providers=[pub_acc.address])
+    ddo = get_registered_ddo(provider_account, providers=[provider_account.address])
     keeper = keeper_instance()
     did_hash = add_ethereum_prefix_and_hash_msg(ddo.did)
-    signature = keeper.sign_hash(did_hash, pub_acc)
+    signature = keeper.sign_hash(did_hash, provider_account)
     index = 0
 
     headers = dict({
-        'X-Consumer-Address': pub_acc.address,
+        'X-Consumer-Address': provider_account.address,
         'X-Signature': signature,
         'X-DID': ddo.did
     })
