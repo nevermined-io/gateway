@@ -26,13 +26,16 @@ from nevermined_gateway.util import (build_download_response, check_required_att
                                      get_provider_password, get_rsa_public_key_file,
                                      is_access_granted, is_owner_granted, keeper_instance,
                                      setup_keeper, verify_signature, was_compute_triggered)
-from nevermined_gateway.identity.jwt import authorization, require_oauth
+from nevermined_gateway.identity.oauth2.resource_server import create_resource_server
+from nevermined_gateway.identity.oauth2.authorization_server import create_authorization_server
 
 setup_logging()
 services = Blueprint('services', __name__)
 setup_keeper(app.config['CONFIG_FILE'])
 provider_acc = get_provider_account()
 requests_session = get_requests_session()
+authorization = create_authorization_server(app)
+require_oauth = create_resource_server()
 
 logger = logging.getLogger(__name__)
 
@@ -251,6 +254,7 @@ def access(agreement_id, index=0):
     try:
         keeper = keeper_instance()
         asset_id = did.replace(NEVERMINED_PREFIX, '')
+        asset = DIDResolver(keeper.did_registry).resolve(did)
 
         logger.debug('AgreementID :' + agreement_id)
 
@@ -265,55 +269,54 @@ def access(agreement_id, index=0):
                     f'consumerAddress {consumer_address} and agreementId {agreement_id}.'
                 raise ValueError(msg)
 
-        asset = DIDResolver(keeper.did_registry).resolve(did)
 
-        # 2. Verification that access is granted
-        if not is_access_granted(
-                agreement_id,
-                did,
-                consumer_address,
-                keeper):
-            # 3. If not granted, verification of agreement and conditions
-            agreement = keeper.agreement_manager.get_agreement(agreement_id)
-            cond_ids = agreement.condition_ids
+            # 2. Verification that access is granted
+            if not is_access_granted(
+                    agreement_id,
+                    did,
+                    consumer_address,
+                    keeper):
+                # 3. If not granted, verification of agreement and conditions
+                agreement = keeper.agreement_manager.get_agreement(agreement_id)
+                cond_ids = agreement.condition_ids
 
-            access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
-            lockreward_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
-            escrowreward_condition_status = keeper.condition_manager.get_condition_state(
-                cond_ids[2])
+                access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
+                lockreward_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
+                escrowreward_condition_status = keeper.condition_manager.get_condition_state(
+                    cond_ids[2])
 
-            logger.debug('AccessCondition: %d' % access_condition_status)
-            logger.debug('LockRewardCondition: %d' % lockreward_condition_status)
-            logger.debug('EscrowRewardCondition: %d' % escrowreward_condition_status)
+                logger.debug('AccessCondition: %d' % access_condition_status)
+                logger.debug('LockRewardCondition: %d' % lockreward_condition_status)
+                logger.debug('EscrowRewardCondition: %d' % escrowreward_condition_status)
 
-            if lockreward_condition_status != ConditionState.Fulfilled.value:
-                logger.debug('ServiceAgreement %s was not paid. Forbidden' % agreement_id)
-                return 'ServiceAgreement %s was not paid, LockRewardCondition status is %d' \
-                       % (agreement_id, lockreward_condition_status), 401
+                if lockreward_condition_status != ConditionState.Fulfilled.value:
+                    logger.debug('ServiceAgreement %s was not paid. Forbidden' % agreement_id)
+                    return 'ServiceAgreement %s was not paid, LockRewardCondition status is %d' \
+                        % (agreement_id, lockreward_condition_status), 401
 
-            fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address,
-                                     provider_acc)
-            fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consumer_address,
-                                            provider_acc)
+                fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address,
+                                        provider_acc)
+                fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consumer_address,
+                                                provider_acc)
 
-            iteration = 0
-            access_granted = False
-            while iteration < ConfigSections.PING_ITERATIONS:
-                iteration = iteration + 1
-                logger.debug('Checking if access was granted. Iteration %d' % iteration)
-                if not is_access_granted(agreement_id, did, consumer_address, keeper):
-                    time.sleep(ConfigSections.PING_SLEEP / 1000)
-                else:
-                    access_granted = True
-                    break
+                iteration = 0
+                access_granted = False
+                while iteration < ConfigSections.PING_ITERATIONS:
+                    iteration = iteration + 1
+                    logger.debug('Checking if access was granted. Iteration %d' % iteration)
+                    if not is_access_granted(agreement_id, did, consumer_address, keeper):
+                        time.sleep(ConfigSections.PING_SLEEP / 1000)
+                    else:
+                        access_granted = True
+                        break
 
-            if not access_granted:
-                msg = ('Checking access permissions failed. Either consumer address does not have '
-                       'permission to consume this asset or consumer address and/or service '
-                       'agreement '
-                       'id is invalid.')
-                logger.warning(msg)
-                return msg, 401
+                if not access_granted:
+                    msg = ('Checking access permissions failed. Either consumer address does not have '
+                        'permission to consume this asset or consumer address and/or service '
+                        'agreement '
+                        'id is invalid.')
+                    logger.warning(msg)
+                    return msg, 401
 
         file_attributes = asset.metadata['main']['files'][index]
         content_type = file_attributes.get('contentType', None)

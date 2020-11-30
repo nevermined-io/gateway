@@ -1,8 +1,6 @@
 from nevermined_gateway.identity.jwk_utils import account_to_jwk
 import os
-import base64
 
-from authlib.jose.rfc7517.jwk import JsonWebKey
 from authlib.oauth2.rfc7523 import JWTBearerGrant
 from authlib.jose import jwt
 
