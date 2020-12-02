@@ -14,7 +14,7 @@ with open('CHANGELOG.md') as history_file:
 # or pip install -e .
 install_requirements = [
     # Install squid-py and all its dependencies first
-    'common-utils-py==0.3.0',
+    'common-utils-py==0.4.1',
     'contracts-lib-py==0.5.1',
     'nevermined-secret-store==0.1.0',
     'Flask==1.1.2',
@@ -22,7 +22,7 @@ install_requirements = [
     'flask-swagger==0.2.14',
     'flask-swagger-ui==3.25.0',
     'Jinja2>=2.10.1',
-    'requests>=2.23.0',
+    'requests~=2.21.0',
     'gunicorn==19.9.0',
     'nevermined-metadata-driver-azure>=0.1.0',
     'nevermined-metadata-driver-aws>=0.1.0',
@@ -31,8 +31,9 @@ install_requirements = [
     'nevermined-metadata-driver-ipfs>=0.1.0',
     'Werkzeug>=0.15.3',
     'ldap3==2.8.1',
-    # secp256k1 support was added recently and the latest release does not included it yet
-    'authlib @ git+https://github.com/lepture/authlib.git@ffeeaa9fd7b5bc4ea7cae9fcf0c2ad9d7f5cf22a',
+    # secp256k1 support was added recently and the latest release of authlib does not included it yet
+    # we will use a fork in the meantime
+    'nevermined-authlib==0.1.0',
     'cryptography==3.2.1',
     'ecdsa==0.16.1',
     'eth-keys==0.3.3'
@@ -42,10 +43,8 @@ install_requirements = [
 setup_requirements = ['pytest-runner', ]
 
 test_requirements = [
-    'codacy-coverage',
     'coverage',
     'docker',
-    'mccabe',
     'pylint',
     'pytest',
     'pytest-watch',

@@ -1,4 +1,5 @@
 import logging
+from nevermined_gateway.compute_validations import is_allowed_read_compute
 import time
 
 from authlib.common.encoding import to_bytes
@@ -8,17 +9,18 @@ from authlib.oauth2.rfc6749.errors import InvalidClientError
 from authlib.oauth2.rfc6749.models import ClientMixin
 from authlib.oauth2.rfc6749.resource_protector import TokenValidator
 from authlib.oauth2.rfc6750 import InvalidTokenError
-from authlib.oauth2.rfc7523.jwt_bearer import JWTBearerGrant
-from common_utils_py.did import NEVERMINED_PREFIX
+from common_utils_py.agreements.service_types import ServiceTypes
+from common_utils_py.did import NEVERMINED_PREFIX, id_to_did
 from common_utils_py.did_resolver.did_resolver import DIDResolver
-from nevermined_gateway.conditions import (fulfill_access_condition,
+from common_utils_py.oauth2.token import NeverminedJWTBearerGrant as _NeverminedJWTBearerGrant
+from common_utils_py.oauth2.jwk_utils import account_to_jwk
+from nevermined_gateway.conditions import (fulfill_access_condition, fulfill_compute_condition,
                                            fulfill_escrow_reward_condition)
 from nevermined_gateway.constants import (BaseURLs, ConditionState,
                                           ConfigSections)
-from nevermined_gateway.identity.jwk_utils import (
-    account_to_jwk, jwk_to_eth_address, recover_public_keys_from_assertion)
+from nevermined_gateway.identity.jwk_utils import jwk_to_eth_address, recover_public_keys_from_assertion
 from nevermined_gateway.util import (get_provider_account, is_access_granted, is_owner_granted,
-                                     keeper_instance)
+                                     keeper_instance, was_compute_triggered)
 from web3 import Web3
 
 logger = logging.getLogger(__name__)
@@ -29,53 +31,22 @@ class NeverminedOauthClient(ClientMixin):
         self.address = claims["iss"]
         self.resource = claims["aud"]
         self.service_agreement_id = claims.get("sub")
-        self.did = claims["did"]
+        self.did = claims.get("did")
+        self.execution_id = claims.get("execution_id")
 
     def check_grant_type(self, grant_type):
-        return grant_type == JWTBearerGrant.GRANT_TYPE
+        return grant_type == NeverminedJWTBearerGrant.GRANT_TYPE
 
 
-class NeverminedJWTBearerGrant(JWTBearerGrant):
+class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
 
     def __init__(self, request, server):
         super().__init__(request, server)
         self.provider_account = get_provider_account()
 
-    def create_claims_options(self):
-        """Create a claims_options to verify JWT payload claims.
-        """
-        # https://tools.ietf.org/html/rfc7523#section-3
-        claims = {}
-        public_claims = {
-            'iss': {'essential': True},
-            'sub': {
-                'essential': False,
-                'validate': validate_sub,
-            },
-            'aud': {
-                'essential': True,
-                'values': [
-                    BaseURLs.ASSETS_URL + '/access',
-                    BaseURLs.ASSETS_URL + '/compute',
-                    BaseURLs.ASSETS_URL + '/download',
-                    BaseURLs.ASSETS_URL + '/execute'
-               ],
-            },
-            'exp': {'essential': True},
-        }
-        claims.update(public_claims)
-        
-        # private claims are non registered names and may lead to collisions
-        private_claims = {
-            'did': {'essential': True}
-        }
-        claims.update(private_claims)
-
-        return claims
-
     def authenticate_user(self, client, claims):
         return None
-    
+
     def resolve_public_key(self, headers, payload):
         assertion = to_bytes(self.request.data["assertion"])
 
@@ -93,7 +64,7 @@ class NeverminedJWTBearerGrant(JWTBearerGrant):
             received_address = Web3.toChecksumAddress(claims["iss"])
         except ValueError:
             raise InvalidClientError(f"iss: {claims['iss']} needs to be a valid ethereum address")
-        
+
         if not received_address in possible_eth_addresses:
             raise InvalidClientError(f"iss: {claims['iss']} does not match with the public key used to sign the JwTBearerGrant")
 
@@ -103,9 +74,9 @@ class NeverminedJWTBearerGrant(JWTBearerGrant):
         elif claims["aud"] == BaseURLs.ASSETS_URL + "/download":
             self.validate_owner(claims["did"], claims["iss"])
         elif claims["aud"] == BaseURLs.ASSETS_URL + "/compute":
-            raise NotImplementedError()
+            self.validate_compute(claims["sub"], claims["execution_id"], claims["iss"])
         elif claims["aud"] == BaseURLs.ASSETS_URL + "/execute":
-            raise NotImplementedError
+            self.validate_execute(claims["sub"], claims["did"], claims["iss"])
 
         return NeverminedOauthClient(claims)
 
@@ -175,14 +146,71 @@ class NeverminedJWTBearerGrant(JWTBearerGrant):
                 'is invalid.')
             logger.warning(msg)
             raise InvalidClientError(msg)
-            
+
+    def validate_execute(self, agreement_id, workflow_did, consumer_address):
+        keeper = keeper_instance()
+
+        asset_id = keeper.agreement_manager.get_agreement(agreement_id).did
+        did = id_to_did(asset_id)
+        asset = DIDResolver(keeper.did_registry).resolve(did)
+
+        if not was_compute_triggered(agreement_id, did, consumer_address, keeper):
+
+            agreement = keeper.agreement_manager.get_agreement(agreement_id)
+            cond_ids = agreement.condition_ids
+
+            compute_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
+            lockreward_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
+            escrowreward_condition_status = keeper.condition_manager.get_condition_state(
+                cond_ids[2])
+            logger.debug('ComputeExecutionCondition: %d' % compute_condition_status)
+            logger.debug('LockRewardCondition: %d' % lockreward_condition_status)
+            logger.debug('EscrowRewardCondition: %d' % escrowreward_condition_status)
+
+            if lockreward_condition_status != ConditionState.Fulfilled.value:
+                logger.debug('ServiceAgreement %s was not paid. Forbidden' % agreement_id)
+                raise InvalidClaimError(
+                    f"ServiceAgreement {agreement_id} was not paid, LockRewardCondition status is {lockreward_condition_status}")
+
+            fulfill_compute_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address,
+                self.provider_account)
+            fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consumer_address,
+                                            self.provider_account,
+                                            ServiceTypes.CLOUD_COMPUTE)
+
+            iteration = 0
+            access_granted = False
+            while iteration < ConfigSections.PING_ITERATIONS:
+                iteration = iteration + 1
+                logger.debug('Checking if compute was granted. Iteration %d' % iteration)
+                if not was_compute_triggered(agreement_id, did, consumer_address, keeper):
+                    time.sleep(ConfigSections.PING_SLEEP / 1000)
+                else:
+                    access_granted = True
+                    break
+
+            if not access_granted:
+                msg = (
+                    'Scheduling the compute execution failed. Either consumer address does not '
+                    'have permission to execute this workflow or consumer address and/or service '
+                    'agreement id is invalid.')
+                logger.warning(msg)
+                raise InvalidClientError(msg)
+
+    def validate_compute(self, agreement_id, execution_id, consumer_address):
+        message, is_allowed = is_allowed_read_compute(agreement_id, execution_id, consumer_address,
+            None, has_bearer_token=True)
+
+        if not is_allowed:
+            raise InvalidClientError(message)
+
 
 class NeverminedJWTTokenValidator(TokenValidator):
     def __init__(self, realm=None, **extra_attributes):
         super().__init__(realm, **extra_attributes)
         self.provider_account = get_provider_account()
         self.provider_jwk = account_to_jwk(self.provider_account)
-    
+
     def authenticate_token(self, token_string):
         claims_options = {
             "iss": {
@@ -211,13 +239,6 @@ class NeverminedJWTTokenValidator(TokenValidator):
             raise error
 
 
-def validate_sub(claims, value):
-    if claims["aud"] == BaseURLs.ASSETS_URL + '/access' and value is None:
-        return False
-
-    return True
-
-
 def genereate_access_token(client, grant_type, user, scope):
     """Generate an access token give a JWT Bearer Grant Token.
 
@@ -227,7 +248,7 @@ def genereate_access_token(client, grant_type, user, scope):
     """
     provider_account = get_provider_account()
     provider_jwk = account_to_jwk(provider_account)
-    
+
     header = {
         "typ": "at+JWT",
         "alg": "ES256K",
@@ -235,10 +256,14 @@ def genereate_access_token(client, grant_type, user, scope):
     claims = {
         "iss": provider_account.address,
         "client_id": client.address,
-        "sub": client.service_agreement_id,
-        "did": client.did,
         "aud": client.resource,
-        # "scope": "scope if there are multiple"
     }
-    
+
+    if client.service_agreement_id is not None:
+        claims.update({"sub": client.service_agreement_id})
+    if client.did is not None:
+        claims.update({"did": client.did})
+    if client.execution_id is not None:
+        claims.update({"execution_id": client.execution_id})
+
     return jwt.encode(header, claims, provider_jwk).decode()

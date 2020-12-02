@@ -233,7 +233,7 @@ def access(agreement_id, index=0):
     """Allows to get access to an asset data file.
     swagger_from_file: docs/access.yml
     """
-    
+
     has_bearer_token = False
     if "Authorization" in request.headers:
         has_bearer_token = True
@@ -360,71 +360,81 @@ def execute(agreement_id):
     swagger_from_file: docs/execute.yml
     """
 
+    has_bearer_token = False
+    if "Authorization" in request.headers:
+        has_bearer_token = True
+        with require_oauth.acquire() as token:
+            consumer_address = token["client_id"]
+            workflow_did = token["did"]
+            agreement_id = token["sub"]
+            signature = None
+    else:
+        try:
+            consumer_address = request.headers.get('X-Consumer-Address')
+            workflow_did = request.headers.get('X-Workflow-DID')
+            signature = request.headers.get('X-Signature')
+
+            if not consumer_address or not workflow_did or not signature:
+                return 'Unable to get params from headers', 401
+        except Exception:
+            return 'Unable to retrieve required parameters', 401
+
     try:
-        consumer_address = request.headers.get('X-Consumer-Address')
-        workflow_did = request.headers.get('X-Workflow-DID')
-        signature = request.headers.get('X-Signature')
+        if not has_bearer_token:
+            keeper = keeper_instance()
 
-        if not consumer_address or not workflow_did or not signature:
-            return 'Unable to get params from headers', 401
-    except Exception:
-        return 'Unable to retrieve required parameters', 401
+            # 1. Verification of signature
+            if not verify_signature(keeper, consumer_address, signature, agreement_id):
+                msg = f'Invalid signature {signature} for ' \
+                    f'consumerAddress {consumer_address} and agreementId {agreement_id}.'
+                raise ValueError(msg)
 
-    try:
-        keeper = keeper_instance()
+            asset_id = keeper_instance().agreement_manager.get_agreement(agreement_id).did
+            did = id_to_did(asset_id)
+            asset = DIDResolver(keeper.did_registry).resolve(did)
 
-        # 1. Verification of signature
-        if not verify_signature(keeper, consumer_address, signature, agreement_id):
-            msg = f'Invalid signature {signature} for ' \
-                  f'consumerAddress {consumer_address} and agreementId {agreement_id}.'
-            raise ValueError(msg)
+            if not was_compute_triggered(agreement_id, did, consumer_address, keeper_instance()):
 
-        asset_id = keeper_instance().agreement_manager.get_agreement(agreement_id).did
-        did = id_to_did(asset_id)
-        asset = DIDResolver(keeper.did_registry).resolve(did)
+                agreement = keeper.agreement_manager.get_agreement(agreement_id)
+                cond_ids = agreement.condition_ids
 
-        if not was_compute_triggered(agreement_id, did, consumer_address, keeper_instance()):
+                compute_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
+                lockreward_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
+                escrowreward_condition_status = keeper.condition_manager.get_condition_state(
+                    cond_ids[2])
+                logger.debug('ComputeExecutionCondition: %d' % compute_condition_status)
+                logger.debug('LockRewardCondition: %d' % lockreward_condition_status)
+                logger.debug('EscrowRewardCondition: %d' % escrowreward_condition_status)
 
-            agreement = keeper.agreement_manager.get_agreement(agreement_id)
-            cond_ids = agreement.condition_ids
+                if lockreward_condition_status != ConditionState.Fulfilled.value:
+                    logger.debug('ServiceAgreement %s was not paid. Forbidden' % agreement_id)
+                    return 'ServiceAgreement %s was not paid, LockRewardCondition status is %d' \
+                        % (agreement_id, lockreward_condition_status), 401
 
-            compute_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
-            lockreward_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
-            escrowreward_condition_status = keeper.condition_manager.get_condition_state(
-                cond_ids[2])
-            logger.debug('ComputeExecutionCondition: %d' % compute_condition_status)
-            logger.debug('LockRewardCondition: %d' % lockreward_condition_status)
-            logger.debug('EscrowRewardCondition: %d' % escrowreward_condition_status)
+                fulfill_compute_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address,
+                                        provider_acc)
+                fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consumer_address,
+                                                provider_acc,
+                                                ServiceTypes.CLOUD_COMPUTE)
 
-            if lockreward_condition_status != ConditionState.Fulfilled.value:
-                logger.debug('ServiceAgreement %s was not paid. Forbidden' % agreement_id)
-                return 'ServiceAgreement %s was not paid, LockRewardCondition status is %d' \
-                       % (agreement_id, lockreward_condition_status), 401
+                iteration = 0
+                access_granted = False
+                while iteration < ConfigSections.PING_ITERATIONS:
+                    iteration = iteration + 1
+                    logger.debug('Checking if compute was granted. Iteration %d' % iteration)
+                    if not was_compute_triggered(agreement_id, did, consumer_address, keeper):
+                        time.sleep(ConfigSections.PING_SLEEP / 1000)
+                    else:
+                        access_granted = True
+                        break
 
-            fulfill_compute_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address,
-                                      provider_acc)
-            fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consumer_address,
-                                            provider_acc,
-                                            ServiceTypes.CLOUD_COMPUTE)
-
-            iteration = 0
-            access_granted = False
-            while iteration < ConfigSections.PING_ITERATIONS:
-                iteration = iteration + 1
-                logger.debug('Checking if compute was granted. Iteration %d' % iteration)
-                if not was_compute_triggered(agreement_id, did, consumer_address, keeper):
-                    time.sleep(ConfigSections.PING_SLEEP / 1000)
-                else:
-                    access_granted = True
-                    break
-
-            if not access_granted:
-                msg = (
-                    'Scheduling the compute execution failed. Either consumer address does not '
-                    'have permission to execute this workflow or consumer address and/or service '
-                    'agreement id is invalid.')
-                logger.warning(msg)
-                return msg, 401
+                if not access_granted:
+                    msg = (
+                        'Scheduling the compute execution failed. Either consumer address does not '
+                        'have permission to execute this workflow or consumer address and/or service '
+                        'agreement id is invalid.')
+                    logger.warning(msg)
+                    return msg, 401
 
         workflow = DIDResolver(keeper_instance().did_registry).resolve(workflow_did)
         body = {"serviceAgreementId": agreement_id, "workflow": workflow.as_dictionary()}
@@ -450,11 +460,20 @@ def compute_logs(agreement_id, execution_id):
     swagger_from_file: docs/compute_logs.yml
     """
 
-    consumer_address = request.headers.get('X-Consumer-Address')
-    signature = request.headers.get('X-Signature')
+    has_bearer_token = False
+    if "Authorization" in request.headers:
+        has_bearer_token = True
+        with require_oauth.acquire() as token:
+            consumer_address = token["client_id"]
+            execution_id = token["execution_id"]
+            agreement_id = token["sub"]
+            signature = None
+    else:
+        consumer_address = request.headers.get('X-Consumer-Address')
+        signature = request.headers.get('X-Signature')
 
-    if not consumer_address or not signature:
-        return 'Unable to get params from headers', 400
+        if not consumer_address or not signature:
+            return 'Unable to get params from headers', 400
 
     logger.info(('Parameters:\n'
                  'ConsumerAddress: %s\n'
@@ -463,11 +482,12 @@ def compute_logs(agreement_id, execution_id):
                  'Signature: %s'),
                 consumer_address, agreement_id, execution_id, signature)
 
-    message, is_allowed = is_allowed_read_compute(agreement_id, execution_id, consumer_address,
+    if not has_bearer_token:
+        message, is_allowed = is_allowed_read_compute(agreement_id, execution_id, consumer_address,
                                                   signature)
 
-    if not is_allowed:
-        return message, 401
+        if not is_allowed:
+            return message, 401
 
     response = requests_session.get(
         get_config().compute_api_url + f'/api/v1/nevermined-compute-api/logs/{execution_id}',
@@ -487,11 +507,20 @@ def compute_status(agreement_id, execution_id):
     swagger_from_file: docs/compute_logs.yml
     """
 
-    consumer_address = request.headers.get('X-Consumer-Address')
-    signature = request.headers.get('X-Signature')
+    has_bearer_token = False
+    if "Authorization" in request.headers:
+        has_bearer_token = True
+        with require_oauth.acquire() as token:
+            consumer_address = token["client_id"]
+            execution_id = token["execution_id"]
+            agreement_id = token["sub"]
+            signature = None
+    else:
+        consumer_address = request.headers.get('X-Consumer-Address')
+        signature = request.headers.get('X-Signature')
 
-    if not consumer_address or not signature:
-        return 'Unable to get params from headers', 400
+        if not consumer_address or not signature:
+            return 'Unable to get params from headers', 400
 
     logger.info(('Parameters:\n'
                  'ConsumerAddress: %s\n'
@@ -500,11 +529,12 @@ def compute_status(agreement_id, execution_id):
                  'Signature: %s'),
                 consumer_address, agreement_id, execution_id, signature)
 
-    message, is_allowed = is_allowed_read_compute(agreement_id, execution_id, consumer_address,
-                                                  signature)
+    if not has_bearer_token:
+        message, is_allowed = is_allowed_read_compute(agreement_id, execution_id, consumer_address,
+                                                    signature)
 
-    if not is_allowed:
-        return message, 401
+        if not is_allowed:
+            return message, 401
 
     response = requests_session.get(
         get_config().compute_api_url + f'/api/v1/nevermined-compute-api/status/{execution_id}',
