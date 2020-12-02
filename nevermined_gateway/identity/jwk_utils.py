@@ -9,7 +9,6 @@ from authlib.jose.errors import DecodeError
 from authlib.jose.util import extract_segment
 from cryptography.hazmat.primitives import serialization
 import ecdsa
-from web3 import Web3
 
 from authlib.jose import JsonWebKey
 from eth_keys import keys
@@ -51,35 +50,6 @@ def public_key_bytes_to_jwk(public_key_bytes):
     }
     
     return JsonWebKey.import_key(jwk_json)
-
-
-def private_key_bytes_to_jwk(private_key_bytes):
-    private_key = ecdsa.SigningKey.from_string(private_key_bytes, curve=ecdsa.SECP256k1)
-    public_key_bytes = private_key.get_verifying_key().to_string()
-
-    jwk_json = {
-        "kty": "EC",
-        "crv": "secp256k1",
-        "d": base64.urlsafe_b64encode(private_key_bytes),
-        "x": base64.urlsafe_b64encode(public_key_bytes[:32]),
-        "y": base64.urlsafe_b64encode(public_key_bytes[32:])
-    }
-
-    return jwk_json
-
-
-def key_file_to_jwk(key_file_path, password):
-    with open(key_file_path) as f:
-        encrypted_key = f.read()
-    
-    private_key = Web3().eth.account.decrypt(encrypted_key, password)
-    private_key_bytes = bytes.fromhex(private_key.hex()[2:])
-    
-    return private_key_bytes_to_jwk(private_key_bytes)
-
-
-def account_to_jwk(account):
-    return key_file_to_jwk(account.key_file, account.password)
 
 
 def public_key_bytes_to_eth_address(public_key_bytes):
