@@ -48,7 +48,8 @@ jobs:
 
     - name: Install python package
       run: |
-        python -m pip install --upgrade pip
+        # the latest version of pip (version 20.3) seems to have a lot of problems
+        pip install pip==20.2.4
         pip install -r requirements_dev.txt
     - name: Test with pytest
       run: |
