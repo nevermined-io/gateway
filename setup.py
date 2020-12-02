@@ -22,7 +22,7 @@ install_requirements = [
     'flask-swagger==0.2.14',
     'flask-swagger-ui==3.25.0',
     'Jinja2>=2.10.1',
-    'requests>=2.23.0',
+    'requests~=2.21.0',
     'gunicorn==19.9.0',
     'nevermined-metadata-driver-azure>=0.1.0',
     'nevermined-metadata-driver-aws>=0.1.0',
