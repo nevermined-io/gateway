@@ -10,6 +10,7 @@ RUN apt-get update \
 COPY . /nevermined-gateway
 WORKDIR /nevermined-gateway
 
+RUN pip install pip==20.2.4
 RUN pip install .
 
 # config.ini configuration file variables
