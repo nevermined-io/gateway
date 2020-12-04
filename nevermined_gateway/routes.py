@@ -6,18 +6,20 @@ from common_utils_py.agreements.service_types import ServiceTypes
 from common_utils_py.did import id_to_did, NEVERMINED_PREFIX
 from common_utils_py.did_resolver.did_resolver import DIDResolver
 from common_utils_py.http_requests.requests_session import get_requests_session
-from common_utils_py.utils.crypto import get_ecdsa_public_key_from_file, ecdsa_encryption_from_file, \
-    rsa_encryption_from_file
+from common_utils_py.utils.crypto import (ecdsa_encryption_from_file,
+                                          get_ecdsa_public_key_from_file,
+                                          rsa_encryption_from_file)
 from eth_utils import remove_0x_prefix
 from flask import Blueprint, jsonify, request
 from secret_store_client.client import RPCError
-from authlib.integrations.flask_oauth2 import current_token
 
 from nevermined_gateway import constants
 from nevermined_gateway.compute_validations import is_allowed_read_compute
 from nevermined_gateway.conditions import (fulfill_access_condition, fulfill_compute_condition,
                                            fulfill_escrow_reward_condition)
 from nevermined_gateway.constants import ConditionState, ConfigSections
+from nevermined_gateway.identity.oauth2.authorization_server import create_authorization_server
+from nevermined_gateway.identity.oauth2.resource_server import create_resource_server
 from nevermined_gateway.log import setup_logging
 from nevermined_gateway.myapp import app
 from nevermined_gateway.util import (build_download_response, check_required_attributes,
@@ -25,9 +27,7 @@ from nevermined_gateway.util import (build_download_response, check_required_att
                                      get_download_url, get_provider_account, get_provider_key_file,
                                      get_provider_password, get_rsa_public_key_file,
                                      is_access_granted, is_owner_granted, keeper_instance,
-                                     setup_keeper, verify_signature, was_compute_triggered)
-from nevermined_gateway.identity.oauth2.resource_server import create_resource_server
-from nevermined_gateway.identity.oauth2.authorization_server import create_authorization_server
+                                     setup_keeper, used_by, verify_signature, was_compute_triggered)
 
 setup_logging()
 services = Blueprint('services', __name__)
@@ -185,7 +185,7 @@ def download(index=0):
             # 1. Verification of signature
             if not verify_signature(keeper, consumer_address, signature, did):
                 msg = f'Invalid signature {signature} for ' \
-                    f'consumerAddress {consumer_address} and did {did}.'
+                      f'consumerAddress {consumer_address} and did {did}.'
                 raise ValueError(msg)
 
             # 2. Verification that access is granted
@@ -195,8 +195,8 @@ def download(index=0):
                     keeper):
 
                 msg = ('Checking access permissions failed. Consumer address does not have '
-                    'permission to download this asset or consumer address and/or did '
-                    'is invalid.')
+                       'permission to download this asset or consumer address and/or did '
+                       'is invalid.')
                 logger.warning(msg)
                 return msg, 401
 
@@ -274,9 +274,8 @@ def access(agreement_id, index=0):
         if not has_bearer_token:
             if not verify_signature(keeper, consumer_address, signature, agreement_id):
                 msg = f'Invalid signature {signature} for ' \
-                    f'consumerAddress {consumer_address} and agreementId {agreement_id}.'
+                      f'consumerAddress {consumer_address} and agreementId {agreement_id}.'
                 raise ValueError(msg)
-
 
             # 2. Verification that access is granted
             if not is_access_granted(
@@ -289,7 +288,8 @@ def access(agreement_id, index=0):
                 cond_ids = agreement.condition_ids
 
                 access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
-                lockreward_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
+                lockreward_condition_status = keeper.condition_manager.get_condition_state(
+                    cond_ids[1])
                 escrowreward_condition_status = keeper.condition_manager.get_condition_state(
                     cond_ids[2])
 
@@ -300,11 +300,12 @@ def access(agreement_id, index=0):
                 if lockreward_condition_status != ConditionState.Fulfilled.value:
                     logger.debug('ServiceAgreement %s was not paid. Forbidden' % agreement_id)
                     return 'ServiceAgreement %s was not paid, LockRewardCondition status is %d' \
-                        % (agreement_id, lockreward_condition_status), 401
+                           % (agreement_id, lockreward_condition_status), 401
 
                 fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address,
-                                        provider_acc)
-                fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consumer_address,
+                                         provider_acc)
+                fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset,
+                                                consumer_address,
                                                 provider_acc)
 
                 iteration = 0
@@ -319,13 +320,16 @@ def access(agreement_id, index=0):
                         break
 
                 if not access_granted:
-                    msg = ('Checking access permissions failed. Either consumer address does not have '
+                    msg = (
+                        'Checking access permissions failed. Either consumer address does not have '
                         'permission to consume this asset or consumer address and/or service '
                         'agreement '
                         'id is invalid.')
                     logger.warning(msg)
                     return msg, 401
 
+        used_by(agreement_id, did, consumer_address, 'access', signature, 'access', provider_acc,
+                keeper)
         file_attributes = asset.metadata['main']['files'][index]
         content_type = file_attributes.get('contentType', None)
 
@@ -386,7 +390,7 @@ def execute(agreement_id):
             # 1. Verification of signature
             if not verify_signature(keeper, consumer_address, signature, agreement_id):
                 msg = f'Invalid signature {signature} for ' \
-                    f'consumerAddress {consumer_address} and agreementId {agreement_id}.'
+                      f'consumerAddress {consumer_address} and agreementId {agreement_id}.'
                 raise ValueError(msg)
 
             asset_id = keeper_instance().agreement_manager.get_agreement(agreement_id).did
@@ -399,7 +403,8 @@ def execute(agreement_id):
                 cond_ids = agreement.condition_ids
 
                 compute_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
-                lockreward_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
+                lockreward_condition_status = keeper.condition_manager.get_condition_state(
+                    cond_ids[1])
                 escrowreward_condition_status = keeper.condition_manager.get_condition_state(
                     cond_ids[2])
                 logger.debug('ComputeExecutionCondition: %d' % compute_condition_status)
@@ -409,11 +414,13 @@ def execute(agreement_id):
                 if lockreward_condition_status != ConditionState.Fulfilled.value:
                     logger.debug('ServiceAgreement %s was not paid. Forbidden' % agreement_id)
                     return 'ServiceAgreement %s was not paid, LockRewardCondition status is %d' \
-                        % (agreement_id, lockreward_condition_status), 401
+                           % (agreement_id, lockreward_condition_status), 401
 
-                fulfill_compute_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address,
-                                        provider_acc)
-                fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consumer_address,
+                fulfill_compute_condition(keeper, agreement_id, cond_ids, asset_id,
+                                          consumer_address,
+                                          provider_acc)
+                fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset,
+                                                consumer_address,
                                                 provider_acc,
                                                 ServiceTypes.CLOUD_COMPUTE)
 
@@ -431,11 +438,14 @@ def execute(agreement_id):
                 if not access_granted:
                     msg = (
                         'Scheduling the compute execution failed. Either consumer address does not '
-                        'have permission to execute this workflow or consumer address and/or service '
+                        'have permission to execute this workflow or consumer address and/or '
+                        'service '
                         'agreement id is invalid.')
                     logger.warning(msg)
                     return msg, 401
 
+            used_by(agreement_id, did, consumer_address, 'compute', signature, 'compute', provider_acc,
+                    keeper)
         workflow = DIDResolver(keeper_instance().did_registry).resolve(workflow_did)
         body = {"serviceAgreementId": agreement_id, "workflow": workflow.as_dictionary()}
 
@@ -484,7 +494,7 @@ def compute_logs(agreement_id, execution_id):
 
     if not has_bearer_token:
         message, is_allowed = is_allowed_read_compute(agreement_id, execution_id, consumer_address,
-                                                  signature)
+                                                      signature)
 
         if not is_allowed:
             return message, 401
@@ -531,7 +541,7 @@ def compute_status(agreement_id, execution_id):
 
     if not has_bearer_token:
         message, is_allowed = is_allowed_read_compute(agreement_id, execution_id, consumer_address,
-                                                    signature)
+                                                      signature)
 
         if not is_allowed:
             return message, 401

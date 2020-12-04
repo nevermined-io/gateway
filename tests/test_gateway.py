@@ -149,6 +149,7 @@ def test_access(client, provider_account, consumer_account):
             headers=headers
         )
         assert response.status == '200 OK'
+        assert len(keeper.did_registry.get_provenance_method_events('USED', did_bytes=did_to_id_bytes(ddo.did))) == 1
 
 
 def test_download(client, provider_account):
