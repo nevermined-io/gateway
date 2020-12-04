@@ -7,7 +7,8 @@ import site
 from datetime import datetime
 from os import getenv
 
-from common_utils_py.did import did_to_id
+
+from common_utils_py.did import did_to_id, convert_to_bytes
 from common_utils_py.utils.crypto import ecdsa_decryption, rsa_decryption_aes
 from contracts_lib_py import Keeper
 from contracts_lib_py.contract_handler import ContractHandler
@@ -17,6 +18,7 @@ from eth_utils import remove_0x_prefix
 from flask import Response
 from metadata_driver_interface.driver_interface import DriverInterface
 from secret_store_client.client import Client as SecretStore
+from eth_utils import add_0x_prefix
 
 from nevermined_gateway.config import Config
 
@@ -278,7 +280,8 @@ def get_asset_url_at_index(url_index, asset, account, auth_method='SecretStore')
         elif auth_method == 'PSK-RSA':
             files_str = rsa_decryption_aes(asset.encrypted_files, get_rsa_private_key_file())
         elif auth_method == 'PSK-ECDSA':
-            files_str = ecdsa_decryption(asset.encrypted_files, get_provider_key_file(), get_provider_password())
+            files_str = ecdsa_decryption(asset.encrypted_files, get_provider_key_file(),
+                                         get_provider_password())
 
         logger.debug(f'Got decrypted files str {files_str}')
         files_list = json.loads(files_str)
@@ -325,3 +328,18 @@ def check_required_attributes(required_attributes, data, method):
             logger.error('%s request failed: required attr %s missing.' % (method, attr))
             return '"%s" is required in the call to %s' % (attr, method), 400
     return None, None
+
+
+def used_by(service_agreement_id, did, consumer_address, activity_id, signature, attributes,
+            account, keeper):
+    try:
+        receipt = keeper.did_registry.used(
+            convert_to_bytes(service_agreement_id),
+            convert_to_bytes(did),
+            convert_to_bytes(consumer_address),
+            convert_to_bytes(Web3Provider.get_web3().keccak(text=activity_id)),
+            signature, account, attributes)
+        return bool(receipt and receipt.status == 1)
+    except Exception as e:
+        logging.critical(f'On-chain call error: {e}')
+        return False
