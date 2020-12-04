@@ -7,7 +7,8 @@ import site
 from datetime import datetime
 from os import getenv
 
-from common_utils_py.did import did_to_id
+
+from common_utils_py.did import did_to_id, convert_to_bytes
 from common_utils_py.utils.crypto import ecdsa_decryption, rsa_decryption_aes
 from contracts_lib_py import Keeper
 from contracts_lib_py.contract_handler import ContractHandler
@@ -333,24 +334,12 @@ def used_by(service_agreement_id, did, consumer_address, activity_id, signature,
             account, keeper):
     try:
         receipt = keeper.did_registry.used(
-            _convert_to_hex(service_agreement_id),
-            _convert_to_hex(did),
-            _convert_to_hex(consumer_address),
-            _convert_to_hex(Web3Provider.get_web3().keccak(text=activity_id)),
+            convert_to_bytes(service_agreement_id),
+            convert_to_bytes(did),
+            convert_to_bytes(consumer_address),
+            convert_to_bytes(Web3Provider.get_web3().keccak(text=activity_id)),
             signature, account, attributes)
         return bool(receipt and receipt.status == 1)
     except Exception as e:
         logging.critical(f'On-chain call error: {e}')
         return False
-
-
-def _convert_to_hex(i):
-    if isinstance(i, str):
-        if i.startswith('did:nv'):
-            return Web3Provider.get_web3().toBytes(hexstr=add_0x_prefix(did_to_id(i)))
-        else:
-            return Web3Provider.get_web3().toBytes(hexstr=add_0x_prefix(i))
-    elif isinstance(i, bytes):
-        return i
-    else:
-        raise ValueError(f'The id {i} is not in a valid format.')

@@ -14,7 +14,7 @@ with open('CHANGELOG.md') as history_file:
 # or pip install -e .
 install_requirements = [
     # Install squid-py and all its dependencies first
-    'common-utils-py==0.4.1',
+    'common-utils-py==0.4.2',
     'contracts-lib-py==0.5.2',
     'nevermined-secret-store==0.1.0',
     'Flask==1.1.2',
