@@ -15,15 +15,11 @@ parameters:
     description: The ID of the execution associated to a service agreement.
     required: true
     type: string
-  - name: X-Consumer-Address
+  - name: Authorization
     in: header
-    description: The consumer address.
+    description: The bearer token.
     required: true
     type: string
-  - name: X-Signature
-    in: header
-    description: Signature of the execution_id to verify that the consumer has rights to access to the execution logs.
-    required: true
 responses:
   200:
     description: Returns the execution status
@@ -53,9 +49,7 @@ responses:
                "startedAt": "2020-09-18T12:24:33+00:00Z",
                "status": "Succeeded"
             }
-  400:
-    description: One of the required attributes is missing.
   401:
-    description: Invalid data.
+    description: Invalid bearer token.
   500:
     description: Error

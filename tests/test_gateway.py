@@ -4,27 +4,21 @@ import uuid
 from unittest.mock import MagicMock, Mock
 
 from common_utils_py.agreements.service_agreement import ServiceAgreement
-from common_utils_py.agreements.service_factory import ServiceDescriptor, ServiceFactory
-from common_utils_py.agreements.service_types import ServiceAuthorizationTypes, ServiceTypes
+from common_utils_py.agreements.service_types import ServiceTypes
 from common_utils_py.ddo.ddo import DDO
-from common_utils_py.ddo.metadata import MetadataMain
 from common_utils_py.ddo.public_key_rsa import PUBLIC_KEY_TYPE_RSA
 from common_utils_py.did import DID, did_to_id, did_to_id_bytes
 from common_utils_py.http_requests.requests_session import get_requests_session
-from common_utils_py.metadata.metadata import Metadata
-from common_utils_py.utils.crypto import ecdsa_encryption_from_file, rsa_encryption_from_file
-from common_utils_py.utils.utilities import checksum
+from common_utils_py.oauth2.token import NeverminedJWTBearerGrant, generate_access_grant_token, generate_download_grant_token
 from contracts_lib_py.utils import add_ethereum_prefix_and_hash_msg
-from eth_utils import add_0x_prefix, remove_0x_prefix
+from eth_utils import add_0x_prefix
 from werkzeug.utils import get_content_type
 
 from nevermined_gateway import constants
 from nevermined_gateway.constants import BaseURLs
 from nevermined_gateway.util import (build_download_response, check_auth_token,
-                                     do_secret_store_encrypt, generate_token, get_config,
-                                     get_download_url, get_provider_account, get_provider_key_file,
-                                     get_provider_password, get_rsa_public_key_file, is_token_valid,
-                                     keeper_instance, verify_signature, web3)
+                                     generate_token, get_download_url, get_provider_account,
+                                     is_token_valid, keeper_instance, verify_signature, web3)
 from .utils import get_registered_ddo, place_order, lock_reward
 
 PURCHASE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/access/initialize'
@@ -114,8 +108,6 @@ def test_access(client, provider_account, consumer_account):
         agreement_id = place_order(provider_account, ddo, consumer_account)
 
         keeper = keeper_instance()
-        agr_id_hash = add_ethereum_prefix_and_hash_msg(agreement_id)
-        signature = keeper.sign_hash(agr_id_hash, consumer_account)
         index = 0
 
         event = keeper.escrow_access_secretstore_template.subscribe_agreement_created(
@@ -134,20 +126,24 @@ def test_access(client, provider_account, consumer_account):
         )
         assert event, "Lock reward condition fulfilled event is not found, check the keeper node's logs"
 
-        # Consume using url index and signature (let the gateway do the decryption)
+        # Consume using url index
 
-        headers = dict({
-            'X-Consumer-Address': consumer_account.address,
-            'X-Signature': signature,
-            'X-DID': ddo.did
+        # generate the grant token
+        grant_token = generate_access_grant_token(consumer_account, agreement_id, ddo.did)
+
+        # request access token
+        response = client.post("/api/v1/gateway/services/oauth/token", data={
+            "grant_type": NeverminedJWTBearerGrant.GRANT_TYPE,
+            "assertion": grant_token
         })
+        access_token = response.get_json()["access_token"]
 
         endpoint = BaseURLs.ASSETS_URL + '/access/%s/%d' % (agreement_id, index)
-        print(endpoint)
         response = client.get(
             endpoint,
-            headers=headers
+            headers={"Authorization": f"Bearer {access_token}"}
         )
+
         assert response.status == '200 OK'
         assert len(keeper.did_registry.get_provenance_method_events('USED', did_bytes=did_to_id_bytes(ddo.did))) == 1
 
@@ -155,22 +151,23 @@ def test_access(client, provider_account, consumer_account):
 def test_download(client, provider_account):
 
     ddo = get_registered_ddo(provider_account, providers=[provider_account.address])
-    keeper = keeper_instance()
-    did_hash = add_ethereum_prefix_and_hash_msg(ddo.did)
-    signature = keeper.sign_hash(did_hash, provider_account)
     index = 0
 
-    headers = dict({
-        'X-Consumer-Address': provider_account.address,
-        'X-Signature': signature,
-        'X-DID': ddo.did
+    # generate the grant token
+    grant_token = generate_download_grant_token(provider_account, ddo.did)
+
+    # request access token
+    response = client.post("/api/v1/gateway/services/oauth/token", data={
+        "grant_type": NeverminedJWTBearerGrant.GRANT_TYPE,
+        "assertion": grant_token
     })
+    access_token = response.get_json()["access_token"]
 
     endpoint = BaseURLs.ASSETS_URL + '/download/%d' % (index)
     print(endpoint)
     response = client.get(
         endpoint,
-        headers=headers
+        headers={"Authorization": f"Bearer {access_token}"}
     )
 
     assert response.status == '200 OK'
