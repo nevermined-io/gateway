@@ -1,8 +1,6 @@
 import json
 import logging
-import time
 
-from common_utils_py.agreements.service_types import ServiceTypes
 from common_utils_py.did import id_to_did, NEVERMINED_PREFIX
 from common_utils_py.did_resolver.did_resolver import DIDResolver
 from common_utils_py.http_requests.requests_session import get_requests_session
@@ -12,12 +10,9 @@ from common_utils_py.utils.crypto import (ecdsa_encryption_from_file,
 from eth_utils import remove_0x_prefix
 from flask import Blueprint, jsonify, request
 from secret_store_client.client import RPCError
+from authlib.integrations.flask_oauth2 import current_token
 
 from nevermined_gateway import constants
-from nevermined_gateway.compute_validations import is_allowed_read_compute
-from nevermined_gateway.conditions import (fulfill_access_condition, fulfill_compute_condition,
-                                           fulfill_escrow_reward_condition)
-from nevermined_gateway.constants import ConditionState, ConfigSections
 from nevermined_gateway.identity.oauth2.authorization_server import create_authorization_server
 from nevermined_gateway.identity.oauth2.resource_server import create_resource_server
 from nevermined_gateway.log import setup_logging
@@ -26,7 +21,7 @@ from nevermined_gateway.util import (build_download_response, check_required_att
                                      do_secret_store_encrypt, get_asset_url_at_index, get_config,
                                      get_download_url, get_provider_account, get_provider_key_file,
                                      get_provider_password, get_rsa_public_key_file,
-                                     is_access_granted, is_owner_granted, keeper_instance,
+                                     is_access_granted, keeper_instance,
                                      setup_keeper, used_by, verify_signature, was_compute_triggered)
 
 setup_logging()
@@ -149,56 +144,22 @@ def publish():
 
 
 @services.route('/download/<int:index>', methods=['GET'])
+@require_oauth()
 def download(index=0):
     """Allows to download an asset data file.
     swagger_from_file: docs/download.yml
     """
 
-    has_bearer_token = False
-    if "Authorization" in request.headers:
-        has_bearer_token = True
-        with require_oauth.acquire() as token:
-            consumer_address = token["client_id"]
-            did = token["did"]
-            signature = None
-    else:
-        try:
-            consumer_address = request.headers.get('X-Consumer-Address')
-            did = request.headers.get('X-DID')
-            signature = request.headers.get('X-Signature')
-
-            if not consumer_address or not did or not signature:
-                return 'Unable to get params from headers', 401
-        except Exception:
-            return 'Unable to retrieve required parameters', 401
+    consumer_address = current_token["client_id"]
+    did = current_token["did"]
 
     logger.info('Parameters:\nIndex: %d\nConsumerAddress: %s\n'
-                'DID: %s\nSignature: %s'
-                % (index, consumer_address, did, signature))
+                'DID: %s'
+                % (index, consumer_address, did))
 
     try:
         keeper = keeper_instance()
         asset = DIDResolver(keeper.did_registry).resolve(did)
-
-        if not has_bearer_token:
-            ## Access flow
-            # 1. Verification of signature
-            if not verify_signature(keeper, consumer_address, signature, did):
-                msg = f'Invalid signature {signature} for ' \
-                      f'consumerAddress {consumer_address} and did {did}.'
-                raise ValueError(msg)
-
-            # 2. Verification that access is granted
-            if not is_owner_granted(
-                    did,
-                    consumer_address,
-                    keeper):
-
-                msg = ('Checking access permissions failed. Consumer address does not have '
-                       'permission to download this asset or consumer address and/or did '
-                       'is invalid.')
-                logger.warning(msg)
-                return msg, 401
 
         file_attributes = asset.metadata['main']['files'][index]
         content_type = file_attributes.get('contentType', None)
@@ -229,105 +190,28 @@ def download(index=0):
 
 @services.route('/access/<agreement_id>', methods=['GET'])
 @services.route('/access/<agreement_id>/<int:index>', methods=['GET'])
+@require_oauth()
 def access(agreement_id, index=0):
     """Allows to get access to an asset data file.
     swagger_from_file: docs/access.yml
     """
 
-    has_bearer_token = False
-    if "Authorization" in request.headers:
-        has_bearer_token = True
-        with require_oauth.acquire() as token:
-            consumer_address = token["client_id"]
-            did = token["did"]
-            agreement_id = token["sub"]
-            signature = None
-    else:
-        # For backwards compatibility
-        # TODO: Should be removed once the sdks are using oauth
-        try:
-            consumer_address = request.headers.get('X-Consumer-Address')
-            did = request.headers.get('X-DID')
-            signature = request.headers.get('X-Signature')
-
-            if not consumer_address or not did or not signature:
-                return 'Unable to get params from headers', 401
-        except Exception:
-            return 'Unable to retrieve required parameters', 401
+    consumer_address = current_token["client_id"]
+    did = current_token["did"]
+    agreement_id = current_token["sub"]
 
     logger.info('Parameters:\nAgreementId: %s\nIndex: %d\nConsumerAddress: %s\n'
-                'DID: %s\nSignature: %s'
-                % (agreement_id, index, consumer_address, did, signature))
+                'DID: %s\n'
+                % (agreement_id, index, consumer_address, did))
 
     try:
         keeper = keeper_instance()
-        asset_id = did.replace(NEVERMINED_PREFIX, '')
         asset = DIDResolver(keeper.did_registry).resolve(did)
 
         logger.debug('AgreementID :' + agreement_id)
 
-        ## Access flow
-        # 1. Verification of signature
-
-        # When using bearer token the signature is verified at token issue time
-        # TODO: This should be removed once the sdks are using oauth
-        if not has_bearer_token:
-            if not verify_signature(keeper, consumer_address, signature, agreement_id):
-                msg = f'Invalid signature {signature} for ' \
-                      f'consumerAddress {consumer_address} and agreementId {agreement_id}.'
-                raise ValueError(msg)
-
-            # 2. Verification that access is granted
-            if not is_access_granted(
-                    agreement_id,
-                    did,
-                    consumer_address,
-                    keeper):
-                # 3. If not granted, verification of agreement and conditions
-                agreement = keeper.agreement_manager.get_agreement(agreement_id)
-                cond_ids = agreement.condition_ids
-
-                access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
-                lockreward_condition_status = keeper.condition_manager.get_condition_state(
-                    cond_ids[1])
-                escrowreward_condition_status = keeper.condition_manager.get_condition_state(
-                    cond_ids[2])
-
-                logger.debug('AccessCondition: %d' % access_condition_status)
-                logger.debug('LockRewardCondition: %d' % lockreward_condition_status)
-                logger.debug('EscrowRewardCondition: %d' % escrowreward_condition_status)
-
-                if lockreward_condition_status != ConditionState.Fulfilled.value:
-                    logger.debug('ServiceAgreement %s was not paid. Forbidden' % agreement_id)
-                    return 'ServiceAgreement %s was not paid, LockRewardCondition status is %d' \
-                           % (agreement_id, lockreward_condition_status), 401
-
-                fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address,
-                                         provider_acc)
-                fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset,
-                                                consumer_address,
-                                                provider_acc)
-
-                iteration = 0
-                access_granted = False
-                while iteration < ConfigSections.PING_ITERATIONS:
-                    iteration = iteration + 1
-                    logger.debug('Checking if access was granted. Iteration %d' % iteration)
-                    if not is_access_granted(agreement_id, did, consumer_address, keeper):
-                        time.sleep(ConfigSections.PING_SLEEP / 1000)
-                    else:
-                        access_granted = True
-                        break
-
-                if not access_granted:
-                    msg = (
-                        'Checking access permissions failed. Either consumer address does not have '
-                        'permission to consume this asset or consumer address and/or service '
-                        'agreement '
-                        'id is invalid.')
-                    logger.warning(msg)
-                    return msg, 401
-
+        # TODO: Not sure what signature should be here
+        signature = '0x00'
         used_by(agreement_id, did, consumer_address, 'access', signature, 'access', provider_acc,
                 keeper)
         file_attributes = asset.metadata['main']['files'][index]
@@ -359,93 +243,26 @@ def access(agreement_id, index=0):
 
 
 @services.route('/execute/<agreement_id>', methods=['POST'])
+@require_oauth()
 def execute(agreement_id):
     """Call the execution of a workflow.
     swagger_from_file: docs/execute.yml
     """
 
-    has_bearer_token = False
-    if "Authorization" in request.headers:
-        has_bearer_token = True
-        with require_oauth.acquire() as token:
-            consumer_address = token["client_id"]
-            workflow_did = token["did"]
-            agreement_id = token["sub"]
-            signature = None
-    else:
-        try:
-            consumer_address = request.headers.get('X-Consumer-Address')
-            workflow_did = request.headers.get('X-Workflow-DID')
-            signature = request.headers.get('X-Signature')
-
-            if not consumer_address or not workflow_did or not signature:
-                return 'Unable to get params from headers', 401
-        except Exception:
-            return 'Unable to retrieve required parameters', 401
+    consumer_address = current_token["client_id"]
+    workflow_did = current_token["did"]
+    agreement_id = current_token["sub"]
 
     try:
-        if not has_bearer_token:
-            keeper = keeper_instance()
+        keeper = keeper_instance()
+        asset_id = keeper_instance().agreement_manager.get_agreement(agreement_id).did
+        did = id_to_did(asset_id)
 
-            # 1. Verification of signature
-            if not verify_signature(keeper, consumer_address, signature, agreement_id):
-                msg = f'Invalid signature {signature} for ' \
-                      f'consumerAddress {consumer_address} and agreementId {agreement_id}.'
-                raise ValueError(msg)
+        # TODO: Not sure what the signature should be
+        signature = '0x00'
+        used_by(agreement_id, did, consumer_address, 'compute', signature, 'compute', provider_acc,
+                keeper)
 
-            asset_id = keeper_instance().agreement_manager.get_agreement(agreement_id).did
-            did = id_to_did(asset_id)
-            asset = DIDResolver(keeper.did_registry).resolve(did)
-
-            if not was_compute_triggered(agreement_id, did, consumer_address, keeper_instance()):
-
-                agreement = keeper.agreement_manager.get_agreement(agreement_id)
-                cond_ids = agreement.condition_ids
-
-                compute_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
-                lockreward_condition_status = keeper.condition_manager.get_condition_state(
-                    cond_ids[1])
-                escrowreward_condition_status = keeper.condition_manager.get_condition_state(
-                    cond_ids[2])
-                logger.debug('ComputeExecutionCondition: %d' % compute_condition_status)
-                logger.debug('LockRewardCondition: %d' % lockreward_condition_status)
-                logger.debug('EscrowRewardCondition: %d' % escrowreward_condition_status)
-
-                if lockreward_condition_status != ConditionState.Fulfilled.value:
-                    logger.debug('ServiceAgreement %s was not paid. Forbidden' % agreement_id)
-                    return 'ServiceAgreement %s was not paid, LockRewardCondition status is %d' \
-                           % (agreement_id, lockreward_condition_status), 401
-
-                fulfill_compute_condition(keeper, agreement_id, cond_ids, asset_id,
-                                          consumer_address,
-                                          provider_acc)
-                fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset,
-                                                consumer_address,
-                                                provider_acc,
-                                                ServiceTypes.CLOUD_COMPUTE)
-
-                iteration = 0
-                access_granted = False
-                while iteration < ConfigSections.PING_ITERATIONS:
-                    iteration = iteration + 1
-                    logger.debug('Checking if compute was granted. Iteration %d' % iteration)
-                    if not was_compute_triggered(agreement_id, did, consumer_address, keeper):
-                        time.sleep(ConfigSections.PING_SLEEP / 1000)
-                    else:
-                        access_granted = True
-                        break
-
-                if not access_granted:
-                    msg = (
-                        'Scheduling the compute execution failed. Either consumer address does not '
-                        'have permission to execute this workflow or consumer address and/or '
-                        'service '
-                        'agreement id is invalid.')
-                    logger.warning(msg)
-                    return msg, 401
-
-            used_by(agreement_id, did, consumer_address, 'compute', signature, 'compute', provider_acc,
-                    keeper)
         workflow = DIDResolver(keeper_instance().did_registry).resolve(workflow_did)
         body = {"serviceAgreementId": agreement_id, "workflow": workflow.as_dictionary()}
 
@@ -465,39 +282,21 @@ def execute(agreement_id):
 
 
 @services.route('/compute/logs/<agreement_id>/<execution_id>', methods=['GET'])
+@require_oauth()
 def compute_logs(agreement_id, execution_id):
     """Allows to get access to an asset data file.
     swagger_from_file: docs/compute_logs.yml
     """
 
-    has_bearer_token = False
-    if "Authorization" in request.headers:
-        has_bearer_token = True
-        with require_oauth.acquire() as token:
-            consumer_address = token["client_id"]
-            execution_id = token["execution_id"]
-            agreement_id = token["sub"]
-            signature = None
-    else:
-        consumer_address = request.headers.get('X-Consumer-Address')
-        signature = request.headers.get('X-Signature')
-
-        if not consumer_address or not signature:
-            return 'Unable to get params from headers', 400
+    consumer_address = current_token["client_id"]
+    execution_id = current_token["execution_id"]
+    agreement_id = current_token["sub"]
 
     logger.info(('Parameters:\n'
                  'ConsumerAddress: %s\n'
                  'AgreementId: %s\n'
-                 'ExecutionId: %s\n'
-                 'Signature: %s'),
-                consumer_address, agreement_id, execution_id, signature)
-
-    if not has_bearer_token:
-        message, is_allowed = is_allowed_read_compute(agreement_id, execution_id, consumer_address,
-                                                      signature)
-
-        if not is_allowed:
-            return message, 401
+                 'ExecutionId: %s\n'),
+                consumer_address, agreement_id, execution_id)
 
     response = requests_session.get(
         get_config().compute_api_url + f'/api/v1/nevermined-compute-api/logs/{execution_id}',
@@ -512,39 +311,21 @@ def compute_logs(agreement_id, execution_id):
 
 
 @services.route('/compute/status/<agreement_id>/<execution_id>', methods=['GET'])
+@require_oauth()
 def compute_status(agreement_id, execution_id):
     """Allows to get access to an asset data file.
     swagger_from_file: docs/compute_logs.yml
     """
 
-    has_bearer_token = False
-    if "Authorization" in request.headers:
-        has_bearer_token = True
-        with require_oauth.acquire() as token:
-            consumer_address = token["client_id"]
-            execution_id = token["execution_id"]
-            agreement_id = token["sub"]
-            signature = None
-    else:
-        consumer_address = request.headers.get('X-Consumer-Address')
-        signature = request.headers.get('X-Signature')
-
-        if not consumer_address or not signature:
-            return 'Unable to get params from headers', 400
+    consumer_address = current_token["client_id"]
+    execution_id = current_token["execution_id"]
+    agreement_id = current_token["sub"]
 
     logger.info(('Parameters:\n'
                  'ConsumerAddress: %s\n'
                  'AgreementId: %s\n'
-                 'ExecutionId: %s\n'
-                 'Signature: %s'),
-                consumer_address, agreement_id, execution_id, signature)
-
-    if not has_bearer_token:
-        message, is_allowed = is_allowed_read_compute(agreement_id, execution_id, consumer_address,
-                                                      signature)
-
-        if not is_allowed:
-            return message, 401
+                 'ExecutionId: %s\n'),
+                consumer_address, agreement_id, execution_id)
 
     response = requests_session.get(
         get_config().compute_api_url + f'/api/v1/nevermined-compute-api/status/{execution_id}',

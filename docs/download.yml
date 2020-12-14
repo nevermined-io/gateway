@@ -12,26 +12,15 @@ parameters:
     schema:
       type: integer
       minimum: 0
-  - name: X-Consumer-Address
+  - name: Authorization
     in: header
-    description: The consumer address.
+    description: The bearer token.
     required: true
     type: string
-  - name: X-DID
-    in: header
-    description: The ID of the asset
-    required: true
-    type: string
-  - name: X-Signature
-    in: header
-    description: Signature of the documentId to verify that the consumer has rights to download the asset.
-    required: true
 responses:
   200:
     description: Returns the valid file binary.
-  400:
-    description: One of the required attributes is missing.
   401:
-    description: Invalid asset data.
+    description: Invalid bearer token.
   500:
     description: Error

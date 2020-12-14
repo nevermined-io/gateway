@@ -18,7 +18,6 @@ from eth_utils import remove_0x_prefix
 from flask import Response
 from metadata_driver_interface.driver_interface import DriverInterface
 from secret_store_client.client import Client as SecretStore
-from eth_utils import add_0x_prefix
 
 from nevermined_gateway.config import Config
 
