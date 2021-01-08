@@ -55,6 +55,15 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
         # and we can return any of them
         possible_public_keys = recover_public_keys_from_assertion(assertion)
 
+        # if signing with ethereum this recovery becomes the de-facto signature verification
+        # since we check if any of these keys match the issuer of the token.
+        #
+        # signing with ethereum differs from ES256K
+        #   - it adds a prefix to the message to sign
+        #   - it uses keccak_256 hash function instead of sha256
+        #
+        # we then return a public key that verifies the message so that
+        # authlib doesn't complain with a bad signature
         eths = payload.get("eths")
         if eths == "personal":
             possible_eths_keys = recover_public_keys_from_eth_assertion(assertion)
