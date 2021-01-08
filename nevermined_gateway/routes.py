@@ -1,5 +1,6 @@
 import json
 import logging
+from authlib.jose.errors import BadSignatureError
 
 from common_utils_py.did import id_to_did, NEVERMINED_PREFIX
 from common_utils_py.did_resolver.did_resolver import DIDResolver
@@ -461,4 +462,9 @@ def execute_compute_job():
 
 @services.route('/oauth/token', methods=['POST'])
 def issue_token():
-    return authorization.create_token_response()
+    try:
+        return authorization.create_token_response()
+    except BadSignatureError as e:
+        msg = f"Bad Signature: {str(e)}"
+        logger.warning(msg)
+        return msg, 401
