@@ -18,7 +18,7 @@ from nevermined_gateway.conditions import (fulfill_access_condition, fulfill_com
                                            fulfill_escrow_reward_condition)
 from nevermined_gateway.constants import (BaseURLs, ConditionState,
                                           ConfigSections)
-from nevermined_gateway.identity.jwk_utils import jwk_to_eth_address, recover_public_keys_from_assertion
+from nevermined_gateway.identity.jwk_utils import jwk_to_eth_address, recover_public_keys_from_assertion, recover_public_keys_from_eth_assertion
 from nevermined_gateway.util import (get_provider_account, is_access_granted, is_owner_granted,
                                      keeper_instance, was_compute_triggered)
 from web3 import Web3
@@ -53,9 +53,25 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
         # with ecdsa this will produce two public keys that can possibly verify the signature.
         # we will keep both so that later we can authenticate the client.
         # and we can return any of them
-        self.possible_public_keys = recover_public_keys_from_assertion(assertion)
+        possible_public_keys = recover_public_keys_from_assertion(assertion)
 
-        return self.possible_public_keys[0]
+        # if signing with ethereum this recovery becomes the de-facto signature verification
+        # since we check if any of these keys match the issuer of the token.
+        #
+        # signing with ethereum differs from ES256K
+        #   - it adds a prefix to the message to sign
+        #   - it uses keccak_256 hash function instead of sha256
+        #
+        # we then return a public key that verifies the message so that
+        # authlib doesn't complain with a bad signature
+        eths = payload.get("eths")
+        if eths == "personal":
+            possible_eths_keys = recover_public_keys_from_eth_assertion(assertion)
+            self.possible_public_keys = possible_eths_keys
+        else:
+            self.possible_public_keys = possible_public_keys
+
+        return possible_public_keys[0]
 
     def authenticate_client(self, claims):
         possible_eth_addresses = [jwk_to_eth_address(jwk) for jwk in self.possible_public_keys]
