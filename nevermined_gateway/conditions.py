@@ -1,7 +1,9 @@
 import logging
 
 from common_utils_py.agreements.service_types import ServiceTypes
+from common_utils_py.utils.utilities import to_checksum_addresses
 from contracts_lib_py.web3_provider import Web3Provider
+from eth_utils import add_0x_prefix
 
 from nevermined_gateway.constants import ConditionState
 from nevermined_gateway.log import setup_logging
@@ -31,7 +33,8 @@ def fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_
         else:
             logger.info('The access condition was already fulfilled')
 
-    return True
+    access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
+    return access_condition_status == ConditionState.Fulfilled.value
 
 
 def fulfill_compute_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address, provider_acc):
@@ -55,7 +58,8 @@ def fulfill_compute_condition(keeper, agreement_id, cond_ids, asset_id, consumer
         else:
             logger.info('The compute condition was already fulfilled')
 
-    return True
+    compute_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
+    return compute_condition_status == ConditionState.Fulfilled.value
 
 
 def fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consumer_address, provider_acc,
@@ -68,13 +72,16 @@ def fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consu
         did_owner = keeper.agreement_manager.get_agreement_did_owner(agreement_id)
         access_id, lock_id = cond_ids[:2]
 
+        amounts = list(map(int, service_agreement.get_param_value_by_name('_amounts')))
+        receivers = to_checksum_addresses(service_agreement.get_param_value_by_name('_receivers'))
+
         recheck_condition = False
         try:
             keeper.escrow_reward_condition.fulfill(
-                agreement_id,
-                service_agreement.get_price(),
-                Web3Provider.get_web3().toChecksumAddress(did_owner),
-                consumer_address,
+                add_0x_prefix(agreement_id),
+                amounts,
+                receivers,
+                did_owner,
                 lock_id,
                 access_id,
                 provider_acc
@@ -89,4 +96,6 @@ def fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consu
                 return False
             else:
                 logger.info('The escrowReward condition was already fulfilled')
-    return True
+
+    escrowreward_condition_status = keeper.condition_manager.get_condition_state(cond_ids[2])
+    return escrowreward_condition_status == ConditionState.Fulfilled.value

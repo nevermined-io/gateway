@@ -306,7 +306,7 @@ def get_asset_url_at_index(url_index, asset, account, auth_method='SecretStore')
 
 def get_download_url(url, config_file):
     try:
-        logger.info('Connecting through Metadata Driver Interface to generate the signed url.')
+        logger.debug('Connecting through Metadata Driver Interface to generate the signed url.')
         osm = DriverInterface(url, config_file)
         download_url = osm.data_plugin.generate_url(url)
         logger.debug(f'Metadata Driver Interface generated the url: {download_url}')

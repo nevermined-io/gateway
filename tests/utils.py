@@ -39,18 +39,25 @@ def get_sample_workflow_ddo():
 
 
 def get_registered_ddo(account, providers=None, auth_service='SecretStore'):
-    metadata = get_sample_ddo()['service'][0]['attributes']
+    ddo = get_sample_ddo()
+    metadata = ddo['service'][0]['attributes']
     metadata['main']['files'][0][
         'url'] = "https://raw.githubusercontent.com/tbertinmahieux/MSongsDB/master/Tasks_Demos" \
                  "/CoverSongs/shs_dataset_test.txt"
     metadata['main']['files'][0]['checksum'] = str(uuid.uuid4())
+
+    escrow_reward_condition = ddo['service'][1]['attributes']['serviceAgreementTemplate']['conditions'][2]
+    _amounts = escrow_reward_condition['parameters'][0]['value']
+    _receivers = escrow_reward_condition['parameters'][1]['value']
 
     access_service_attributes = {"main": {
         "name": "dataAssetAccessServiceAgreement",
         "creator": account.address,
         "price": metadata[MetadataMain.KEY]['price'],
         "timeout": 3600,
-        "datePublished": metadata[MetadataMain.KEY]['dateCreated']
+        "datePublished": metadata[MetadataMain.KEY]['dateCreated'],
+        "_amounts": _amounts,
+        "_receivers": _receivers
     }}
 
     access_service_descriptor = ServiceDescriptor.access_service_descriptor(
@@ -162,7 +169,7 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
     ddo.add_proof(checksums, account)
 
     did = ddo.assign_did(DID.did(ddo.proof['checksum']))
-    
+
     for service in services:
         if service.type == 'access':
             access_service = ServiceFactory.complete_access_service(
