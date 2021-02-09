@@ -15,7 +15,7 @@ from eth_utils import add_0x_prefix
 from werkzeug.utils import get_content_type
 
 from nevermined_gateway import constants
-from nevermined_gateway.constants import BaseURLs
+from nevermined_gateway.constants import BaseURLs, ConditionState
 from nevermined_gateway.util import (build_download_response, check_auth_token,
                                      generate_token, get_download_url, get_provider_account,
                                      is_token_valid, keeper_instance, verify_signature, web3)
@@ -27,12 +27,6 @@ SERVICE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/consume'
 
 def dummy_callback(*_):
     pass
-
-
-
-
-
-
 
 
 def grant_access(agreement_id, ddo, consumer_account, provider_account):
@@ -144,6 +138,11 @@ def test_access(client, provider_account, consumer_account):
             headers={"Authorization": f"Bearer {access_token}"}
         )
 
+        agreement = keeper.agreement_manager.get_agreement(agreement_id)
+        cond_ids = agreement.condition_ids
+        assert keeper.condition_manager.get_condition_state(cond_ids[0]) == ConditionState.Fulfilled.value
+        assert keeper.condition_manager.get_condition_state(cond_ids[1]) == ConditionState.Fulfilled.value
+        assert keeper.condition_manager.get_condition_state(cond_ids[2]) == ConditionState.Fulfilled.value
         assert response.status == '200 OK'
         assert len(keeper.did_registry.get_provenance_method_events('USED', did_bytes=did_to_id_bytes(ddo.did))) == 1
 

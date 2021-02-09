@@ -110,7 +110,6 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
             asset = DIDResolver(keeper.did_registry).resolve(did)
             asset_id = did.replace(NEVERMINED_PREFIX, "")
 
-
             access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
             lockreward_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
             escrowreward_condition_status = keeper.condition_manager.get_condition_state(
