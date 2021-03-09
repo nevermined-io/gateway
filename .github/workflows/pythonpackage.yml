@@ -36,7 +36,7 @@ jobs:
         git clone https://github.com/nevermined-io/tools nevermined-tools
         cd nevermined-tools
         rm -rf "${HOME}/.nevermined/nevermined-contracts/artifacts"
-        ./start_nevermined.sh --no-marketplace --no-gateway --ldap --latest --compute &
+        ./start_nevermined.sh --no-marketplace --no-gateway --ldap --latest --compute --spree-embedded-contracts &
 
         # wait for the compute api to be online
         # the compute api is the last service to come online
