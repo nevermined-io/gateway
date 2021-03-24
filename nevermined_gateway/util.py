@@ -304,6 +304,41 @@ def get_asset_url_at_index(url_index, asset, account, auth_method='SecretStore')
         raise
 
 
+def get_asset(request, requests_session, content_type, url, config_file):
+    osm = DriverInterface(url, config_file)
+    logger.info('Get Asset for url: ' + url)
+    logger.info('URL Type: ' + osm.parse_url(url))
+    if osm.parse_url(url) == 'filecoin':
+        try:
+            content_binary = get_content_binary(url, config_file)
+            return Response(
+                io.BytesIO(content_binary).read(),
+                200,
+                headers={},
+                content_type=content_type
+            )
+        except Exception as e:
+            logger.error('Unable to fetch Filecoin content ' + url)
+            return None
+    else:
+        download_url = get_download_url(url, config_file)
+
+        logger.debug(f'Done processing download request for asset')
+        return build_download_response(request, requests_session, url, download_url, content_type)
+
+
+def get_content_binary(url, config_file):
+    try:
+        logger.debug('Connecting through Metadata Driver Interface to generate the content binary.')
+        osm = DriverInterface(url, config_file)
+        content_binary = osm.data_plugin.download(url)
+        logger.debug(f'Metadata Driver Interface downloaded the binary from the url: {url}')
+        return content_binary
+    except Exception as e:
+        logger.error(f'Error fetching binary (using Metadata Driver Interface): {str(e)}')
+        raise
+
+
 def get_download_url(url, config_file):
     try:
         logger.debug('Connecting through Metadata Driver Interface to generate the signed url.')

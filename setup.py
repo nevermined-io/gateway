@@ -24,11 +24,12 @@ install_requirements = [
     'Jinja2>=2.10.1',
     'requests~=2.21.0',
     'gunicorn==19.9.0',
+    'nevermined-metadata-driver-interface>=0.1.5',
     'nevermined-metadata-driver-azure>=0.1.0',
     'nevermined-metadata-driver-aws>=0.1.0',
-    'nevermined-metadata-driver-interface>=0.1.4',
     'nevermined-metadata-driver-onprem>=0.1.0',
     'nevermined-metadata-driver-ipfs>=0.1.0',
+    'nevermined-metadata-driver-filecoin>=0.2.1',
     'Werkzeug>=0.15.3',
     'ldap3==2.8.1',
     # secp256k1 support was added recently and the latest release of authlib does not included it yet
@@ -89,6 +90,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/nevermined-io/gateway',
-    version='0.5.2',
+    version='0.5.3',
     zip_safe=False,
 )

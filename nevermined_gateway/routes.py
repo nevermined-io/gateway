@@ -18,12 +18,12 @@ from nevermined_gateway.identity.oauth2.authorization_server import create_autho
 from nevermined_gateway.identity.oauth2.resource_server import create_resource_server
 from nevermined_gateway.log import setup_logging
 from nevermined_gateway.myapp import app
-from nevermined_gateway.util import (build_download_response, check_required_attributes,
+from nevermined_gateway.util import (check_required_attributes,
                                      do_secret_store_encrypt, get_asset_url_at_index, get_config,
-                                     get_download_url, get_provider_account, get_provider_key_file,
+                                     get_provider_account, get_provider_key_file,
                                      get_provider_password, get_rsa_public_key_file,
                                      is_access_granted, keeper_instance,
-                                     setup_keeper, used_by, verify_signature, was_compute_triggered)
+                                     setup_keeper, used_by, verify_signature, was_compute_triggered, get_asset)
 
 setup_logging()
 services = Blueprint('services', __name__)
@@ -144,6 +144,11 @@ def publish():
         return f'Error: {str(e)}', 500
 
 
+@services.route('/upload/filecoin', methods=['POST'])
+def upload_filecoin():
+    logger.debug('To be implemented')
+
+
 @services.route('/download/<int:index>', methods=['GET'])
 @require_oauth()
 def download(index=0):
@@ -179,10 +184,7 @@ def download(index=0):
             return msg, 400
 
         url = get_asset_url_at_index(index, asset, provider_acc, auth_method)
-        download_url = get_download_url(url, app.config['CONFIG_FILE'])
-
-        logger.debug(f'Done processing download request for asset {did}')
-        return build_download_response(request, requests_session, url, download_url, content_type)
+        return get_asset(request, requests_session, content_type, url, app.config['CONFIG_FILE'])
 
     except (ValueError, Exception) as e:
         logger.error(f'Error- {str(e)}', exc_info=1)
@@ -232,11 +234,7 @@ def access(agreement_id, index=0):
             return msg, 400
 
         url = get_asset_url_at_index(index, asset, provider_acc, auth_method)
-        download_url = get_download_url(url, app.config['CONFIG_FILE'])
-
-        logger.debug(f'Done processing consume request for asset {did}, agreementId {agreement_id},'
-                     f' url {download_url}')
-        return build_download_response(request, requests_session, url, download_url, content_type)
+        return get_asset(request, requests_session, content_type, url, app.config['CONFIG_FILE'])
 
     except (ValueError, Exception) as e:
         logger.error(f'Error- {str(e)}', exc_info=1)
@@ -404,11 +402,7 @@ def consume():
             return msg, 400
 
         url = get_asset_url_at_index(index, asset, provider_acc, auth_method)
-        download_url = get_download_url(url, app.config['CONFIG_FILE'])
-
-        logger.info(f'Done processing consume request for asset {did}, agreementId {agreement_id},'
-                    f' url {download_url}')
-        return build_download_response(request, requests_session, url, download_url, content_type)
+        return get_asset(request, requests_session, content_type, url, app.config['CONFIG_FILE'])
     except (ValueError, Exception) as e:
         logger.error(f'Error- {str(e)}', exc_info=1)
         return f'Error : {str(e)}', 500

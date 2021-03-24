@@ -12,13 +12,14 @@ from common_utils_py.http_requests.requests_session import get_requests_session
 from common_utils_py.oauth2.token import NeverminedJWTBearerGrant, generate_access_grant_token, generate_download_grant_token
 from contracts_lib_py.utils import add_ethereum_prefix_and_hash_msg
 from eth_utils import add_0x_prefix
+from metadata_driver_interface.driver_interface import DriverInterface
 from werkzeug.utils import get_content_type
 
 from nevermined_gateway import constants
 from nevermined_gateway.constants import BaseURLs, ConditionState
 from nevermined_gateway.util import (build_download_response, check_auth_token,
                                      generate_token, get_download_url, get_provider_account,
-                                     is_token_valid, keeper_instance, verify_signature, web3)
+                                     is_token_valid, keeper_instance, verify_signature, web3, get_asset)
 from .utils import get_registered_ddo, place_order, lock_reward
 
 PURCHASE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/access/initialize'
@@ -51,6 +52,9 @@ def test_consume(client, provider_account, consumer_account):
             'serviceAgreementId': agreement_id,
             'consumerAddress': consumer_account.address
         })
+
+        print('Provider: ' + provider_account.address)
+        print('Consumer: ' + consumer_account.address)
 
         keeper = keeper_instance()
         agr_id_hash = add_ethereum_prefix_and_hash_msg(agreement_id)
@@ -311,6 +315,21 @@ def test_download_ipfs_file(client):
     assert download_url and download_url.endswith(f'ipfs/{cid}')
     response = build_download_response(request, requests_session, download_url, download_url, None)
     assert response.data, f'got no data {response.data}'
+
+
+def test_download_filecoin_file():
+    cid = 'QmW68jbcqSRtqSQb6xkukQ6tfonZGhu1VrZv9zAicNmovs'
+    url = f'cid://{cid}'
+    download_url = get_download_url(url, None)
+    requests_session = get_requests_session()
+
+    request = Mock()
+    request.range = None
+
+    print(f'got filecoin download url: {download_url}')
+    assert download_url and download_url == url
+    response = get_asset(request, requests_session, '', url, None)
+    assert response is None # In the local tests we are not using a real connection to a PowerGate node
 
 
 def test_build_download_response():
