@@ -339,6 +339,18 @@ def get_content_binary(url, config_file):
         raise
 
 
+def upload_file(file, config_file):
+    try:
+        logger.debug('Connecting through Metadata Driver Interface to upload file.')
+        osm = DriverInterface('cid://', config_file)
+        response = osm.data_plugin.upload(file)
+        logger.debug(f'Metadata Driver Interface uploaded the file: {response}')
+        return response
+    except Exception as e:
+        logger.error(f'Error uploading (using Metadata Driver Interface): {str(e)}')
+        raise
+
+
 def get_download_url(url, config_file):
     try:
         logger.debug('Connecting through Metadata Driver Interface to generate the signed url.')
