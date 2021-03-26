@@ -341,7 +341,7 @@ def test_upload_filecoin_file(client):
     data = {'file': file_}
     response = client.post('/api/v1/gateway/services/upload/filecoin', data=data, content_type='multipart/form-data')
     assert response.status_code == 201
-    assert response.json['cid'] == 'QmSJA3xNH62sj4xggZZzCp2VXpsXbkR9zYoqNYXp3c4xuN'
+    assert response.json['url'] == 'cid://QmSJA3xNH62sj4xggZZzCp2VXpsXbkR9zYoqNYXp3c4xuN'
 
 
 def test_build_download_response():

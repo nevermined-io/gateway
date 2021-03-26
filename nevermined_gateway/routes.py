@@ -162,7 +162,7 @@ def upload_filecoin():
         try:
             cid = upload_file(f.name, app.config['CONFIG_FILE'])
             logger.info(f"Uploaded to file with cid {cid} to filecoin")
-            return {'cid': cid }, 201
+            return {'url': f'cid://{cid}' }, 201
         except Exception as e:
             logger.error(f'Filecoin Driver error when uploading file: {e}')
             return f'Error: {str(e)}', 500
