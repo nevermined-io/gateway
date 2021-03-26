@@ -1,7 +1,9 @@
 import json
 import mimetypes
 import uuid
+import io
 from unittest.mock import MagicMock, Mock
+import pytest
 
 from common_utils_py.agreements.service_agreement import ServiceAgreement
 from common_utils_py.agreements.service_types import ServiceTypes
@@ -12,6 +14,7 @@ from common_utils_py.http_requests.requests_session import get_requests_session
 from common_utils_py.oauth2.token import NeverminedJWTBearerGrant, generate_access_grant_token, generate_download_grant_token
 from contracts_lib_py.utils import add_ethereum_prefix_and_hash_msg
 from eth_utils import add_0x_prefix
+from flask.helpers import url_for
 from metadata_driver_interface.driver_interface import DriverInterface
 from werkzeug.utils import get_content_type
 
@@ -330,6 +333,15 @@ def test_download_filecoin_file():
     assert download_url and download_url == url
     response = get_asset(request, requests_session, '', url, None)
     assert response is None # In the local tests we are not using a real connection to a PowerGate node
+
+
+@pytest.mark.skip(reason='Needs powergate')
+def test_upload_filecoin_file(client):
+    file_ = (io.BytesIO(b"Hello, Nevermined!"), 'test.txt')
+    data = {'file': file_}
+    response = client.post('/api/v1/gateway/services/upload/filecoin', data=data, content_type='multipart/form-data')
+    assert response.status_code == 201
+    assert response.json['url'] == 'cid://QmSJA3xNH62sj4xggZZzCp2VXpsXbkR9zYoqNYXp3c4xuN'
 
 
 def test_build_download_response():
