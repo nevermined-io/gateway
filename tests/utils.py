@@ -38,7 +38,7 @@ def get_sample_workflow_ddo():
     )
 
 
-def get_registered_ddo(account, providers=None, auth_service='SecretStore'):
+def get_registered_ddo(account, providers=None, auth_service='PSK-RSA'):
     ddo = get_sample_ddo()
     metadata = ddo['service'][0]['attributes']
     metadata['main']['files'][0][
@@ -68,7 +68,7 @@ def get_registered_ddo(account, providers=None, auth_service='SecretStore'):
     return register_ddo(metadata, account, providers, auth_service, [access_service_descriptor])
 
 
-def get_registered_compute_ddo(account, providers=None, auth_service='SecretStore'):
+def get_registered_compute_ddo(account, providers=None, auth_service='PSK-RSA'):
     metadata = get_sample_ddo()['service'][0]['attributes']
     metadata['main']['files'][0][
         'url'] = "https://raw.githubusercontent.com/tbertinmahieux/MSongsDB/master/Tasks_Demos" \
@@ -95,7 +95,7 @@ def get_registered_compute_ddo(account, providers=None, auth_service='SecretStor
 
 
 
-def get_registered_algorithm_ddo(account, providers=None, auth_service='SecretStore'):
+def get_registered_algorithm_ddo(account, providers=None, auth_service='PSK-RSA'):
     metadata = get_sample_algorithm_ddo()['service'][0]['attributes']
     metadata['main']['files'][0]['checksum'] = str(uuid.uuid4())
 
@@ -115,7 +115,7 @@ def get_registered_algorithm_ddo(account, providers=None, auth_service='SecretSt
     return register_ddo(metadata, account, providers, auth_service, [access_service_descriptor])
 
 
-def get_registered_workflow_ddo(account, compute_did, algorithm_did, providers=None, auth_service='SecretStore'):
+def get_registered_workflow_ddo(account, compute_did, algorithm_did, providers=None, auth_service='PSK-RSA'):
     metadata = get_sample_workflow_ddo()['service'][0]['attributes']
     metadata['main']['workflow']['stages'][0]['input'][0]['id'] = compute_did
     metadata['main']['workflow']['stages'][0]['transformation']['id'] = algorithm_did
@@ -273,10 +273,10 @@ def place_order(provider_account, ddo, consumer_account, service_type=ServiceTyp
     return agreement_id
 
 
-def lock_reward(agreement_id, service_agreement, consumer_account):
+def lock_payment(agreement_id, did, service_agreement, amounts, receivers, consumer_account):
     keeper = keeper_instance()
     price = service_agreement.get_price()
     keeper.token.token_approve(keeper.lock_reward_condition.address, price, consumer_account)
     tx_hash = keeper.lock_reward_condition.fulfill(
-        agreement_id, keeper.escrow_reward_condition.address, price, consumer_account)
+        agreement_id, did, keeper.escrow_reward_condition.address, amounts, receivers, consumer_account)
     keeper.lock_reward_condition.get_tx_receipt(tx_hash)

@@ -20,7 +20,7 @@ from nevermined_gateway.constants import BaseURLs, ConditionState
 from nevermined_gateway.util import (build_download_response, check_auth_token,
                                      generate_token, get_download_url, get_provider_account,
                                      is_token_valid, keeper_instance, verify_signature, web3, get_asset)
-from .utils import get_registered_ddo, place_order, lock_reward
+from .utils import get_registered_ddo, place_order, lock_payment
 
 PURCHASE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/access/initialize'
 SERVICE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/consume'
@@ -71,7 +71,7 @@ def test_consume(client, provider_account, consumer_account):
             keeper.dispenser.request_tokens(50 - consumer_balance, consumer_account)
 
         sa = ServiceAgreement.from_ddo(ServiceTypes.ASSET_ACCESS, ddo)
-        lock_reward(agreement_id, sa, consumer_account)
+        lock_payment(agreement_id, ddo.did, sa, amounts, receivers, consumer_account)
         event = keeper.lock_reward_condition.subscribe_condition_fulfilled(
             agreement_id, 15, None, (), wait=True, from_block=0
         )
@@ -118,7 +118,7 @@ def test_access(client, provider_account, consumer_account):
             keeper.dispenser.request_tokens(50 - consumer_balance, consumer_account)
 
         sa = ServiceAgreement.from_ddo(ServiceTypes.ASSET_ACCESS, ddo)
-        lock_reward(agreement_id, sa, consumer_account)
+        lock_payment(agreement_id, sa, consumer_account)
         event = keeper.lock_reward_condition.subscribe_condition_fulfilled(
             agreement_id, 15, None, (), wait=True, from_block=0
         )

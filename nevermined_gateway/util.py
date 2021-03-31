@@ -264,7 +264,7 @@ def build_download_response(request, requests_session, url, download_url, conten
         raise
 
 
-def get_asset_url_at_index(url_index, asset, account, auth_method='SecretStore'):
+def get_asset_url_at_index(url_index, asset, account, auth_method='PSK-RSA'):
     logger.debug(
         f'get_asset_url_at_index(): url_index={url_index}, did={asset.did}, provider='
         f'{account.address}')

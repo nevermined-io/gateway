@@ -5,8 +5,12 @@ class ConfigSections:
     KEEPER_CONTRACTS = 'nevermined-contracts'
     RESOURCES = 'resources'
     METADATA_DRIVER = 'metadata-driver'
-    DECRYPTION_METHODS = ['SecretStore', 'PSK-RSA', 'PSK-ECDSA']
-    DEFAULT_DECRYPTION_METHOD = 'SecretStore'
+    DECRYPTION_METHODS = [
+        # 'SecretStore',
+        'PSK-RSA',
+        'PSK-ECDSA'
+    ]
+    DEFAULT_DECRYPTION_METHOD = 'PSK-RSA'
     PING_ITERATIONS = 15
     PING_SLEEP = 1500
 

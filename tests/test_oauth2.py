@@ -10,7 +10,7 @@ from common_utils_py.oauth2.jwk_utils import account_to_jwk
 from nevermined_gateway.identity.oauth2.token import NeverminedJWTBearerGrant
 from nevermined_gateway.util import keeper_instance
 
-from tests.utils import get_registered_algorithm_ddo, get_registered_compute_ddo, get_registered_ddo, get_registered_workflow_ddo, lock_reward, place_order
+from tests.utils import get_registered_algorithm_ddo, get_registered_compute_ddo, get_registered_ddo, get_registered_workflow_ddo, lock_payment, place_order
 
 # In Production JWT should only be used with https
 os.environ["AUTHLIB_INSECURE_TRANSPORT"] = "true"
@@ -32,7 +32,7 @@ def test_access_endpoint(client, provider_account, consumer_account):
         keeper.dispenser.request_tokens(50 - consumer_balance, consumer_account)
 
     sa = ServiceAgreement.from_ddo(ServiceTypes.ASSET_ACCESS, ddo)
-    lock_reward(agreement_id, sa, consumer_account)
+    lock_payment(agreement_id, sa, consumer_account)
     event = keeper.lock_reward_condition.subscribe_condition_fulfilled(
         agreement_id, 15, None, (), wait=True, from_block=0
     )
@@ -85,7 +85,7 @@ def test_access_endpoint_bad_signature(client, provider_account, consumer_accoun
         keeper.dispenser.request_tokens(50 - consumer_balance, consumer_account)
 
     sa = ServiceAgreement.from_ddo(ServiceTypes.ASSET_ACCESS, ddo)
-    lock_reward(agreement_id, sa, consumer_account)
+    lock_payment(agreement_id, sa, consumer_account)
     event = keeper.lock_reward_condition.subscribe_condition_fulfilled(
         agreement_id, 15, None, (), wait=True, from_block=0
     )
@@ -145,7 +145,7 @@ def test_execute_endpoint(client, provider_account, consumer_account):
     # initialize agreement
     agreement_id = place_order(provider_account, ddo_compute, consumer_account, service_type=ServiceTypes.CLOUD_COMPUTE)
     sa = ServiceAgreement.from_ddo(ServiceTypes.CLOUD_COMPUTE, ddo_compute)
-    lock_reward(agreement_id, sa, consumer_account)
+    lock_payment(agreement_id, sa, consumer_account)
 
     keeper = keeper_instance()
     event = keeper.lock_reward_condition.subscribe_condition_fulfilled(
@@ -191,7 +191,7 @@ def test_compute_status_endpoint(client, provider_account, consumer_account):
     # initialize agreement
     agreement_id = place_order(provider_account, ddo_compute, consumer_account, service_type=ServiceTypes.CLOUD_COMPUTE)
     sa = ServiceAgreement.from_ddo(ServiceTypes.CLOUD_COMPUTE, ddo_compute)
-    lock_reward(agreement_id, sa, consumer_account)
+    lock_payment(agreement_id, sa, consumer_account)
 
     keeper = keeper_instance()
     event = keeper.lock_reward_condition.subscribe_condition_fulfilled(
@@ -262,7 +262,7 @@ def test_compute_logs_endpoint(client, provider_account, consumer_account):
     # initialize agreement
     agreement_id = place_order(provider_account, ddo_compute, consumer_account, service_type=ServiceTypes.CLOUD_COMPUTE)
     sa = ServiceAgreement.from_ddo(ServiceTypes.CLOUD_COMPUTE, ddo_compute)
-    lock_reward(agreement_id, sa, consumer_account)
+    lock_payment(agreement_id, sa, consumer_account)
 
     keeper = keeper_instance()
     event = keeper.lock_reward_condition.subscribe_condition_fulfilled(
