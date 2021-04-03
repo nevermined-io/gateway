@@ -232,10 +232,6 @@ def access(agreement_id, index=0):
 
         logger.debug('AgreementID :' + agreement_id)
 
-        # TODO: Not sure what signature should be here
-        signature = '0x00'
-        used_by(agreement_id, did, consumer_address, 'access', signature, 'access', provider_acc,
-                keeper)
         file_attributes = asset.metadata['main']['files'][index]
         content_type = file_attributes.get('contentType', None)
 
@@ -253,6 +249,8 @@ def access(agreement_id, index=0):
             return msg, 400
 
         url = get_asset_url_at_index(index, asset, provider_acc, auth_method)
+        used_by(agreement_id, did, consumer_address, 'access', '0x00', 'access', provider_acc,
+                keeper)
         return get_asset(request, requests_session, content_type, url, app.config['CONFIG_FILE'])
 
     except (ValueError, Exception) as e:

@@ -19,7 +19,7 @@ def fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_
     if access_condition_status != ConditionState.Fulfilled.value:
         logger.debug('Fulfilling Access condition')
         try:
-            keeper.access_secret_store_condition.fulfill(
+            keeper.access_condition.fulfill(
                 agreement_id, asset_id, consumer_address, provider_acc
             )
         except Exception:
@@ -62,14 +62,14 @@ def fulfill_compute_condition(keeper, agreement_id, cond_ids, asset_id, consumer
     return compute_condition_status == ConditionState.Fulfilled.value
 
 
-def fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consumer_address, provider_acc,
+def fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset, provider_acc,
                                     service_type=ServiceTypes.ASSET_ACCESS):
     escrowreward_condition_status = keeper.condition_manager.get_condition_state(cond_ids[2])
 
     if escrowreward_condition_status != ConditionState.Fulfilled.value:
-        logger.debug('Fulfilling EscrowReward condition %s' % agreement_id)
+        logger.debug('Fulfilling EscrowPayment condition %s' % agreement_id)
         service_agreement = asset.get_service(service_type)
-        did_owner = keeper.agreement_manager.get_agreement_did_owner(agreement_id)
+        # did_owner = keeper.agreement_manager.get_agreement_did_owner(agreement_id)
         access_id, lock_id = cond_ids[:2]
 
         amounts = list(map(int, service_agreement.get_param_value_by_name('_amounts')))
@@ -77,11 +77,12 @@ def fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consu
 
         recheck_condition = False
         try:
-            keeper.escrow_reward_condition.fulfill(
+            keeper.escrow_payment_condition.fulfill(
                 add_0x_prefix(agreement_id),
+                asset.asset_id,
                 amounts,
                 receivers,
-                did_owner,
+                keeper.escrow_payment_condition.address,
                 lock_id,
                 access_id,
                 provider_acc

@@ -22,7 +22,7 @@ def test_access_endpoint(client, provider_account, consumer_account):
     ddo = get_registered_ddo(provider_account, providers=[provider_account.address])
     agreement_id = place_order(provider_account, ddo, consumer_account)
 
-    event = keeper.escrow_access_secretstore_template.subscribe_agreement_created(
+    event = keeper.access_template.subscribe_agreement_created(
             agreement_id, 15, None, (), wait=True, from_block=0
         )
     assert event, "Agreement event is not found, check the keeper node's logs"
@@ -33,7 +33,7 @@ def test_access_endpoint(client, provider_account, consumer_account):
 
     sa = ServiceAgreement.from_ddo(ServiceTypes.ASSET_ACCESS, ddo)
     lock_payment(agreement_id, sa, consumer_account)
-    event = keeper.lock_reward_condition.subscribe_condition_fulfilled(
+    event = keeper.lock_payment_condition.subscribe_condition_fulfilled(
         agreement_id, 15, None, (), wait=True, from_block=0
     )
     assert event, "Lock reward condition fulfilled event is not found, check the keeper node's logs"
@@ -75,7 +75,7 @@ def test_access_endpoint_bad_signature(client, provider_account, consumer_accoun
     ddo = get_registered_ddo(provider_account, providers=[provider_account.address])
     agreement_id = place_order(provider_account, ddo, provider_account)
 
-    event = keeper.escrow_access_secretstore_template.subscribe_agreement_created(
+    event = keeper.access_template.subscribe_agreement_created(
             agreement_id, 15, None, (), wait=True, from_block=0
         )
     assert event, "Agreement event is not found, check the keeper node's logs"
@@ -86,7 +86,7 @@ def test_access_endpoint_bad_signature(client, provider_account, consumer_accoun
 
     sa = ServiceAgreement.from_ddo(ServiceTypes.ASSET_ACCESS, ddo)
     lock_payment(agreement_id, sa, consumer_account)
-    event = keeper.lock_reward_condition.subscribe_condition_fulfilled(
+    event = keeper.lock_payment_condition.subscribe_condition_fulfilled(
         agreement_id, 15, None, (), wait=True, from_block=0
     )
     assert event, "Lock reward condition fulfilled event is not found, check the keeper node's logs"
@@ -148,7 +148,7 @@ def test_execute_endpoint(client, provider_account, consumer_account):
     lock_payment(agreement_id, sa, consumer_account)
 
     keeper = keeper_instance()
-    event = keeper.lock_reward_condition.subscribe_condition_fulfilled(
+    event = keeper.lock_payment_condition.subscribe_condition_fulfilled(
         agreement_id, 60, None, (), wait=True
     )
     assert event is not None, "Reward condition is not found"
@@ -194,7 +194,7 @@ def test_compute_status_endpoint(client, provider_account, consumer_account):
     lock_payment(agreement_id, sa, consumer_account)
 
     keeper = keeper_instance()
-    event = keeper.lock_reward_condition.subscribe_condition_fulfilled(
+    event = keeper.lock_payment_condition.subscribe_condition_fulfilled(
         agreement_id, 60, None, (), wait=True
     )
     assert event is not None, "Reward condition is not found"
@@ -265,7 +265,7 @@ def test_compute_logs_endpoint(client, provider_account, consumer_account):
     lock_payment(agreement_id, sa, consumer_account)
 
     keeper = keeper_instance()
-    event = keeper.lock_reward_condition.subscribe_condition_fulfilled(
+    event = keeper.lock_payment_condition.subscribe_condition_fulfilled(
         agreement_id, 60, None, (), wait=True
     )
     assert event is not None, "Reward condition is not found"
