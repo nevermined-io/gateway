@@ -37,8 +37,7 @@ jobs:
         cd nevermined-tools
         rm -rf "${HOME}/.nevermined/nevermined-contracts/artifacts"
 
-        export KEEPER_VERSION=v0.6.2
-        ./start_nevermined.sh --no-marketplace --no-gateway --ldap --compute --spree-embedded-contracts &
+        ./start_nevermined.sh --latest --no-marketplace --no-gateway --ldap --compute --spree-embedded-contracts &
 
         # wait for the compute api to be online
         # the compute api is the last service to come online
