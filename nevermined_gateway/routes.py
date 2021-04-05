@@ -122,12 +122,7 @@ def publish():
 
         print('Document: ' + document)
         print('DID: ' + remove_0x_prefix(did))
-        encrypted_document = do_secret_store_encrypt(
-            remove_0x_prefix(did),
-            document,
-            provider_acc,
-            get_config()
-        )
+        encrypted_document, public_key = rsa_encryption_from_file(document, get_rsa_public_key_file())
         logger.debug(f'encrypted urls {encrypted_document}, '
                      f'publisher {publisher_address}, '
                      f'documentId {did}')
@@ -135,7 +130,7 @@ def publish():
 
     except (RPCError, Exception) as e:
         logger.error(
-            f'SecretStore Error: {e}. \n'
+            f'Encryption Error: {e}. \n'
             f'providerAddress={provider_acc.address}\n'
             f'Payload was: documentId={did}, '
             f'publisherAddress={publisher_address},'

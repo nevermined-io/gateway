@@ -79,12 +79,19 @@ def get_param_value_by_name(parameters, name):
         if p['name'] == name:
             return p['value']
 
+
 def get_registered_compute_ddo(account, providers=None, auth_service='PSK-RSA'):
-    metadata = get_sample_ddo()['service'][0]['attributes']
+    ddo = get_sample_ddo()
+    metadata = ddo['service'][0]['attributes']
     metadata['main']['files'][0][
         'url'] = "https://raw.githubusercontent.com/tbertinmahieux/MSongsDB/master/Tasks_Demos" \
                  "/CoverSongs/shs_dataset_test.txt"
     metadata['main']['files'][0]['checksum'] = str(uuid.uuid4())
+
+    escrow_payment_condition = ddo['service'][1]['attributes']['serviceAgreementTemplate']['conditions'][2]
+    _amounts = get_param_value_by_name(escrow_payment_condition['parameters'], '_amounts')
+    _receivers = to_checksum_addresses(
+        get_param_value_by_name(escrow_payment_condition['parameters'], '_receivers'))
 
     compute_service_attributes = {
         "main": {
@@ -93,6 +100,8 @@ def get_registered_compute_ddo(account, providers=None, auth_service='PSK-RSA'):
             "dataPublished": metadata[MetadataMain.KEY]["dateCreated"],
             "price": metadata[MetadataMain.KEY]["price"],
             "timeout": 86400,
+            "_amounts": _amounts,
+            "_receivers": _receivers,
             "provider": {}
         }
     }

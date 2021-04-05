@@ -12,7 +12,8 @@ from common_utils_py.oauth2.jwk_utils import account_to_jwk
 from nevermined_gateway.identity.oauth2.token import NeverminedJWTBearerGrant
 from nevermined_gateway.util import keeper_instance
 
-from tests.utils import get_registered_algorithm_ddo, get_registered_compute_ddo, get_registered_ddo, get_registered_workflow_ddo, lock_payment, place_order
+from tests.utils import get_registered_algorithm_ddo, get_registered_compute_ddo, get_registered_ddo, \
+    get_registered_workflow_ddo, lock_payment, place_order
 
 # In Production JWT should only be used with https
 os.environ["AUTHLIB_INSECURE_TRANSPORT"] = "true"
@@ -21,6 +22,7 @@ amounts = [10, 2]
 receivers = to_checksum_addresses(
     ['0x00Bd138aBD70e2F00903268F3Db08f2D25677C9e', '0x068ed00cf0441e4829d9784fcbe7b9e26d4bd8d0'])
 
+
 def test_access_endpoint(client, provider_account, consumer_account):
     # order access
     keeper = keeper_instance()
@@ -28,8 +30,8 @@ def test_access_endpoint(client, provider_account, consumer_account):
     agreement_id = place_order(provider_account, ddo, consumer_account)
 
     event = keeper.access_template.subscribe_agreement_created(
-            agreement_id, 15, None, (), wait=True, from_block=0
-        )
+        agreement_id, 15, None, (), wait=True, from_block=0
+    )
     assert event, "Agreement event is not found, check the keeper node's logs"
 
     consumer_balance = keeper.token.get_token_balance(consumer_account.address)
@@ -81,8 +83,8 @@ def test_access_endpoint_bad_signature(client, provider_account, consumer_accoun
     agreement_id = place_order(provider_account, ddo, provider_account)
 
     event = keeper.access_template.subscribe_agreement_created(
-            agreement_id, 15, None, (), wait=True, from_block=0
-        )
+        agreement_id, 15, None, (), wait=True, from_block=0
+    )
     assert event, "Agreement event is not found, check the keeper node's logs"
 
     consumer_balance = keeper.token.get_token_balance(consumer_account.address)
@@ -146,7 +148,7 @@ def test_execute_endpoint(client, provider_account, consumer_account):
     ddo_compute = get_registered_compute_ddo(provider_account, providers=[provider_account.address])
     ddo_algorithm = get_registered_algorithm_ddo(consumer_account, providers=[provider_account.address])
     ddo_workflow = get_registered_workflow_ddo(consumer_account, ddo_compute.did,
-        ddo_algorithm.did, providers=[provider_account.address])
+                                               ddo_algorithm.did, providers=[provider_account.address])
 
     # initialize agreement
     agreement_id = place_order(provider_account, ddo_compute, consumer_account, service_type=ServiceTypes.CLOUD_COMPUTE)
@@ -192,7 +194,7 @@ def test_compute_status_endpoint(client, provider_account, consumer_account):
     ddo_compute = get_registered_compute_ddo(provider_account, providers=[provider_account.address])
     ddo_algorithm = get_registered_algorithm_ddo(consumer_account, providers=[provider_account.address])
     ddo_workflow = get_registered_workflow_ddo(consumer_account, ddo_compute.did,
-        ddo_algorithm.did, providers=[provider_account.address])
+                                               ddo_algorithm.did, providers=[provider_account.address])
 
     # initialize agreement
     agreement_id = place_order(provider_account, ddo_compute, consumer_account, service_type=ServiceTypes.CLOUD_COMPUTE)
@@ -263,7 +265,7 @@ def test_compute_logs_endpoint(client, provider_account, consumer_account):
     ddo_compute = get_registered_compute_ddo(provider_account, providers=[provider_account.address])
     ddo_algorithm = get_registered_algorithm_ddo(consumer_account, providers=[provider_account.address])
     ddo_workflow = get_registered_workflow_ddo(consumer_account, ddo_compute.did,
-        ddo_algorithm.did, providers=[provider_account.address])
+                                               ddo_algorithm.did, providers=[provider_account.address])
 
     # initialize agreement
     agreement_id = place_order(provider_account, ddo_compute, consumer_account, service_type=ServiceTypes.CLOUD_COMPUTE)
