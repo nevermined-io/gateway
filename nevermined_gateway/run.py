@@ -47,15 +47,17 @@ def version():
     info['contracts']['NeverminedToken'] = keeper.token.address if keeper.token else None
 
     info['contracts'][
-        'AccessSecretStoreCondition'] = keeper.access_secret_store_condition.address
+        'AccessCondition'] = keeper.access_condition.address
     info['contracts']['AgreementStoreManager'] = keeper.agreement_manager.address
     info['contracts']['ConditionStoreManager'] = keeper.condition_manager.address
     info['contracts']['DIDRegistry'] = keeper.did_registry.address
     info['contracts'][
-        'EscrowAccessSecretStoreTemplate'] = keeper.escrow_access_secretstore_template.address
-    info['contracts']['EscrowReward'] = keeper.escrow_reward_condition.address
+        'AccessTemplate'] = keeper.access_template.address
+    info['contracts'][
+        'EscrowComputeExecutionTemplate'] = keeper.escrow_compute_execution_template.address
+    info['contracts']['EscrowPaymentCondition'] = keeper.escrow_payment_condition.address
     info['contracts']['HashLockCondition'] = keeper.hash_lock_condition.address
-    info['contracts']['LockRewardCondition'] = keeper.lock_reward_condition.address
+    info['contracts']['LockPaymentCondition'] = keeper.lock_payment_condition.address
     info['contracts']['SignCondition'] = keeper.sign_condition.address
     info['contracts']['TemplateStoreManager'] = keeper.template_manager.address
     info['keeper-version'] = keeper.did_registry.version

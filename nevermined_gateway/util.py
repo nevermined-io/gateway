@@ -103,7 +103,7 @@ def do_secret_store_decrypt(did_id, encrypted_document, provider_acc, config):
 
 def is_owner_granted(did, consumer_address, keeper):
     document_id = did_to_id(did)
-    is_granted = keeper.access_secret_store_condition.check_permissions(
+    is_granted = keeper.access_condition.check_permissions(
         document_id, consumer_address
     )
     logger.info(is_granted)
@@ -111,7 +111,7 @@ def is_owner_granted(did, consumer_address, keeper):
 
 
 def is_access_granted(agreement_id, did, consumer_address, keeper):
-    agreement_consumer = keeper.escrow_access_secretstore_template.get_agreement_consumer(
+    agreement_consumer = keeper.access_template.get_agreement_consumer(
         agreement_id)
     logger.info(agreement_consumer)
 
@@ -126,7 +126,7 @@ def is_access_granted(agreement_id, did, consumer_address, keeper):
 
     document_id = did_to_id(did)
 
-    is_granted = keeper.access_secret_store_condition.check_permissions(
+    is_granted = keeper.access_condition.check_permissions(
         document_id, consumer_address
     )
     logger.info(is_granted)
@@ -264,7 +264,7 @@ def build_download_response(request, requests_session, url, download_url, conten
         raise
 
 
-def get_asset_url_at_index(url_index, asset, account, auth_method='SecretStore'):
+def get_asset_url_at_index(url_index, asset, account, auth_method='PSK-RSA'):
     logger.debug(
         f'get_asset_url_at_index(): url_index={url_index}, did={asset.did}, provider='
         f'{account.address}')
@@ -387,5 +387,5 @@ def used_by(service_agreement_id, did, consumer_address, activity_id, signature,
             signature, account, attributes)
         return bool(receipt and receipt.status == 1)
     except Exception as e:
-        logging.critical(f'On-chain call error: {e}')
+        logging.debug(f'On-chain call error: {e}')
         return False

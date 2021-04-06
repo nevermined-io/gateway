@@ -10,7 +10,7 @@ from common_utils_py.ddo.metadata import MetadataMain
 from common_utils_py.ddo.public_key_rsa import PUBLIC_KEY_TYPE_RSA
 from common_utils_py.metadata.metadata import Metadata
 from common_utils_py.utils.crypto import ecdsa_encryption_from_file, rsa_encryption_from_file
-from common_utils_py.utils.utilities import checksum
+from common_utils_py.utils.utilities import checksum, to_checksum_addresses
 from common_utils_py.did import DID, did_to_id_bytes
 from eth_utils.hexadecimal import remove_0x_prefix
 
@@ -38,7 +38,7 @@ def get_sample_workflow_ddo():
     )
 
 
-def get_registered_ddo(account, providers=None, auth_service='SecretStore'):
+def get_registered_ddo(account, providers=None, auth_service='PSK-RSA'):
     ddo = get_sample_ddo()
     metadata = ddo['service'][0]['attributes']
     metadata['main']['files'][0][
@@ -46,9 +46,10 @@ def get_registered_ddo(account, providers=None, auth_service='SecretStore'):
                  "/CoverSongs/shs_dataset_test.txt"
     metadata['main']['files'][0]['checksum'] = str(uuid.uuid4())
 
-    escrow_reward_condition = ddo['service'][1]['attributes']['serviceAgreementTemplate']['conditions'][2]
-    _amounts = escrow_reward_condition['parameters'][0]['value']
-    _receivers = escrow_reward_condition['parameters'][1]['value']
+    escrow_payment_condition = ddo['service'][1]['attributes']['serviceAgreementTemplate']['conditions'][2]
+    _amounts = get_param_value_by_name(escrow_payment_condition['parameters'], '_amounts')
+    _receivers = to_checksum_addresses(
+        get_param_value_by_name(escrow_payment_condition['parameters'], '_receivers'))
 
     access_service_attributes = {"main": {
         "name": "dataAssetAccessServiceAgreement",
@@ -68,12 +69,29 @@ def get_registered_ddo(account, providers=None, auth_service='SecretStore'):
     return register_ddo(metadata, account, providers, auth_service, [access_service_descriptor])
 
 
-def get_registered_compute_ddo(account, providers=None, auth_service='SecretStore'):
-    metadata = get_sample_ddo()['service'][0]['attributes']
+def get_param_value_by_name(parameters, name):
+    """
+    Return the value from the conditions parameters given the param name.
+
+    :return: Object
+    """
+    for p in parameters:
+        if p['name'] == name:
+            return p['value']
+
+
+def get_registered_compute_ddo(account, providers=None, auth_service='PSK-RSA'):
+    ddo = get_sample_ddo()
+    metadata = ddo['service'][0]['attributes']
     metadata['main']['files'][0][
         'url'] = "https://raw.githubusercontent.com/tbertinmahieux/MSongsDB/master/Tasks_Demos" \
                  "/CoverSongs/shs_dataset_test.txt"
     metadata['main']['files'][0]['checksum'] = str(uuid.uuid4())
+
+    escrow_payment_condition = ddo['service'][1]['attributes']['serviceAgreementTemplate']['conditions'][2]
+    _amounts = get_param_value_by_name(escrow_payment_condition['parameters'], '_amounts')
+    _receivers = to_checksum_addresses(
+        get_param_value_by_name(escrow_payment_condition['parameters'], '_receivers'))
 
     compute_service_attributes = {
         "main": {
@@ -82,6 +100,8 @@ def get_registered_compute_ddo(account, providers=None, auth_service='SecretStor
             "dataPublished": metadata[MetadataMain.KEY]["dateCreated"],
             "price": metadata[MetadataMain.KEY]["price"],
             "timeout": 86400,
+            "_amounts": _amounts,
+            "_receivers": _receivers,
             "provider": {}
         }
     }
@@ -95,7 +115,7 @@ def get_registered_compute_ddo(account, providers=None, auth_service='SecretStor
 
 
 
-def get_registered_algorithm_ddo(account, providers=None, auth_service='SecretStore'):
+def get_registered_algorithm_ddo(account, providers=None, auth_service='PSK-RSA'):
     metadata = get_sample_algorithm_ddo()['service'][0]['attributes']
     metadata['main']['files'][0]['checksum'] = str(uuid.uuid4())
 
@@ -115,7 +135,7 @@ def get_registered_algorithm_ddo(account, providers=None, auth_service='SecretSt
     return register_ddo(metadata, account, providers, auth_service, [access_service_descriptor])
 
 
-def get_registered_workflow_ddo(account, compute_did, algorithm_did, providers=None, auth_service='SecretStore'):
+def get_registered_workflow_ddo(account, compute_did, algorithm_did, providers=None, auth_service='PSK-RSA'):
     metadata = get_sample_workflow_ddo()['service'][0]['attributes']
     metadata['main']['workflow']['stages'][0]['input'][0]['id'] = compute_did
     metadata['main']['workflow']['stages'][0]['transformation']['id'] = algorithm_did
@@ -176,8 +196,8 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
                 did,
                 service.service_endpoint,
                 service.attributes,
-                keeper.escrow_access_secretstore_template.address,
-                keeper.escrow_reward_condition.address
+                keeper.access_template.address,
+                keeper.escrow_payment_condition.address
             )
             ddo.add_service(access_service)
         elif service.type == ServiceTypes.CLOUD_COMPUTE:
@@ -186,7 +206,7 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
                 service.service_endpoint,
                 service.attributes,
                 keeper.compute_execution_condition.address,
-                keeper.escrow_reward_condition.address
+                keeper.escrow_payment_condition.address
             )
             ddo.add_service(compute_service)
         else:
@@ -246,7 +266,7 @@ def place_order(provider_account, ddo, consumer_account, service_type=ServiceTyp
     agreement_id = ServiceAgreement.create_new_agreement_id()
     
     if service_type == ServiceTypes.ASSET_ACCESS:
-        agreement_template = keeper.escrow_access_secretstore_template
+        agreement_template = keeper.access_template
     elif service_type == ServiceTypes.CLOUD_COMPUTE:
         agreement_template = keeper.escrow_compute_execution_template
     else:
@@ -273,10 +293,10 @@ def place_order(provider_account, ddo, consumer_account, service_type=ServiceTyp
     return agreement_id
 
 
-def lock_reward(agreement_id, service_agreement, consumer_account):
+def lock_payment(agreement_id, did, service_agreement, amounts, receivers, consumer_account):
     keeper = keeper_instance()
     price = service_agreement.get_price()
-    keeper.token.token_approve(keeper.lock_reward_condition.address, price, consumer_account)
-    tx_hash = keeper.lock_reward_condition.fulfill(
-        agreement_id, keeper.escrow_reward_condition.address, price, consumer_account)
-    keeper.lock_reward_condition.get_tx_receipt(tx_hash)
+    keeper.token.token_approve(keeper.lock_payment_condition.address, price, consumer_account)
+    tx_hash = keeper.lock_payment_condition.fulfill(
+        agreement_id, did, keeper.escrow_payment_condition.address, amounts, receivers, consumer_account)
+    keeper.lock_payment_condition.get_tx_receipt(tx_hash)

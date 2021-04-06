@@ -15,7 +15,7 @@ from common_utils_py.did_resolver.did_resolver import DIDResolver
 from common_utils_py.oauth2.token import NeverminedJWTBearerGrant as _NeverminedJWTBearerGrant
 from common_utils_py.oauth2.jwk_utils import account_to_jwk
 from nevermined_gateway.conditions import (fulfill_access_condition, fulfill_compute_condition,
-                                           fulfill_escrow_reward_condition)
+                                           fulfill_escrow_payment_condition)
 from nevermined_gateway.constants import (BaseURLs, ConditionState,
                                           ConfigSections)
 from nevermined_gateway.identity.jwk_utils import jwk_to_eth_address, recover_public_keys_from_assertion, recover_public_keys_from_eth_assertion
@@ -126,7 +126,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
 
             fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address,
                                      self.provider_account)
-            fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consumer_address,
+            fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset,
                                             self.provider_account)
 
             iteration = 0
@@ -189,7 +189,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
 
             fulfill_compute_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address,
                 self.provider_account)
-            fulfill_escrow_reward_condition(keeper, agreement_id, cond_ids, asset, consumer_address,
+            fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset,
                                             self.provider_account,
                                             ServiceTypes.CLOUD_COMPUTE)
 

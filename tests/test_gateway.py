@@ -12,6 +12,7 @@ from common_utils_py.ddo.public_key_rsa import PUBLIC_KEY_TYPE_RSA
 from common_utils_py.did import DID, did_to_id, did_to_id_bytes
 from common_utils_py.http_requests.requests_session import get_requests_session
 from common_utils_py.oauth2.token import NeverminedJWTBearerGrant, generate_access_grant_token, generate_download_grant_token
+from common_utils_py.utils.utilities import to_checksum_addresses
 from contracts_lib_py.utils import add_ethereum_prefix_and_hash_msg
 from eth_utils import add_0x_prefix
 from flask.helpers import url_for
@@ -23,11 +24,14 @@ from nevermined_gateway.constants import BaseURLs, ConditionState
 from nevermined_gateway.util import (build_download_response, check_auth_token,
                                      generate_token, get_download_url, get_provider_account,
                                      is_token_valid, keeper_instance, verify_signature, web3, get_asset)
-from .utils import get_registered_ddo, place_order, lock_reward
+from .utils import get_registered_ddo, place_order, lock_payment
 
 PURCHASE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/access/initialize'
 SERVICE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/consume'
 
+amounts = [10, 2]
+receivers = to_checksum_addresses(
+    ['0x00Bd138aBD70e2F00903268F3Db08f2D25677C9e', '0x068ed00cf0441e4829d9784fcbe7b9e26d4bd8d0'])
 
 def dummy_callback(*_):
     pass
@@ -35,16 +39,15 @@ def dummy_callback(*_):
 
 def grant_access(agreement_id, ddo, consumer_account, provider_account):
     keeper = keeper_instance()
-    tx_hash = keeper.access_secret_store_condition.fulfill(
+    tx_hash = keeper.access_condition.fulfill(
         agreement_id, ddo.asset_id, consumer_account.address, provider_account
     )
-    keeper.access_secret_store_condition.get_tx_receipt(tx_hash)
+    keeper.access_condition.get_tx_receipt(tx_hash)
 
 
 def test_consume(client, provider_account, consumer_account):
     endpoint = BaseURLs.ASSETS_URL + '/consume'
 
-    # for method in ['PSK-ECDSA']:
     for method in constants.ConfigSections.DECRYPTION_METHODS:
         print('Testing Consume with Authorization Method: ' + method)
         ddo = get_registered_ddo(provider_account, providers=[provider_account.address], auth_service=method)
@@ -64,7 +67,7 @@ def test_consume(client, provider_account, consumer_account):
         signature = keeper.sign_hash(agr_id_hash, consumer_account)
         index = 0
 
-        event = keeper.escrow_access_secretstore_template.subscribe_agreement_created(
+        event = keeper.access_template.subscribe_agreement_created(
             agreement_id, 15, None, (), wait=True, from_block=0
         )
         assert event, "Agreement event is not found, check the keeper node's logs"
@@ -74,18 +77,18 @@ def test_consume(client, provider_account, consumer_account):
             keeper.dispenser.request_tokens(50 - consumer_balance, consumer_account)
 
         sa = ServiceAgreement.from_ddo(ServiceTypes.ASSET_ACCESS, ddo)
-        lock_reward(agreement_id, sa, consumer_account)
-        event = keeper.lock_reward_condition.subscribe_condition_fulfilled(
+        lock_payment(agreement_id, ddo.asset_id, sa, amounts, receivers, consumer_account)
+        event = keeper.lock_payment_condition.subscribe_condition_fulfilled(
             agreement_id, 15, None, (), wait=True, from_block=0
         )
         assert event, "Lock reward condition fulfilled event is not found, check the keeper " \
                       "node's logs"
 
         grant_access(agreement_id, ddo, consumer_account, provider_account)
-        event = keeper.access_secret_store_condition.subscribe_condition_fulfilled(
+        event = keeper.access_condition.subscribe_condition_fulfilled(
             agreement_id, 15, None, (), wait=True, from_block=0
         )
-        assert event or keeper.access_secret_store_condition.check_permissions(
+        assert event or keeper.access_condition.check_permissions(
             ddo.asset_id, consumer_account.address
         ), f'Failed to get access permission: agreement_id={agreement_id}, ' \
            f'did={ddo.did}, consumer={consumer_account.address}'
@@ -111,7 +114,7 @@ def test_access(client, provider_account, consumer_account):
         keeper = keeper_instance()
         index = 0
 
-        event = keeper.escrow_access_secretstore_template.subscribe_agreement_created(
+        event = keeper.access_template.subscribe_agreement_created(
             agreement_id, 15, None, (), wait=True, from_block=0
         )
         assert event, "Agreement event is not found, check the keeper node's logs"
@@ -121,8 +124,8 @@ def test_access(client, provider_account, consumer_account):
             keeper.dispenser.request_tokens(50 - consumer_balance, consumer_account)
 
         sa = ServiceAgreement.from_ddo(ServiceTypes.ASSET_ACCESS, ddo)
-        lock_reward(agreement_id, sa, consumer_account)
-        event = keeper.lock_reward_condition.subscribe_condition_fulfilled(
+        lock_payment(agreement_id, ddo.asset_id, sa, amounts, receivers, consumer_account)
+        event = keeper.lock_payment_condition.subscribe_condition_fulfilled(
             agreement_id, 15, None, (), wait=True, from_block=0
         )
         assert event, "Lock reward condition fulfilled event is not found, check the keeper node's logs"
