@@ -53,7 +53,7 @@ def test_consume(client, provider_account, consumer_account):
         ddo = get_registered_ddo(provider_account, providers=[provider_account.address], auth_service=method)
 
         # initialize an agreement
-        agreement_id = place_order(provider_account, ddo, consumer_account)
+        agreement_id = place_order(provider_account, ddo, consumer_account, ServiceTypes.ASSET_ACCESS)
         payload = dict({
             'serviceAgreementId': agreement_id,
             'consumerAddress': consumer_account.address

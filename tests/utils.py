@@ -276,7 +276,7 @@ def place_order(provider_account, ddo, consumer_account, service_type=ServiceTyp
    
     service_agreement = ServiceAgreement.from_ddo(service_type, ddo)
     condition_ids = service_agreement.generate_agreement_condition_ids(
-        agreement_id, ddo.asset_id, consumer_account.address, publisher_address, keeper)
+        agreement_id, ddo.asset_id, consumer_account.address, keeper)
     time_locks = service_agreement.conditions_timelocks
     time_outs = service_agreement.conditions_timeouts
     agreement_template.create_agreement(

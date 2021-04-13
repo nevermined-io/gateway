@@ -18,7 +18,8 @@ from nevermined_gateway.conditions import (fulfill_access_condition, fulfill_com
                                            fulfill_escrow_payment_condition)
 from nevermined_gateway.constants import (BaseURLs, ConditionState,
                                           ConfigSections)
-from nevermined_gateway.identity.jwk_utils import jwk_to_eth_address, recover_public_keys_from_assertion, recover_public_keys_from_eth_assertion
+from nevermined_gateway.identity.jwk_utils import jwk_to_eth_address, recover_public_keys_from_assertion, \
+    recover_public_keys_from_eth_assertion
 from nevermined_gateway.util import (get_provider_account, is_access_granted, is_owner_granted,
                                      keeper_instance, was_compute_triggered)
 from web3 import Web3
@@ -82,7 +83,8 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
             raise InvalidClientError(f"iss: {claims['iss']} needs to be a valid ethereum address")
 
         if not received_address in possible_eth_addresses:
-            raise InvalidClientError(f"iss: {claims['iss']} does not match with the public key used to sign the JwTBearerGrant")
+            raise InvalidClientError(
+                f"iss: {claims['iss']} does not match with the public key used to sign the JwTBearerGrant")
 
         if claims["aud"] == BaseURLs.ASSETS_URL + "/access":
             # check if client has access
@@ -111,23 +113,23 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
             asset_id = did.replace(NEVERMINED_PREFIX, "")
 
             access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
-            lockreward_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
-            escrowreward_condition_status = keeper.condition_manager.get_condition_state(
+            lock_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
+            escrow_condition_status = keeper.condition_manager.get_condition_state(
                 cond_ids[2])
 
             logger.debug('AccessCondition: %d' % access_condition_status)
-            logger.debug('LockRewardCondition: %d' % lockreward_condition_status)
-            logger.debug('EscrowRewardCondition: %d' % escrowreward_condition_status)
+            logger.debug('LockPaymentCondition: %d' % lock_condition_status)
+            logger.debug('EscrowPaymentCondition: %d' % escrow_condition_status)
 
-            if lockreward_condition_status != ConditionState.Fulfilled.value:
+            if lock_condition_status != ConditionState.Fulfilled.value:
                 logger.debug('ServiceAgreement %s was not paid. Forbidden' % agreement_id)
                 raise InvalidClientError(
-                    f"ServiceAgreement {agreement_id} was not paid, LockRewardCondition status is {lockreward_condition_status}")
+                    f"ServiceAgreement {agreement_id} was not paid, LockPaymentCondition status is {lock_condition_status}")
 
             fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address,
                                      self.provider_account)
             fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset,
-                                            self.provider_account)
+                                             self.provider_account)
 
             iteration = 0
             access_granted = False
@@ -155,10 +157,9 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
                 did,
                 consumer_address,
                 keeper):
-
             msg = ('Checking access permissions failed. Consumer address does not have '
-                'permission to download this asset or consumer address and/or did '
-                'is invalid.')
+                   'permission to download this asset or consumer address and/or did '
+                   'is invalid.')
             logger.warning(msg)
             raise InvalidClientError(msg)
 
@@ -175,23 +176,23 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
             cond_ids = agreement.condition_ids
 
             compute_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
-            lockreward_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
-            escrowreward_condition_status = keeper.condition_manager.get_condition_state(
+            lock_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
+            escrow_condition_status = keeper.condition_manager.get_condition_state(
                 cond_ids[2])
             logger.debug('ComputeExecutionCondition: %d' % compute_condition_status)
-            logger.debug('LockRewardCondition: %d' % lockreward_condition_status)
-            logger.debug('EscrowRewardCondition: %d' % escrowreward_condition_status)
+            logger.debug('LockPaymentCondition: %d' % lock_condition_status)
+            logger.debug('EscrowPaymentCondition: %d' % escrow_condition_status)
 
-            if lockreward_condition_status != ConditionState.Fulfilled.value:
+            if lock_condition_status != ConditionState.Fulfilled.value:
                 logger.debug('ServiceAgreement %s was not paid. Forbidden' % agreement_id)
                 raise InvalidClaimError(
-                    f"ServiceAgreement {agreement_id} was not paid, LockRewardCondition status is {lockreward_condition_status}")
+                    f"ServiceAgreement {agreement_id} was not paid, LockPaymentCondition status is {lock_condition_status}")
 
             fulfill_compute_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address,
-                self.provider_account)
+                                      self.provider_account)
             fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset,
-                                            self.provider_account,
-                                            ServiceTypes.CLOUD_COMPUTE)
+                                             self.provider_account,
+                                             ServiceTypes.CLOUD_COMPUTE)
 
             iteration = 0
             access_granted = False
@@ -214,7 +215,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
 
     def validate_compute(self, agreement_id, execution_id, consumer_address):
         message, is_allowed = is_allowed_read_compute(agreement_id, execution_id, consumer_address,
-            None, has_bearer_token=True)
+                                                      None, has_bearer_token=True)
 
         if not is_allowed:
             raise InvalidClientError(message)
