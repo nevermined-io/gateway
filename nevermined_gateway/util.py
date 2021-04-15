@@ -4,9 +4,9 @@ import logging
 import mimetypes
 import os
 import site
+import uuid
 from datetime import datetime
 from os import getenv
-
 
 from common_utils_py.did import did_to_id, convert_to_bytes
 from common_utils_py.utils.crypto import ecdsa_decryption, rsa_decryption_aes
@@ -20,6 +20,7 @@ from metadata_driver_interface.driver_interface import DriverInterface
 from secret_store_client.client import Client as SecretStore
 
 from nevermined_gateway.config import Config
+from nevermined_gateway.constants import ConditionState
 
 logger = logging.getLogger(__name__)
 
@@ -130,6 +131,24 @@ def is_access_granted(agreement_id, did, consumer_address, keeper):
         document_id, consumer_address
     )
     logger.info(is_granted)
+    return is_granted
+
+
+def is_access_condition_fulfilled(agreement_id, access_cond_id, consumer_address, keeper):
+    agreement_consumer = keeper.access_template.get_agreement_consumer(agreement_id)
+    logger.debug(agreement_consumer)
+
+    if agreement_consumer is None:
+        return False
+
+    if agreement_consumer != consumer_address:
+        logger.warning(f'Invalid consumer address {consumer_address} and/or '
+                       f'service agreement id {agreement_id}'
+                       f', agreement consumer is {agreement_consumer}')
+        return False
+
+    is_granted = keeper.condition_manager.get_condition_state(access_cond_id) == ConditionState.Fulfilled.value
+    logger.debug(is_granted)
     return is_granted
 
 
@@ -376,11 +395,11 @@ def check_required_attributes(required_attributes, data, method):
     return None, None
 
 
-def used_by(service_agreement_id, did, consumer_address, activity_id, signature, attributes,
+def used_by(provenance_id, did, consumer_address, activity_id, signature, attributes,
             account, keeper):
     try:
         receipt = keeper.did_registry.used(
-            convert_to_bytes(service_agreement_id),
+            convert_to_bytes(provenance_id),
             convert_to_bytes(did),
             convert_to_bytes(consumer_address),
             convert_to_bytes(Web3Provider.get_web3().keccak(text=activity_id)),
@@ -389,3 +408,7 @@ def used_by(service_agreement_id, did, consumer_address, activity_id, signature,
     except Exception as e:
         logging.debug(f'On-chain call error: {e}')
         return False
+
+
+def generate_random_id():
+    return uuid.uuid4().hex + uuid.uuid4().hex
