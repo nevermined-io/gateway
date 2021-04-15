@@ -2,7 +2,6 @@ import logging
 
 from common_utils_py.agreements.service_types import ServiceTypes
 from common_utils_py.utils.utilities import to_checksum_addresses
-from contracts_lib_py.web3_provider import Web3Provider
 from eth_utils import add_0x_prefix
 
 from nevermined_gateway.constants import ConditionState
@@ -37,6 +36,39 @@ def fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_
     return access_condition_status == ConditionState.Fulfilled.value
 
 
+def is_nft_holder(keeper, asset_id, number_nfts, consumer_address):
+    try:
+        return keeper.did_registry.balance(consumer_address, asset_id) >= number_nfts
+    except Exception:
+        return False
+
+
+def fulfill_nft_holder_and_access_condition(keeper, agreement_id, cond_ids, asset_id, number_nfts, consumer_address, provider_acc):
+    nft_holder_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
+    access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
+
+    if nft_holder_condition_status != ConditionState.Fulfilled.value:
+        logger.debug('Fulfilling Access condition')
+        try:
+            keeper.nft_holder_condition.fulfill(
+                agreement_id, asset_id, consumer_address, number_nfts, provider_acc
+            )
+        except Exception:
+            return False
+
+    if access_condition_status != ConditionState.Fulfilled.value:
+        logger.debug('Fulfilling NFT Access condition')
+        try:
+            keeper.nft_access_condition.fulfill(
+                agreement_id, asset_id, consumer_address, provider_acc
+            )
+        except Exception:
+            return False
+
+    access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
+    return access_condition_status == ConditionState.Fulfilled.value
+
+
 def fulfill_compute_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address, provider_acc):
     compute_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
 
@@ -63,7 +95,7 @@ def fulfill_compute_condition(keeper, agreement_id, cond_ids, asset_id, consumer
 
 
 def fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset, provider_acc,
-                                    service_type=ServiceTypes.ASSET_ACCESS):
+                                     service_type=ServiceTypes.ASSET_ACCESS):
     escrow_condition_status = keeper.condition_manager.get_condition_state(cond_ids[2])
 
     if escrow_condition_status != ConditionState.Fulfilled.value:

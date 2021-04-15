@@ -24,6 +24,13 @@ def get_sample_ddo():
         'utf-8'))
 
 
+def get_sample_nft_ddo():
+    return json.loads(urlopen(
+        'https://raw.githubusercontent.com/keyko-io/nevermined-docs/master/docs/architecture/specs'
+        '/examples/access/v0.1/ddo_nft.json').read().decode(
+        'utf-8'))
+
+
 def get_sample_algorithm_ddo():
     return json.loads(urlopen(
         'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs'
@@ -67,6 +74,39 @@ def get_registered_ddo(account, providers=None, auth_service='PSK-RSA'):
     )
     
     return register_ddo(metadata, account, providers, auth_service, [access_service_descriptor])
+
+
+def get_nft_ddo(account, providers=None, auth_service='PSK-RSA'):
+    ddo = get_sample_nft_ddo()
+    metadata = ddo['service'][0]['attributes']
+    metadata['main']['files'][0][
+        'url'] = "https://raw.githubusercontent.com/tbertinmahieux/MSongsDB/master/Tasks_Demos" \
+                 "/CoverSongs/shs_dataset_test.txt?" + str(uuid.uuid4())
+    metadata['main']['files'][0]['checksum'] = str(uuid.uuid4())
+
+    escrow_payment_condition = ddo['service'][1]['attributes']['serviceAgreementTemplate']['conditions'][2]
+    _number_nfts = 1
+    _amounts = get_param_value_by_name(escrow_payment_condition['parameters'], '_amounts')
+    _receivers = to_checksum_addresses(
+        get_param_value_by_name(escrow_payment_condition['parameters'], '_receivers'))
+
+    access_service_attributes = {"main": {
+        "name": "nftAccessAgreement",
+        "creator": account.address,
+        "timeout": 3600,
+        "price": metadata[MetadataMain.KEY]['price'],
+        "_amounts": _amounts,
+        "_receivers": _receivers,
+        "_numberNfts": _number_nfts,
+        "datePublished": metadata[MetadataMain.KEY]['dateCreated']
+    }}
+
+    access_service_descriptor = ServiceDescriptor.nft_access_service_descriptor(
+        access_service_attributes,
+        'http://localhost:8030'
+    )
+
+    return register_ddo(metadata, account, providers, auth_service, [access_service_descriptor], royalties= 0, cap=10, mint=10)
 
 
 def get_param_value_by_name(parameters, name):
@@ -114,7 +154,6 @@ def get_registered_compute_ddo(account, providers=None, auth_service='PSK-RSA'):
     return register_ddo(metadata, account, providers, auth_service, [compute_service_descriptor])
 
 
-
 def get_registered_algorithm_ddo(account, providers=None, auth_service='PSK-RSA'):
     metadata = get_sample_algorithm_ddo()['service'][0]['attributes']
     metadata['main']['files'][0]['checksum'] = str(uuid.uuid4())
@@ -156,7 +195,8 @@ def get_registered_workflow_ddo(account, compute_did, algorithm_did, providers=N
     
     return register_ddo(metadata, account, providers, auth_service, [access_service_descriptor])
 
-def register_ddo(metadata, account, providers, auth_service, additional_service_descriptors):
+
+def register_ddo(metadata, account, providers, auth_service, additional_service_descriptors, royalties=None, cap=None, mint=0):
     keeper = keeper_instance()
     metadata_api = Metadata('http://172.17.0.1:5000')
 
@@ -191,13 +231,14 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
     did = ddo.assign_did(DID.did(ddo.proof['checksum']))
 
     for service in services:
-        if service.type == 'access':
+        if service.type == ServiceTypes.ASSET_ACCESS or service.type == ServiceTypes.NFT_ACCESS:
             access_service = ServiceFactory.complete_access_service(
                 did,
                 service.service_endpoint,
                 service.attributes,
                 keeper.access_template.address,
-                keeper.escrow_payment_condition.address
+                keeper.escrow_payment_condition.address,
+                service.type
             )
             ddo.add_service(access_service)
         elif service.type == ServiceTypes.CLOUD_COMPUTE:
@@ -250,13 +291,26 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
                 del file['url']
             metadata['encryptedFiles'] = encrypted_files
 
-    keeper_instance().did_registry.register(
-        ddo.asset_id,
-        checksum=web3().toBytes(hexstr=ddo.asset_id),
-        url=ddo_service_endpoint,
-        account=account,
-        providers=providers
-    )
+    if mint > 0 or royalties is not None or cap is not None:
+        keeper.did_registry.register_mintable_did(
+            ddo.asset_id,
+            checksum=web3().toBytes(hexstr=ddo.asset_id),
+            url=ddo_service_endpoint,
+            cap=cap,
+            royalties=royalties,
+            account=account,
+            providers=None
+        )
+        if mint > 0:
+            keeper.did_registry.mint(ddo.asset_id, mint, account=account)
+    else:
+        keeper_instance().did_registry.register(
+            ddo.asset_id,
+            checksum=web3().toBytes(hexstr=ddo.asset_id),
+            url=ddo_service_endpoint,
+            account=account,
+            providers=providers
+        )
     metadata_api.publish_asset_ddo(ddo)
     return ddo
 
@@ -267,6 +321,8 @@ def place_order(provider_account, ddo, consumer_account, service_type=ServiceTyp
     
     if service_type == ServiceTypes.ASSET_ACCESS:
         agreement_template = keeper.access_template
+    elif service_type == ServiceTypes.NFT_SALES:
+        agreement_template = keeper.nft_sales_template
     elif service_type == ServiceTypes.CLOUD_COMPUTE:
         agreement_template = keeper.escrow_compute_execution_template
     else:

@@ -1,4 +1,7 @@
 import logging
+
+from common_utils_py.agreements.service_agreement import ServiceAgreement
+
 from nevermined_gateway.compute_validations import is_allowed_read_compute
 import time
 
@@ -15,13 +18,14 @@ from common_utils_py.did_resolver.did_resolver import DIDResolver
 from common_utils_py.oauth2.token import NeverminedJWTBearerGrant as _NeverminedJWTBearerGrant
 from common_utils_py.oauth2.jwk_utils import account_to_jwk
 from nevermined_gateway.conditions import (fulfill_access_condition, fulfill_compute_condition,
-                                           fulfill_escrow_payment_condition)
+                                           fulfill_escrow_payment_condition, fulfill_nft_holder_and_access_condition,
+                                           is_nft_holder)
 from nevermined_gateway.constants import (BaseURLs, ConditionState,
                                           ConfigSections)
 from nevermined_gateway.identity.jwk_utils import jwk_to_eth_address, recover_public_keys_from_assertion, \
     recover_public_keys_from_eth_assertion
 from nevermined_gateway.util import (get_provider_account, is_access_granted, is_owner_granted,
-                                     keeper_instance, was_compute_triggered)
+                                     keeper_instance, was_compute_triggered, is_access_condition_fulfilled)
 from web3 import Web3
 
 logger = logging.getLogger(__name__)
@@ -89,6 +93,8 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
         if claims["aud"] == BaseURLs.ASSETS_URL + "/access":
             # check if client has access
             self.validate_access(claims["sub"], claims["did"], claims["iss"])
+        elif claims["aud"] == BaseURLs.ASSETS_URL + "/nft-access":
+            self.validate_nft_access(claims["sub"], claims["did"], claims["iss"])
         elif claims["aud"] == BaseURLs.ASSETS_URL + "/download":
             self.validate_owner(claims["did"], claims["iss"])
         elif claims["aud"] == BaseURLs.ASSETS_URL + "/compute":
@@ -149,6 +155,47 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
                        'id is invalid.')
                 logger.warning(msg)
                 raise InvalidClientError(msg)
+
+    def validate_nft_access(self, agreement_id, did, consumer_address):
+        keeper = keeper_instance()
+
+        asset = DIDResolver(keeper.did_registry).resolve(did)
+        asset_id = asset.asset_id
+        sa = ServiceAgreement.from_ddo(ServiceTypes.NFT_ACCESS, asset)
+
+        access_granted = False
+
+        if agreement_id is None or agreement_id == '0x':
+            access_granted = is_nft_holder(keeper, asset_id, sa.get_number_nfts(), consumer_address)
+        else:
+            agreement = keeper.agreement_manager.get_agreement(agreement_id)
+            cond_ids = agreement.condition_ids
+            access_cond_id = cond_ids[1]
+
+            if not is_access_condition_fulfilled(
+                    agreement_id,
+                    access_cond_id,
+                    consumer_address,
+                    keeper):
+                # If not granted, verification of agreement and conditions and fulfill
+                # access_granted = is_nft_holder(keeper, asset_id, sa.get_number_nfts(), consumer_address)
+                access_granted = fulfill_nft_holder_and_access_condition(
+                    keeper,
+                    agreement_id,
+                    cond_ids,
+                    asset_id,
+                    sa.get_number_nfts(),
+                    consumer_address,
+                    self.provider_account
+                )
+        if not access_granted:
+            msg = ('Checking access permissions failed. Either consumer address does not have '
+                   'permission to consume this NFT or consumer address and/or service '
+                   'agreement '
+                   'id is invalid.')
+            logger.warning(msg)
+            raise InvalidClientError(msg)
+
 
     def validate_owner(self, did, consumer_address):
         keeper = keeper_instance()
