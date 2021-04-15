@@ -97,7 +97,7 @@ def get_nft_ddo(account, providers=None, auth_service='PSK-RSA'):
         "price": metadata[MetadataMain.KEY]['price'],
         "_amounts": _amounts,
         "_receivers": _receivers,
-        "_numberNfts": _number_nfts,
+        "_numberNfts": str(_number_nfts),
         "datePublished": metadata[MetadataMain.KEY]['dateCreated']
     }}
 

@@ -48,7 +48,7 @@ def fulfill_nft_holder_and_access_condition(keeper, agreement_id, cond_ids, asse
     access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
 
     if nft_holder_condition_status != ConditionState.Fulfilled.value:
-        logger.debug('Fulfilling Access condition')
+        logger.debug('Fulfilling NFT Holder condition')
         try:
             keeper.nft_holder_condition.fulfill(
                 agreement_id, asset_id, consumer_address, number_nfts, provider_acc
@@ -65,7 +65,7 @@ def fulfill_nft_holder_and_access_condition(keeper, agreement_id, cond_ids, asse
         except Exception:
             return False
 
-    access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
+    access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
     return access_condition_status == ConditionState.Fulfilled.value
 
 
