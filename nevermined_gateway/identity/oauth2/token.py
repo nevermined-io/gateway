@@ -1,4 +1,7 @@
 import logging
+
+from common_utils_py.agreements.service_agreement import ServiceAgreement
+
 from nevermined_gateway.compute_validations import is_allowed_read_compute
 import time
 
@@ -15,12 +18,14 @@ from common_utils_py.did_resolver.did_resolver import DIDResolver
 from common_utils_py.oauth2.token import NeverminedJWTBearerGrant as _NeverminedJWTBearerGrant
 from common_utils_py.oauth2.jwk_utils import account_to_jwk
 from nevermined_gateway.conditions import (fulfill_access_condition, fulfill_compute_condition,
-                                           fulfill_escrow_payment_condition)
+                                           fulfill_escrow_payment_condition, fulfill_nft_holder_and_access_condition,
+                                           is_nft_holder)
 from nevermined_gateway.constants import (BaseURLs, ConditionState,
                                           ConfigSections)
-from nevermined_gateway.identity.jwk_utils import jwk_to_eth_address, recover_public_keys_from_assertion, recover_public_keys_from_eth_assertion
+from nevermined_gateway.identity.jwk_utils import jwk_to_eth_address, recover_public_keys_from_assertion, \
+    recover_public_keys_from_eth_assertion
 from nevermined_gateway.util import (get_provider_account, is_access_granted, is_owner_granted,
-                                     keeper_instance, was_compute_triggered)
+                                     keeper_instance, was_compute_triggered, is_access_condition_fulfilled)
 from web3 import Web3
 
 logger = logging.getLogger(__name__)
@@ -82,11 +87,14 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
             raise InvalidClientError(f"iss: {claims['iss']} needs to be a valid ethereum address")
 
         if not received_address in possible_eth_addresses:
-            raise InvalidClientError(f"iss: {claims['iss']} does not match with the public key used to sign the JwTBearerGrant")
+            raise InvalidClientError(
+                f"iss: {claims['iss']} does not match with the public key used to sign the JwTBearerGrant")
 
         if claims["aud"] == BaseURLs.ASSETS_URL + "/access":
             # check if client has access
             self.validate_access(claims["sub"], claims["did"], claims["iss"])
+        elif claims["aud"] == BaseURLs.ASSETS_URL + "/nft-access":
+            self.validate_nft_access(claims["sub"], claims["did"], claims["iss"])
         elif claims["aud"] == BaseURLs.ASSETS_URL + "/download":
             self.validate_owner(claims["did"], claims["iss"])
         elif claims["aud"] == BaseURLs.ASSETS_URL + "/compute":
@@ -111,23 +119,23 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
             asset_id = did.replace(NEVERMINED_PREFIX, "")
 
             access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
-            lockreward_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
-            escrowreward_condition_status = keeper.condition_manager.get_condition_state(
+            lock_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
+            escrow_condition_status = keeper.condition_manager.get_condition_state(
                 cond_ids[2])
 
             logger.debug('AccessCondition: %d' % access_condition_status)
-            logger.debug('LockRewardCondition: %d' % lockreward_condition_status)
-            logger.debug('EscrowRewardCondition: %d' % escrowreward_condition_status)
+            logger.debug('LockPaymentCondition: %d' % lock_condition_status)
+            logger.debug('EscrowPaymentCondition: %d' % escrow_condition_status)
 
-            if lockreward_condition_status != ConditionState.Fulfilled.value:
+            if lock_condition_status != ConditionState.Fulfilled.value:
                 logger.debug('ServiceAgreement %s was not paid. Forbidden' % agreement_id)
                 raise InvalidClientError(
-                    f"ServiceAgreement {agreement_id} was not paid, LockRewardCondition status is {lockreward_condition_status}")
+                    f"ServiceAgreement {agreement_id} was not paid, LockPaymentCondition status is {lock_condition_status}")
 
             fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address,
                                      self.provider_account)
             fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset,
-                                            self.provider_account)
+                                             self.provider_account)
 
             iteration = 0
             access_granted = False
@@ -148,6 +156,47 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
                 logger.warning(msg)
                 raise InvalidClientError(msg)
 
+    def validate_nft_access(self, agreement_id, did, consumer_address):
+        keeper = keeper_instance()
+
+        asset = DIDResolver(keeper.did_registry).resolve(did)
+        asset_id = asset.asset_id
+        sa = ServiceAgreement.from_ddo(ServiceTypes.NFT_ACCESS, asset)
+
+        access_granted = False
+
+        if agreement_id is None or agreement_id == '0x':
+            access_granted = is_nft_holder(keeper, asset_id, sa.get_number_nfts(), consumer_address)
+        else:
+            agreement = keeper.agreement_manager.get_agreement(agreement_id)
+            cond_ids = agreement.condition_ids
+            access_cond_id = cond_ids[1]
+
+            if not is_access_condition_fulfilled(
+                    agreement_id,
+                    access_cond_id,
+                    consumer_address,
+                    keeper):
+                # If not granted, verification of agreement and conditions and fulfill
+                # access_granted = is_nft_holder(keeper, asset_id, sa.get_number_nfts(), consumer_address)
+                access_granted = fulfill_nft_holder_and_access_condition(
+                    keeper,
+                    agreement_id,
+                    cond_ids,
+                    asset_id,
+                    sa.get_number_nfts(),
+                    consumer_address,
+                    self.provider_account
+                )
+        if not access_granted:
+            msg = ('Checking access permissions failed. Either consumer address does not have '
+                   'permission to consume this NFT or consumer address and/or service '
+                   'agreement '
+                   'id is invalid.')
+            logger.warning(msg)
+            raise InvalidClientError(msg)
+
+
     def validate_owner(self, did, consumer_address):
         keeper = keeper_instance()
 
@@ -155,10 +204,9 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
                 did,
                 consumer_address,
                 keeper):
-
             msg = ('Checking access permissions failed. Consumer address does not have '
-                'permission to download this asset or consumer address and/or did '
-                'is invalid.')
+                   'permission to download this asset or consumer address and/or did '
+                   'is invalid.')
             logger.warning(msg)
             raise InvalidClientError(msg)
 
@@ -175,23 +223,23 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
             cond_ids = agreement.condition_ids
 
             compute_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
-            lockreward_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
-            escrowreward_condition_status = keeper.condition_manager.get_condition_state(
+            lock_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
+            escrow_condition_status = keeper.condition_manager.get_condition_state(
                 cond_ids[2])
             logger.debug('ComputeExecutionCondition: %d' % compute_condition_status)
-            logger.debug('LockRewardCondition: %d' % lockreward_condition_status)
-            logger.debug('EscrowRewardCondition: %d' % escrowreward_condition_status)
+            logger.debug('LockPaymentCondition: %d' % lock_condition_status)
+            logger.debug('EscrowPaymentCondition: %d' % escrow_condition_status)
 
-            if lockreward_condition_status != ConditionState.Fulfilled.value:
+            if lock_condition_status != ConditionState.Fulfilled.value:
                 logger.debug('ServiceAgreement %s was not paid. Forbidden' % agreement_id)
                 raise InvalidClaimError(
-                    f"ServiceAgreement {agreement_id} was not paid, LockRewardCondition status is {lockreward_condition_status}")
+                    f"ServiceAgreement {agreement_id} was not paid, LockPaymentCondition status is {lock_condition_status}")
 
             fulfill_compute_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address,
-                self.provider_account)
+                                      self.provider_account)
             fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset,
-                                            self.provider_account,
-                                            ServiceTypes.CLOUD_COMPUTE)
+                                             self.provider_account,
+                                             ServiceTypes.CLOUD_COMPUTE)
 
             iteration = 0
             access_granted = False
@@ -214,7 +262,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
 
     def validate_compute(self, agreement_id, execution_id, consumer_address):
         message, is_allowed = is_allowed_read_compute(agreement_id, execution_id, consumer_address,
-            None, has_bearer_token=True)
+                                                      None, has_bearer_token=True)
 
         if not is_allowed:
             raise InvalidClientError(message)

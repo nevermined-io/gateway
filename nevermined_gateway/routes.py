@@ -24,7 +24,8 @@ from nevermined_gateway.util import (check_required_attributes,
                                      get_provider_account, get_provider_key_file,
                                      get_provider_password, get_rsa_public_key_file,
                                      is_access_granted, keeper_instance,
-                                     setup_keeper, upload_file, used_by, verify_signature, was_compute_triggered, get_asset)
+                                     setup_keeper, upload_file, used_by, verify_signature, was_compute_triggered,
+                                     get_asset, generate_random_id)
 
 setup_logging()
 services = Blueprint('services', __name__)
@@ -122,12 +123,7 @@ def publish():
 
         print('Document: ' + document)
         print('DID: ' + remove_0x_prefix(did))
-        encrypted_document = do_secret_store_encrypt(
-            remove_0x_prefix(did),
-            document,
-            provider_acc,
-            get_config()
-        )
+        encrypted_document, public_key = rsa_encryption_from_file(document, get_rsa_public_key_file())
         logger.debug(f'encrypted urls {encrypted_document}, '
                      f'publisher {publisher_address}, '
                      f'documentId {did}')
@@ -135,7 +131,7 @@ def publish():
 
     except (RPCError, Exception) as e:
         logger.error(
-            f'SecretStore Error: {e}. \n'
+            f'Encryption Error: {e}. \n'
             f'providerAddress={provider_acc.address}\n'
             f'Payload was: documentId={did}, '
             f'publisherAddress={publisher_address},'
@@ -249,7 +245,53 @@ def access(agreement_id, index=0):
             return msg, 400
 
         url = get_asset_url_at_index(index, asset, provider_acc, auth_method)
-        used_by(agreement_id, did, consumer_address, 'access', '0x00', 'access', provider_acc,
+        used_by(generate_random_id(), did, consumer_address, 'access', '0x00', 'access', provider_acc,
+                keeper)
+        return get_asset(request, requests_session, content_type, url, app.config['CONFIG_FILE'])
+
+    except (ValueError, Exception) as e:
+        logger.error(f'Error- {str(e)}', exc_info=1)
+        return f'Error : {str(e)}', 500
+
+
+@services.route('/nft-access/<agreement_id>', methods=['GET'])
+@services.route('/nft-access/<agreement_id>/<int:index>', methods=['GET'])
+@require_oauth()
+def nft_access(agreement_id, index=0):
+    """Allows to get access to an asset data file holding a NFT.
+    swagger_from_file: docs/nft_access.yml
+    """
+
+    consumer_address = current_token["client_id"]
+    did = current_token["did"]
+    agreement_id = current_token["sub"]
+
+    logger.info('Parameters:\nAgreementId: %s\nIndex: %d\nConsumerAddress: %s\n'
+                'DID: %s\n'
+                % (agreement_id, index, consumer_address, did))
+
+    try:
+        keeper = keeper_instance()
+        asset = DIDResolver(keeper.did_registry).resolve(did)
+
+        file_attributes = asset.metadata['main']['files'][index]
+        content_type = file_attributes.get('contentType', None)
+
+        try:
+            auth_method = asset.authorization.main['service']
+        except Exception:
+            auth_method = constants.ConfigSections.DEFAULT_DECRYPTION_METHOD
+
+        if auth_method not in constants.ConfigSections.DECRYPTION_METHODS:
+            msg = (
+                    'The Authorization Method defined in the DDO is not part of the available '
+                    'methods supported'
+                    'by the Gateway: ' + auth_method)
+            logger.warning(msg)
+            return msg, 400
+
+        url = get_asset_url_at_index(index, asset, provider_acc, auth_method)
+        used_by(generate_random_id(), did, consumer_address, 'access', '0x00', 'nft access', provider_acc,
                 keeper)
         return get_asset(request, requests_session, content_type, url, app.config['CONFIG_FILE'])
 
@@ -274,10 +316,7 @@ def execute(agreement_id):
         asset_id = keeper_instance().agreement_manager.get_agreement(agreement_id).did
         did = id_to_did(asset_id)
 
-        # TODO: Not sure what the signature should be
         signature = '0x00'
-        used_by(agreement_id, did, consumer_address, 'compute', signature, 'compute', provider_acc,
-                keeper)
 
         workflow = DIDResolver(keeper_instance().did_registry).resolve(workflow_did)
         body = {"serviceAgreementId": agreement_id, "workflow": workflow.as_dictionary()}
@@ -290,6 +329,9 @@ def execute(agreement_id):
             msg = f'The compute API was not able to create the workflow. {response.content}'
             logger.warning(msg)
             return msg, 401
+
+        used_by(generate_random_id(), did, consumer_address, 'compute', signature, 'compute', provider_acc,
+                keeper)
         return jsonify({"workflowId": response.content.decode('utf-8')})
 
     except Exception as e:

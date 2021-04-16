@@ -1,22 +1,19 @@
+import io
 import json
 import mimetypes
 import uuid
-import io
 from unittest.mock import MagicMock, Mock
-import pytest
 
+import pytest
 from common_utils_py.agreements.service_agreement import ServiceAgreement
 from common_utils_py.agreements.service_types import ServiceTypes
-from common_utils_py.ddo.ddo import DDO
-from common_utils_py.ddo.public_key_rsa import PUBLIC_KEY_TYPE_RSA
 from common_utils_py.did import DID, did_to_id, did_to_id_bytes
 from common_utils_py.http_requests.requests_session import get_requests_session
-from common_utils_py.oauth2.token import NeverminedJWTBearerGrant, generate_access_grant_token, generate_download_grant_token
+from common_utils_py.oauth2.token import NeverminedJWTBearerGrant, generate_access_grant_token, \
+    generate_download_grant_token
 from common_utils_py.utils.utilities import to_checksum_addresses
 from contracts_lib_py.utils import add_ethereum_prefix_and_hash_msg
 from eth_utils import add_0x_prefix
-from flask.helpers import url_for
-from metadata_driver_interface.driver_interface import DriverInterface
 from werkzeug.utils import get_content_type
 
 from nevermined_gateway import constants
@@ -32,6 +29,7 @@ SERVICE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/consume'
 amounts = [10, 2]
 receivers = to_checksum_addresses(
     ['0x00Bd138aBD70e2F00903268F3Db08f2D25677C9e', '0x068ed00cf0441e4829d9784fcbe7b9e26d4bd8d0'])
+
 
 def dummy_callback(*_):
     pass
@@ -53,7 +51,7 @@ def test_consume(client, provider_account, consumer_account):
         ddo = get_registered_ddo(provider_account, providers=[provider_account.address], auth_service=method)
 
         # initialize an agreement
-        agreement_id = place_order(provider_account, ddo, consumer_account)
+        agreement_id = place_order(provider_account, ddo, consumer_account, ServiceTypes.ASSET_ACCESS)
         payload = dict({
             'serviceAgreementId': agreement_id,
             'consumerAddress': consumer_account.address
@@ -104,7 +102,6 @@ def test_consume(client, provider_account, consumer_account):
 
 
 def test_access(client, provider_account, consumer_account):
-
     for method in constants.ConfigSections.DECRYPTION_METHODS:
         ddo = get_registered_ddo(provider_account, providers=[provider_account.address], auth_service=method)
 
@@ -158,7 +155,6 @@ def test_access(client, provider_account, consumer_account):
 
 
 def test_download(client, provider_account):
-
     ddo = get_registered_ddo(provider_account, providers=[provider_account.address])
     index = 0
 
@@ -180,7 +176,6 @@ def test_download(client, provider_account):
     )
 
     assert response.status == '200 OK'
-
 
 
 def test_empty_payload(client):
@@ -335,7 +330,7 @@ def test_download_filecoin_file():
     print(f'got filecoin download url: {download_url}')
     assert download_url and download_url == url
     response = get_asset(request, requests_session, '', url, None)
-    assert response is None # In the local tests we are not using a real connection to a PowerGate node
+    assert response is None  # In the local tests we are not using a real connection to a PowerGate node
 
 
 @pytest.mark.skip(reason='Needs powergate')
