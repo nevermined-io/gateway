@@ -25,7 +25,7 @@ from nevermined_gateway.constants import (BaseURLs, ConditionState,
 from nevermined_gateway.identity.jwk_utils import jwk_to_eth_address, recover_public_keys_from_assertion, \
     recover_public_keys_from_eth_assertion
 from nevermined_gateway.util import (get_provider_account, is_access_granted, is_owner_granted,
-                                     keeper_instance, was_compute_triggered, is_access_condition_fulfilled)
+                                     keeper_instance, was_compute_triggered, is_nft_access_condition_fulfilled)
 from web3 import Web3
 
 logger = logging.getLogger(__name__)
@@ -172,7 +172,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
             cond_ids = agreement.condition_ids
             access_cond_id = cond_ids[1]
 
-            if not is_access_condition_fulfilled(
+            if not is_nft_access_condition_fulfilled(
                     agreement_id,
                     access_cond_id,
                     consumer_address,
