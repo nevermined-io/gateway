@@ -349,10 +349,13 @@ def place_order(provider_account, ddo, consumer_account, service_type=ServiceTyp
     return agreement_id
 
 
-def lock_payment(agreement_id, did, service_agreement, amounts, receivers, consumer_account):
+def lock_payment(agreement_id, did, service_agreement, amounts, receivers, consumer_account, token_address=None):
     keeper = keeper_instance()
+    if token_address is None:
+        token_address = keeper.token.address
+
     price = service_agreement.get_price()
     keeper.token.token_approve(keeper.lock_payment_condition.address, price, consumer_account)
     tx_hash = keeper.lock_payment_condition.fulfill(
-        agreement_id, did, keeper.escrow_payment_condition.address, amounts, receivers, consumer_account)
+        agreement_id, did, keeper.escrow_payment_condition.address, token_address, amounts, receivers, consumer_account)
     keeper.lock_payment_condition.get_tx_receipt(tx_hash)
