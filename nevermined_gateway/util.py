@@ -134,8 +134,8 @@ def is_access_granted(agreement_id, did, consumer_address, keeper):
     return is_granted
 
 
-def is_access_condition_fulfilled(agreement_id, access_cond_id, consumer_address, keeper):
-    agreement_consumer = keeper.access_template.get_agreement_consumer(agreement_id)
+def is_nft_access_condition_fulfilled(agreement_id, access_cond_id, consumer_address, keeper):
+    agreement_consumer = keeper.nft_access_template.get_agreement_consumer(agreement_id)
     logger.debug(agreement_consumer)
 
     if agreement_consumer is None:
