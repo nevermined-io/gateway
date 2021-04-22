@@ -106,6 +106,9 @@ def fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset, prov
 
         amounts = list(map(int, service_agreement.get_param_value_by_name('_amounts')))
         receivers = to_checksum_addresses(service_agreement.get_param_value_by_name('_receivers'))
+        token_address = service_agreement.get_param_value_by_name('_tokenAddress')
+        if token_address is None or len(token_address) == 0:
+            token_address = keeper.token.address
 
         recheck_condition = False
         try:
@@ -115,6 +118,7 @@ def fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset, prov
                 amounts,
                 receivers,
                 keeper.escrow_payment_condition.address,
+                token_address,
                 lock_id,
                 access_id,
                 provider_acc
