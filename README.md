@@ -212,8 +212,7 @@ Our tests use the pytest framework.
 
 ## New Version
 
-The `bumpversion.sh` script helps to bump the project version. You can execute
-the script using as first argument {major|minor|patch} to bump accordingly the version.
+Update the version number in [`nevermined_gateway/version.py`](https://github.com/nevermined-io/gateway/blob/master/nevermined_gateway/version.py).
 
 ## Attribution
 

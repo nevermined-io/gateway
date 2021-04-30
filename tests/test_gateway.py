@@ -21,6 +21,7 @@ from nevermined_gateway.constants import BaseURLs, ConditionState
 from nevermined_gateway.util import (build_download_response, check_auth_token,
                                      generate_token, get_download_url, get_provider_account,
                                      is_token_valid, keeper_instance, verify_signature, web3, get_asset)
+from nevermined_gateway import version
 from .utils import get_registered_ddo, place_order, lock_payment
 
 PURCHASE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/access/initialize'
@@ -376,3 +377,20 @@ def test_build_download_response():
     assert response.headers["content-type"] == content_type
     assert response.headers.get_all('Content-Disposition')[
                0] == f'attachment;filename={filename + mimetypes.guess_extension(content_type)}'
+
+
+def test_info_contracts(client):
+    keeper = keeper_instance()
+    expected_contracts = {
+        name: contract.address for (name, contract) in keeper.contract_name_to_instance.items()
+    }
+
+    response = client.get('/')
+    assert response.status_code == 200
+    assert response.json['contracts'] == expected_contracts
+
+
+def test_info_version(client):
+    response = client.get('/')
+    assert response.status_code == 200
+    assert response.json['version'] == version.__version__

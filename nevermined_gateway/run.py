@@ -12,6 +12,7 @@ from nevermined_gateway.config import Config
 from nevermined_gateway.constants import BaseURLs, ConfigSections, Metadata
 from nevermined_gateway.myapp import app
 from nevermined_gateway.routes import services
+from nevermined_gateway import version
 from nevermined_gateway.util import keeper_instance, get_provider_account, get_provider_key_file, \
     get_provider_password, get_rsa_public_key_file
 
@@ -26,23 +27,18 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 log.setLevel(logging.DEBUG)
 
 
-def get_version():
-    conf = configparser.ConfigParser()
-    conf.read('.bumpversion.cfg')
-    return conf['bumpversion']['current_version']
-
-
 def get_contracts():
     keeper = keeper_instance()
 
     return {name: contract.address for (name, contract) in keeper.contract_name_to_instance.items()}
 
+
 @app.route("/")
-def version():
+def root_info():
     keeper = keeper_instance()
     info = {
         'software': Metadata.TITLE,
-        'version': get_version(),
+        'version': version.__version__,
         'keeper-url': config.keeper_url,
         'network': keeper.network_name,
         'contracts': get_contracts(),
@@ -62,7 +58,7 @@ def version():
 @app.route("/spec")
 def spec():
     swag = swagger(app, from_file_keyword='swagger_from_file')
-    swag['info']['version'] = get_version()
+    swag['info']['version'] = version.__version__
     swag['info']['title'] = Metadata.TITLE
     swag['info']['description'] = Metadata.DESCRIPTION
     return jsonify(swag)
