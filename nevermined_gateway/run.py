@@ -32,38 +32,25 @@ def get_version():
     return conf['bumpversion']['current_version']
 
 
+def get_contracts():
+    keeper = keeper_instance()
+
+    return {name: contract.address for (name, contract) in keeper.contract_name_to_instance.items()}
+
 @app.route("/")
 def version():
     keeper = keeper_instance()
-    info = dict()
-    info['software'] = Metadata.TITLE
-    info['version'] = get_version()
-    info['keeper-url'] = config.keeper_url
-    info['network'] = keeper.network_name
-    info['contracts'] = dict()
+    info = {
+        'software': Metadata.TITLE,
+        'version': get_version(),
+        'keeper-url': config.keeper_url,
+        'network': keeper.network_name,
+        'contracts': get_contracts(),
+        'keeper-version': keeper.did_registry.version,
+        'provider-address': get_provider_account().address,
+        'ecdsa-public-key': get_ecdsa_public_key_from_file(get_provider_key_file(), get_provider_password())
+    }
 
-    # Token and Dispenser contracts are optional
-    info['contracts']['Dispenser'] = keeper.dispenser.address if keeper.dispenser else None
-    info['contracts']['NeverminedToken'] = keeper.token.address if keeper.token else None
-
-    info['contracts'][
-        'AccessCondition'] = keeper.access_condition.address
-    info['contracts']['AgreementStoreManager'] = keeper.agreement_manager.address
-    info['contracts']['ConditionStoreManager'] = keeper.condition_manager.address
-    info['contracts']['DIDRegistry'] = keeper.did_registry.address
-    info['contracts'][
-        'AccessTemplate'] = keeper.access_template.address
-    info['contracts'][
-        'EscrowComputeExecutionTemplate'] = keeper.escrow_compute_execution_template.address
-    info['contracts']['EscrowPaymentCondition'] = keeper.escrow_payment_condition.address
-    info['contracts']['HashLockCondition'] = keeper.hash_lock_condition.address
-    info['contracts']['LockPaymentCondition'] = keeper.lock_payment_condition.address
-    info['contracts']['SignCondition'] = keeper.sign_condition.address
-    info['contracts']['TemplateStoreManager'] = keeper.template_manager.address
-    info['keeper-version'] = keeper.did_registry.version
-    info['provider-address'] = get_provider_account().address
-
-    info['ecdsa-public-key'] = get_ecdsa_public_key_from_file(get_provider_key_file(), get_provider_password())
     try:
         info['rsa-public-key'] = get_content_keyfile_from_path(get_rsa_public_key_file())
     except Exception as e:
