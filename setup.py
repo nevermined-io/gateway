@@ -11,7 +11,7 @@ with open('CHANGELOG.md') as history_file:
     history = history_file.read()
 
 version = {}
-with open("...sample/version.py") as version_file:
+with open("nevermined_gateway/version.py") as version_file:
     exec(version_file.read(), version)
 
 # Installed by pip install nevermined-gateway
