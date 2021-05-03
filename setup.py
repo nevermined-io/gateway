@@ -10,12 +10,16 @@ with open('README.md') as readme_file:
 with open('CHANGELOG.md') as history_file:
     history = history_file.read()
 
+version = {}
+with open("nevermined_gateway/version.py") as version_file:
+    exec(version_file.read(), version)
+
 # Installed by pip install nevermined-gateway
 # or pip install -e .
 install_requirements = [
     # Install squid-py and all its dependencies first
     'common-utils-py==0.7.0',
-    'contracts-lib-py==0.7.1',
+    'contracts-lib-py==0.7.2',
     'nevermined-secret-store==0.1.1',
     'Flask==1.1.2',
     'Flask-Cors==3.0.8',
@@ -56,7 +60,6 @@ test_requirements = [
 
 # Possibly required by developers of nevermined-gateway:
 dev_requirements = [
-    'bumpversion',
     'pkginfo',
     'twine',
     'watchdog',
@@ -89,6 +92,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/nevermined-io/gateway',
-    version='0.8.1',
+    version=version['__version__'],
     zip_safe=False,
 )
