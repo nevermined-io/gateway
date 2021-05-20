@@ -11,7 +11,7 @@ from common_utils_py.did import DID, did_to_id, did_to_id_bytes
 from common_utils_py.http_requests.requests_session import get_requests_session
 from common_utils_py.oauth2.token import NeverminedJWTBearerGrant, generate_access_grant_token, \
     generate_download_grant_token
-from common_utils_py.utils.utilities import to_checksum_addresses
+from common_utils_py.utils.utilities import to_checksum_addresses, checksum
 from contracts_lib_py.utils import add_ethereum_prefix_and_hash_msg
 from eth_utils import add_0x_prefix
 from werkzeug.utils import get_content_type
@@ -22,7 +22,7 @@ from nevermined_gateway.util import (build_download_response, check_auth_token,
                                      generate_token, get_download_url, get_provider_account,
                                      is_token_valid, keeper_instance, verify_signature, web3, get_asset)
 from nevermined_gateway import version
-from .utils import get_registered_ddo, place_order, lock_payment
+from .utils import get_registered_ddo, place_order, lock_payment, generate_new_id
 
 PURCHASE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/access/initialize'
 SERVICE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/consume'
@@ -196,16 +196,21 @@ def test_empty_payload(client):
 
 
 def test_publish(client):
-    endpoint = BaseURLs.ASSETS_URL + '/publish'
-    did = DID.did({"0": str(uuid.uuid4())})
-    asset_id = did_to_id(did)
+    keeper = keeper_instance()
     account = get_provider_account()
+    endpoint = BaseURLs.ASSETS_URL + '/publish'
+
+    did_seed = generate_new_id()
+    asset_id = keeper.did_registry.hash_did(did_seed, account.address)
+
+    # did = DID.did({"0": str(uuid.uuid4())})
+    # asset_id = did_to_id(did)
     test_urls = [
         'url 00',
         'url 11',
         'url 22'
     ]
-    keeper = keeper_instance()
+
     urls_json = json.dumps(test_urls)
     asset_id_hash = add_ethereum_prefix_and_hash_msg(asset_id)
     signature = keeper.sign_hash(asset_id_hash, account)
@@ -231,8 +236,11 @@ def test_publish(client):
     # publish using auth token
     signature = generate_token(account)
     payload['signature'] = signature
-    did = DID.did({"0": str(uuid.uuid4())})
-    asset_id = did_to_id(did)
+    # did = DID.did({"0": str(uuid.uuid4())})
+    # asset_id = did_to_id(did)
+    did_seed = generate_new_id()
+    asset_id = keeper.did_registry.hash_did(did_seed, account.address)
+
     payload['documentId'] = add_0x_prefix(asset_id)
     post_response = client.post(
         endpoint,
@@ -282,7 +290,7 @@ def test_encryption_content(client):
     ]
     message = json.dumps(content)
     print(message)
-    did = DID.did({"0": str(uuid.uuid4())})
+    did = DID.did(str(uuid.uuid4()))
 
     for method in constants.ConfigSections.DECRYPTION_METHODS:
         print('Testing encrypt: ' + method)

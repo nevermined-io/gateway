@@ -44,6 +44,13 @@ def get_sample_workflow_ddo():
         '/examples/metadata/v0.1/ddo-example-workflow.json').read().decode('utf-8')
     )
 
+def generate_new_id():
+    """
+    Generate a new id without prefix.
+
+    :return: Id, str
+    """
+    return uuid.uuid4().hex + uuid.uuid4().hex
 
 def get_registered_ddo(account, providers=None, auth_service='PSK-RSA'):
     ddo = get_sample_ddo()
@@ -228,7 +235,10 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
     # Adding proof to the ddo.
     ddo.add_proof(checksums, account)
 
-    did = ddo.assign_did(DID.did(ddo.proof['checksum']))
+    did_seed = checksum(ddo.proof['checksum'])
+    asset_id = keeper.did_registry.hash_did(did_seed, account.address)
+    ddo._did = DID.did(asset_id)
+    did = ddo._did
 
     for service in services:
         if service.type == ServiceTypes.ASSET_ACCESS or service.type == ServiceTypes.NFT_ACCESS:
@@ -293,7 +303,7 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
 
     if mint > 0 or royalties is not None or cap is not None:
         keeper.did_registry.register_mintable_did(
-            ddo.asset_id,
+            did_seed,
             checksum=web3().toBytes(hexstr=ddo.asset_id),
             url=ddo_service_endpoint,
             cap=cap,
@@ -305,7 +315,7 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
             keeper.did_registry.mint(ddo.asset_id, mint, account=account)
     else:
         keeper_instance().did_registry.register(
-            ddo.asset_id,
+            did_seed,
             checksum=web3().toBytes(hexstr=ddo.asset_id),
             url=ddo_service_endpoint,
             account=account,
