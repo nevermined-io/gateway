@@ -22,7 +22,7 @@ install_requirements = [
     'contracts-lib-py==0.7.4',
     'nevermined-secret-store==0.1.1',
     'Flask==1.1.2',
-    'Flask-Cors==3.0.8',
+    'Flask-Cors==3.0.9',
     'flask-swagger==0.2.14',
     'flask-swagger-ui==3.25.0',
     'Jinja2>=2.10.1',
