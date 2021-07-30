@@ -235,7 +235,8 @@ def get_keeper_path(config):
 def keeper_instance():
     # Init web3 before fetching keeper instance.
     web3()
-    return Keeper.get_instance()
+    external_contracts = get_config().external_contracts
+    return Keeper.get_instance(external_contracts=external_contracts)
 
 
 def web3():
