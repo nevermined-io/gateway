@@ -18,7 +18,7 @@ from common_utils_py.did_resolver.did_resolver import DIDResolver
 from common_utils_py.oauth2.token import NeverminedJWTBearerGrant as _NeverminedJWTBearerGrant
 from common_utils_py.oauth2.jwk_utils import account_to_jwk
 from nevermined_gateway.conditions import (fulfill_access_condition, fulfill_compute_condition,
-                                           fulfill_escrow_payment_condition, fulfill_nft721_holder_and_access_condition, fulfill_nft_holder_and_access_condition, is_nft721_holder,
+                                           fulfill_escrow_payment_condition, fulfill_nft_holder_and_access_condition, is_nft721_holder,
                                            is_nft_holder)
 from nevermined_gateway.constants import (BaseURLs, ConditionState,
                                           ConfigSections)
