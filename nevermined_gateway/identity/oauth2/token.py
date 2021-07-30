@@ -18,7 +18,7 @@ from common_utils_py.did_resolver.did_resolver import DIDResolver
 from common_utils_py.oauth2.token import NeverminedJWTBearerGrant as _NeverminedJWTBearerGrant
 from common_utils_py.oauth2.jwk_utils import account_to_jwk
 from nevermined_gateway.conditions import (fulfill_access_condition, fulfill_compute_condition,
-                                           fulfill_escrow_payment_condition, fulfill_nft_holder_and_access_condition,
+                                           fulfill_escrow_payment_condition, fulfill_nft_holder_and_access_condition, is_nft721_holder,
                                            is_nft_holder)
 from nevermined_gateway.constants import (BaseURLs, ConditionState,
                                           ConfigSections)
@@ -160,13 +160,31 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
         keeper = keeper_instance()
 
         asset = DIDResolver(keeper.did_registry).resolve(did)
+
+        # check which nft access service type is on the ddo
+        service_type = ServiceTypes.NFT_ACCESS
+        if asset.get_service(ServiceTypes.NFT721_ACCESS) is not None:
+            service_type = ServiceTypes.NFT721_ACCESS
+
+        sa = ServiceAgreement.from_ddo(service_type, asset)
+        return self._validate_nft_access(agreement_id, did, consumer_address, sa)
+
+
+    def _validate_nft_access(self, agreement_id, did, consumer_address, service_agreement):
+        keeper = keeper_instance()
+
+        asset = DIDResolver(keeper.did_registry).resolve(did)
         asset_id = asset.asset_id
-        sa = ServiceAgreement.from_ddo(ServiceTypes.NFT_ACCESS, asset)
+        sa_name = service_agreement.main['name']
+        erc721_address = service_agreement.get_param_value_by_name('_contractAddress')
 
         access_granted = False
 
         if agreement_id is None or agreement_id == '0x':
-            access_granted = is_nft_holder(keeper, asset_id, sa.get_number_nfts(), consumer_address)
+            if sa_name == 'nftAccessAgreement':
+                access_granted = is_nft_holder(keeper, asset_id, service_agreement.get_number_nfts(), consumer_address)
+            elif sa_name == 'nft721AccessAgreement':
+                access_granted = is_nft721_holder(keeper, asset_id, consumer_address, erc721_address)
         else:
             agreement = keeper.agreement_manager.get_agreement(agreement_id)
             cond_ids = agreement.condition_ids
@@ -184,7 +202,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
                     agreement_id,
                     cond_ids,
                     asset_id,
-                    sa.get_number_nfts(),
+                    service_agreement.get_number_nfts(),
                     consumer_address,
                     self.provider_account
                 )
@@ -195,7 +213,6 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
                    'id is invalid.')
             logger.warning(msg)
             raise InvalidClientError(msg)
-
 
     def validate_owner(self, did, consumer_address):
         keeper = keeper_instance()

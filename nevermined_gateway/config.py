@@ -1,5 +1,6 @@
 """Config data."""
 import configparser
+import json
 import logging
 import os
 from pathlib import Path
@@ -51,6 +52,8 @@ class Config(configparser.ConfigParser):
         configparser.ConfigParser.__init__(self)
 
         self._section_name = 'nevermined-contracts'
+        self._external_contracts_section = 'external-contracts'
+        self._external_contracts = []
         self._logger = logging.getLogger('config')
 
         if filename:
@@ -66,6 +69,13 @@ class Config(configparser.ConfigParser):
             self._logger.debug(f'Config: loading from dict {options_dict}')
             self.read_dict(options_dict)
 
+        if self._external_contracts_section in self:
+            for k, v in self[self._external_contracts_section].items():
+                name = k
+                address, artifact_path = json.loads(v)
+                abi = self._get_abi_from_artifact(artifact_path)
+                self._external_contracts.append((address, abi, name))
+
         self._load_environ()
 
     def _load_environ(self):
@@ -74,6 +84,11 @@ class Config(configparser.ConfigParser):
             if value is not None:
                 self._logger.debug(f'Config: setting environ {option_name} = {value}')
                 self.set(self._section_name, option_name, value)
+
+    @staticmethod
+    def _get_abi_from_artifact(artifact_path):
+        with Path(artifact_path).expanduser().resolve() as p:
+            return json.loads(p.read_text())['abi']
 
     @property
     def keeper_path(self):
@@ -134,3 +149,7 @@ class Config(configparser.ConfigParser):
         """A list of Distinguished Names to be queried when searching for a user"""
         dns = self.get("identity-ldap", "ldap.dns", fallback=None)
         return dns.split() if dns else []
+
+    @property
+    def external_contracts(self):
+        return self._external_contracts

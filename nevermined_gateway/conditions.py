@@ -2,6 +2,7 @@ import logging
 
 from common_utils_py.agreements.service_types import ServiceTypes
 from common_utils_py.utils.utilities import to_checksum_addresses
+from contracts_lib_py.web3_provider import Web3Provider
 from eth_utils import add_0x_prefix
 
 from nevermined_gateway.constants import ConditionState
@@ -41,6 +42,13 @@ def is_nft_holder(keeper, asset_id, number_nfts, consumer_address):
         return keeper.did_registry.balance(consumer_address, asset_id) >= number_nfts
     except Exception:
         return False
+
+
+def is_nft721_holder(keeper, asset_id, consumer_address, contract_address):
+    # we need to change the address of the erc721 contract
+    keeper.nft721.contract = Web3Provider.get_web3().eth.contract(
+        address=contract_address, abi=keeper.nft721.contract.abi)
+    return keeper.nft721.contract.caller.ownerOf(int(asset_id, 16)) == consumer_address
 
 
 def fulfill_nft_holder_and_access_condition(keeper, agreement_id, cond_ids, asset_id, number_nfts, consumer_address, provider_acc):

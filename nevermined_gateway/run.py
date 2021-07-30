@@ -33,6 +33,11 @@ def get_contracts():
     return {name: contract.address for (name, contract) in keeper.contract_name_to_instance.items()}
 
 
+def get_external_contracts():
+    keeper = keeper_instance()
+    return {name: contract.address for (name, contract) in keeper.external_contract_name_to_instance.items()}
+
+
 @app.route("/")
 def root_info():
     keeper = keeper_instance()
@@ -42,6 +47,7 @@ def root_info():
         'keeper-url': config.keeper_url,
         'network': keeper.network_name,
         'contracts': get_contracts(),
+        'external-contracts': get_external_contracts(),
         'keeper-version': keeper.did_registry.version,
         'provider-address': get_provider_account().address,
         'ecdsa-public-key': get_ecdsa_public_key_from_file(get_provider_key_file(), get_provider_password())
