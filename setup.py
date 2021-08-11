@@ -34,6 +34,7 @@ install_requirements = [
     'nevermined-metadata-driver-onprem>=0.1.0',
     'nevermined-metadata-driver-ipfs>=0.1.0',
     'nevermined-metadata-driver-filecoin>=0.2.1',
+    'nevermined-metadata-driver-aws==0.2.0'
     'Werkzeug>=0.15.3',
     'ldap3==2.8.1',
     # secp256k1 support was added recently and the latest release of authlib does not included it yet
