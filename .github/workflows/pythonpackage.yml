@@ -47,6 +47,10 @@ jobs:
         cd ..
         ./scripts/wait_for_migration_and_extract_keeper_artifacts.sh
 
+    - name: Start minio
+      run: |
+        docker run -d -p 9000:9000 minio/minio server ./data
+        sleep 10
     - name: Install python package
       run: |
         # the latest version of pip (version 20.3) seems to have a lot of problems

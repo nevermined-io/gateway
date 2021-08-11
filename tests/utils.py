@@ -1,6 +1,8 @@
 import json
 import uuid
 from urllib.request import urlopen
+from pathlib import Path
+import time
 
 from common_utils_py.agreements.service_factory import ServiceDescriptor, ServiceFactory
 from common_utils_py.agreements.service_types import ServiceAuthorizationTypes, ServiceTypes
@@ -13,6 +15,7 @@ from common_utils_py.utils.crypto import ecdsa_encryption_from_file, rsa_encrypt
 from common_utils_py.utils.utilities import checksum, to_checksum_addresses
 from common_utils_py.did import DID, did_to_id_bytes
 from eth_utils.hexadecimal import remove_0x_prefix
+from metadata_driver_aws.data_plugin import Plugin
 
 from nevermined_gateway.util import do_secret_store_encrypt, get_config, get_provider_key_file, get_provider_password, get_rsa_public_key_file, keeper_instance, web3
 
@@ -52,12 +55,29 @@ def generate_new_id():
     """
     return uuid.uuid4().hex + uuid.uuid4().hex
 
-def get_registered_ddo(account, providers=None, auth_service='PSK-RSA'):
+
+def get_file_url():
+    return "https://raw.githubusercontent.com/tbertinmahieux/MSongsDB/master/Tasks_Demos/CoverSongs/shs_dataset_test.txt"
+
+
+def write_s3():
+    config_path = Path(__file__).parent / "resources/config.ini"
+    aws_plugin = Plugin(config_path.as_posix())
+
+    bucket_name = f"nevermined-gateway-{int(time.time())}"
+    aws_plugin.create_directory(f"s3://{bucket_name}/test")
+
+    test_file_path = (Path(__file__).parent / "resources/TEST.md").as_posix()
+    s3_url = f"s3://{bucket_name}/test/TEST.md"
+    aws_plugin.upload(test_file_path, s3_url)
+
+    return s3_url
+
+
+def get_registered_ddo(account, providers=None, auth_service='PSK-RSA', url=get_file_url()):
     ddo = get_sample_ddo()
     metadata = ddo['service'][0]['attributes']
-    metadata['main']['files'][0][
-        'url'] = "https://raw.githubusercontent.com/tbertinmahieux/MSongsDB/master/Tasks_Demos" \
-                 "/CoverSongs/shs_dataset_test.txt"
+    metadata['main']['files'][0]['url'] = url
     metadata['main']['files'][0]['checksum'] = str(uuid.uuid4())
 
     escrow_payment_condition = ddo['service'][1]['attributes']['serviceAgreementTemplate']['conditions'][2]
@@ -79,7 +99,7 @@ def get_registered_ddo(account, providers=None, auth_service='PSK-RSA'):
         access_service_attributes,
         'http://localhost:8030'
     )
-    
+
     return register_ddo(metadata, account, providers, auth_service, [access_service_descriptor])
 
 
@@ -177,7 +197,7 @@ def get_registered_algorithm_ddo(account, providers=None, auth_service='PSK-RSA'
         access_service_attributes,
         'http://localhost:8030'
     )
-    
+
     return register_ddo(metadata, account, providers, auth_service, [access_service_descriptor])
 
 
@@ -199,7 +219,7 @@ def get_registered_workflow_ddo(account, compute_did, algorithm_did, providers=N
         access_service_attributes,
         'http://localhost:8030'
     )
-    
+
     return register_ddo(metadata, account, providers, auth_service, [access_service_descriptor])
 
 
@@ -328,7 +348,7 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
 def place_order(provider_account, ddo, consumer_account, service_type=ServiceTypes.ASSET_ACCESS):
     keeper = keeper_instance()
     agreement_id = ServiceAgreement.create_new_agreement_id()
-    
+
     if service_type == ServiceTypes.ASSET_ACCESS:
         agreement_template = keeper.access_template
     elif service_type == ServiceTypes.NFT_SALES:
@@ -339,7 +359,7 @@ def place_order(provider_account, ddo, consumer_account, service_type=ServiceTyp
         raise NotImplementedError("The agreement template could not be created.")
 
     publisher_address = provider_account.address
-   
+
     service_agreement = ServiceAgreement.from_ddo(service_type, ddo)
     condition_ids = service_agreement.generate_agreement_condition_ids(
         agreement_id, ddo.asset_id, consumer_account.address, keeper)
