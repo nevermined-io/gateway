@@ -23,13 +23,11 @@ azure.subscription.id = ${AZURE_SUBSCRIPTION_ID}
 ; as compute and output, respectively.
 azure.share.input = ${AZURE_SHARE_INPUT}
 azure.share.output = ${AZURE_SHARE_OUTPUT}
+; S3 settings
+aws.access_key = ${AWS_ACCESS_KEY}
+aws.secret_access_key = ${AWS_SECRET_ACCESS_KEY}
+aws.default_region = ${AWS_DEFAULT_REGION}
+aws.endpoint_url = ${AWS_ENDPOINT_URL}
 
 [external-contracts]
 nft721 = ["0x18bdFAf7Cc2B66a4Cfa7e069693CD1a9B639A69b", "tests/resources/data/ERC721.json"]
-
-[aws]
-module = aws
-access_key = ${AWS_ACCESS_KEY}
-secret_access_key = ${AWS_SECRET_ACCESS_KEY}
-default_region = ${AWS_DEFAULT_REGION}
-endpoint_url = ${AWS_ENDPOINT_URL}
