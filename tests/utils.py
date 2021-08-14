@@ -16,6 +16,7 @@ from common_utils_py.utils.utilities import checksum, to_checksum_addresses
 from common_utils_py.did import DID, did_to_id_bytes
 from eth_utils.hexadecimal import remove_0x_prefix
 from metadata_driver_aws.data_plugin import Plugin
+from metadata_driver_aws.config_parser import parse_config
 
 from nevermined_gateway.util import do_secret_store_encrypt, get_config, get_provider_key_file, get_provider_password, get_rsa_public_key_file, keeper_instance, web3
 
@@ -62,7 +63,8 @@ def get_file_url():
 
 def write_s3():
     config_path = Path(__file__).parent / "resources/config.ini"
-    aws_plugin = Plugin(config_path.as_posix())
+    config = parse_config(config_path.as_posix(), "metadata-driver")
+    aws_plugin = Plugin(config)
 
     bucket_name = f"nevermined-gateway-{int(time.time())}"
     aws_plugin.create_directory(f"s3://{bucket_name}/test")
