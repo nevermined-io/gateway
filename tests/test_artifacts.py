@@ -18,7 +18,7 @@ INFURA_TOKEN = os.environ.get("INFURA_TOKEN")
     ("https://alfajores-forno.celo-testnet.org", "celo-alfajores"),
     ("https://baklava-forno.celo-testnet.org", "celo-baklava")
 ])
-def test_artifact(keeper_url, network_name, monkeypatch):
+def test_artifact(keeper_url, network_name):
     options = {
         "nevermined-contracts": {
             "keeper.url": keeper_url,
