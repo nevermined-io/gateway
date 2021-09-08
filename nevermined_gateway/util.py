@@ -38,7 +38,7 @@ def setup_keeper(config_file=None):
     if account is None:
         raise AssertionError(f'Nevermined Gateway cannot run without a valid '
                              f'ethereum account. Account address was not found in the environment'
-                             f'variable `PROVIDER_ADDRESS`. Please set the following evnironment '
+                             f'variable `PROVIDER_ADDRESS`. Please set the following environment '
                              f'variables and try again: `PROVIDER_ADDRESS`, `PROVIDER_PASSWORD`, '
                              f', `PROVIDER_KEYFILE`, `RSA_KEYFILE` and `RSA_PASSWORD`.')
     if not account.key_file and not (account.password and account.key_file):

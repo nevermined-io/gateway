@@ -263,7 +263,7 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
     did = ddo._did
 
     for service in services:
-        if service.type == ServiceTypes.ASSET_ACCESS or service.type == ServiceTypes.NFT_ACCESS:
+        if service.type == ServiceTypes.ASSET_ACCESS or service.type == ServiceTypes.NFT_ACCESS or service.type == ServiceTypes.ASSET_PROOF_ACCESS:
             access_service = ServiceFactory.complete_access_service(
                 did,
                 service.service_endpoint,
