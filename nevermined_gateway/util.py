@@ -213,6 +213,17 @@ def verify_signature(keeper, signer_address, signature, original_msg):
 def get_provider_account():
     return get_account(0)
 
+class BabyjubKey:
+    def __init__(self, secret, public1, public2):
+        self.secret = secret
+        self.x = public1
+        self.y = public2
+
+def get_provider_babyjub_key():
+    secret = os.getenv('PROVIDER_BABYJUB_SECRET', '')
+    public1 = os.getenv('PROVIDER_BABYJUB_PUBLIC1', '')
+    public2 = os.getenv('PROVIDER_BABYJUB_PUBLIC2', '')
+    return BabyjubKey(secret, public1, public2)
 
 def get_env_property(env_variable, property_name):
     return getenv(

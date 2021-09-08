@@ -17,19 +17,24 @@ from common_utils_py.did import NEVERMINED_PREFIX, id_to_did
 from common_utils_py.did_resolver.did_resolver import DIDResolver
 from common_utils_py.oauth2.token import NeverminedJWTBearerGrant as _NeverminedJWTBearerGrant
 from common_utils_py.oauth2.jwk_utils import account_to_jwk
-from nevermined_gateway.conditions import (fulfill_access_condition, fulfill_compute_condition,
+from nevermined_gateway.conditions import (fulfill_access_condition, fulfill_access_proof_condition, fulfill_compute_condition,
                                            fulfill_escrow_payment_condition, fulfill_nft_holder_and_access_condition, is_nft721_holder,
                                            is_nft_holder)
 from nevermined_gateway.constants import (BaseURLs, ConditionState,
                                           ConfigSections)
 from nevermined_gateway.identity.jwk_utils import jwk_to_eth_address, recover_public_keys_from_assertion, \
     recover_public_keys_from_eth_assertion
-from nevermined_gateway.util import (get_provider_account, is_access_granted, is_owner_granted,
+from nevermined_gateway.util import (get_provider_account, get_provider_babyjub_key, is_access_granted, is_owner_granted,
                                      keeper_instance, was_compute_triggered, is_nft_access_condition_fulfilled)
 from web3 import Web3
+from subprocess import check_output
+import json
 
 logger = logging.getLogger(__name__)
 
+def call_prover(consumer_pub, provider_secret, asset_plain):
+    output = check_output(['node', 'dist/prove.js', provider_secret, asset_plain, consumer_pub[0], consumer_pub[1]], cwd='snark-tools')
+    return json.loads(output)
 
 class NeverminedOauthClient(ClientMixin):
     def __init__(self, claims):
@@ -48,6 +53,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
     def __init__(self, request, server):
         super().__init__(request, server)
         self.provider_account = get_provider_account()
+        self.provider_key = get_provider_babyjub_key()
 
     def authenticate_user(self, client, claims):
         return None
@@ -95,6 +101,8 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
             self.validate_access(claims["sub"], claims["did"], claims["iss"])
         elif claims["aud"] == BaseURLs.ASSETS_URL + "/nft-access":
             self.validate_nft_access(claims["sub"], claims["did"], claims["iss"])
+        elif claims["aud"] == BaseURLs.ASSETS_URL + "/access-proof":
+            self.validate_access_proof(claims["sub"], claims["did"], claims["buyer"])
         elif claims["aud"] == BaseURLs.ASSETS_URL + "/download":
             self.validate_owner(claims["did"], claims["iss"])
         elif claims["aud"] == BaseURLs.ASSETS_URL + "/compute":
@@ -155,6 +163,43 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
                        'id is invalid.')
                 logger.warning(msg)
                 raise InvalidClientError(msg)
+
+    def validate_access_proof(self, agreement_id, did, consumer_address):
+        keeper = keeper_instance()
+
+        agreement = keeper.agreement_manager.get_agreement(agreement_id)
+        cond_ids = agreement.condition_ids
+        asset = DIDResolver(keeper.did_registry).resolve(did)
+        asset_id = did.replace(NEVERMINED_PREFIX, "")
+
+        access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
+        lock_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
+        escrow_condition_status = keeper.condition_manager.get_condition_state(
+                cond_ids[2])
+
+        logger.debug('AccessProofCondition: %d' % access_condition_status)
+        logger.debug('LockPaymentCondition: %d' % lock_condition_status)
+        logger.debug('EscrowPaymentCondition: %d' % escrow_condition_status)
+
+        consumer_pub = ['0x'+consumer_address[0:64], '0x'+consumer_address[64:128]]
+        provider_pub = [self.provider_key.x, self.provider_key.y]
+        #if provider_pub[0] != self.provider_key.x or provider_pub[1] != self.provider_key.y:
+        #    logger.debug('Wrong provider key' % provider_address)
+        #    raise InvalidClientError(
+        #            f"ServiceAgreement {agreement_id} not fulfilled, wrong provider public key {provider_address}")
+
+        if lock_condition_status != ConditionState.Fulfilled.value:
+            logger.debug('ServiceAgreement %s was not paid. Forbidden' % agreement_id)
+            raise InvalidClientError(
+                    f"ServiceAgreement {agreement_id} was not paid, LockPaymentCondition status is {lock_condition_status}")
+
+        if escrow_condition_status != ConditionState.Fulfilled.value:
+            # compute the proof
+            res = call_prover(consumer_pub, self.provider_key.secret, asset.metadata.main.files[0].url)
+            fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_pub, provider_pub, res.cipher, res.proof, 
+                                     self.provider_account)
+            fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset,
+                                             self.provider_account)
 
     def validate_nft_access(self, agreement_id, did, consumer_address):
         keeper = keeper_instance()
