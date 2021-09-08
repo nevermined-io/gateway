@@ -1,4 +1,5 @@
 import json
+from nevermined_gateway.snark_util import poseidon_hash
 import uuid
 from urllib.request import urlopen
 from pathlib import Path
@@ -18,7 +19,7 @@ from eth_utils.hexadecimal import remove_0x_prefix
 from metadata_driver_aws.data_plugin import Plugin
 from metadata_driver_aws.config_parser import parse_config
 
-from nevermined_gateway.util import do_secret_store_encrypt, get_config, get_provider_key_file, get_provider_password, get_rsa_public_key_file, keeper_instance, web3
+from nevermined_gateway.util import do_secret_store_encrypt, get_config, get_provider_key_file, get_provider_password, get_rsa_public_key_file, keeper_instance, web3, get_provider_public_key
 
 
 def get_sample_ddo():
@@ -60,6 +61,9 @@ def generate_new_id():
 def get_file_url():
     return "https://raw.githubusercontent.com/tbertinmahieux/MSongsDB/master/Tasks_Demos/CoverSongs/shs_dataset_test.txt"
 
+def get_key():
+    return "4e657665726d696e65640a436f707972696768742032303230204b65796b6f20476d62482e0a0a546869732070726f6475637420696e636c75646573"
+
 
 def write_s3():
     config_path = Path(__file__).parent / "resources/config.ini"
@@ -98,6 +102,39 @@ def get_registered_ddo(account, providers=None, auth_service='PSK-RSA', url=get_
     }}
 
     access_service_descriptor = ServiceDescriptor.access_service_descriptor(
+        access_service_attributes,
+        'http://localhost:8030'
+    )
+
+    return register_ddo(metadata, account, providers, auth_service, [access_service_descriptor])
+
+def get_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_key()):
+    ddo = get_sample_ddo()
+    metadata = ddo['service'][0]['attributes']
+    metadata['main']['files'][0]['url'] = key
+    metadata['main']['files'][0]['checksum'] = str(uuid.uuid4())
+    metadata['additionalInformation'] = {
+        "providerKey": get_provider_public_key(),
+        "poseidonHash": poseidon_hash(key)
+    }
+
+    escrow_payment_condition = ddo['service'][1]['attributes']['serviceAgreementTemplate']['conditions'][2]
+    _amounts = get_param_value_by_name(escrow_payment_condition['parameters'], '_amounts')
+    _receivers = to_checksum_addresses(
+        get_param_value_by_name(escrow_payment_condition['parameters'], '_receivers'))
+    access_service_attributes = {
+        "main": {
+            "name": "dataAssetAccessProofServiceAgreement",
+            "creator": account.address,
+            "price": metadata[MetadataMain.KEY]['price'],
+            "timeout": 3600,
+            "datePublished": metadata[MetadataMain.KEY]['dateCreated'],
+            "_amounts": _amounts,
+            "_receivers": _receivers
+        }
+    }
+
+    access_service_descriptor = ServiceDescriptor.access_proof_service_descriptor(
         access_service_attributes,
         'http://localhost:8030'
     )

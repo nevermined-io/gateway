@@ -225,6 +225,11 @@ def get_provider_babyjub_key():
     public2 = os.getenv('PROVIDER_BABYJUB_PUBLIC2', '')
     return BabyjubKey(secret, public1, public2)
 
+def get_provider_public_key():
+    public1 = os.getenv('PROVIDER_BABYJUB_PUBLIC1', '')
+    public2 = os.getenv('PROVIDER_BABYJUB_PUBLIC2', '')
+    return {"x": public1, "y": public2}
+
 def get_env_property(env_variable, property_name):
     return getenv(
         env_variable,

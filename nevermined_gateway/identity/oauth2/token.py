@@ -27,14 +27,9 @@ from nevermined_gateway.identity.jwk_utils import jwk_to_eth_address, recover_pu
 from nevermined_gateway.util import (get_provider_account, get_provider_babyjub_key, is_access_granted, is_owner_granted,
                                      keeper_instance, was_compute_triggered, is_nft_access_condition_fulfilled)
 from web3 import Web3
-from subprocess import check_output
-import json
+from snark_util import call_prover
 
 logger = logging.getLogger(__name__)
-
-def call_prover(consumer_pub, provider_secret, asset_plain):
-    output = check_output(['node', 'dist/prove.js', provider_secret, asset_plain, consumer_pub[0], consumer_pub[1]], cwd='snark-tools')
-    return json.loads(output)
 
 class NeverminedOauthClient(ClientMixin):
     def __init__(self, claims):
@@ -195,8 +190,8 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
 
         if escrow_condition_status != ConditionState.Fulfilled.value:
             # compute the proof
-            res = call_prover(consumer_pub, self.provider_key.secret, asset.metadata.main.files[0].url)
-            fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_pub, provider_pub, res.cipher, res.proof, 
+            res = call_prover(consumer_pub, self.provider_key.secret, asset.metadata['main']['files'][0]['url'])
+            fulfill_access_proof_condition(keeper, agreement_id, cond_ids, asset_id, consumer_pub, provider_pub, res.cipher, res.proof, 
                                      self.provider_account)
             fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset,
                                              self.provider_account)
