@@ -10,7 +10,7 @@ from common_utils_py.agreements.service_types import ServiceTypes
 from common_utils_py.did import DID, did_to_id, did_to_id_bytes
 from common_utils_py.http_requests.requests_session import get_requests_session
 from common_utils_py.oauth2.token import NeverminedJWTBearerGrant, generate_access_grant_token, \
-    generate_download_grant_token
+    generate_download_grant_token, generate_access_proof_grant_token
 from common_utils_py.utils.utilities import to_checksum_addresses, checksum
 from contracts_lib_py.utils import add_ethereum_prefix_and_hash_msg
 from eth_utils import add_0x_prefix
@@ -19,7 +19,7 @@ from werkzeug.utils import get_content_type
 from nevermined_gateway import constants
 from nevermined_gateway.constants import BaseURLs, ConditionState
 from nevermined_gateway.util import (build_download_response, check_auth_token,
-                                     generate_token, get_download_url, get_provider_account,
+                                     generate_token, get_buyer_public_key, get_download_url, get_provider_account,
                                      is_token_valid, keeper_instance, verify_signature, web3, get_asset)
 from nevermined_gateway import version
 from .utils import get_registered_ddo, get_proof_ddo, place_order, lock_payment, generate_new_id
@@ -160,7 +160,7 @@ def test_access_proof(client, provider_account, consumer_account):
         print(ddo)
 
         # initialize an agreement
-        agreement_id = place_order(provider_account, ddo, consumer_account)
+        agreement_id = place_order(provider_account, ddo, consumer_account, ServiceTypes.ASSET_ACCESS_PROOF)
 
         keeper = keeper_instance()
         index = 0
@@ -174,7 +174,7 @@ def test_access_proof(client, provider_account, consumer_account):
         if consumer_balance < 50:
             keeper.dispenser.request_tokens(50 - consumer_balance, consumer_account)
 
-        sa = ServiceAgreement.from_ddo(ServiceTypes.ASSET_ACCESS, ddo)
+        sa = ServiceAgreement.from_ddo(ServiceTypes.ASSET_ACCESS_PROOF, ddo)
         lock_payment(agreement_id, ddo.asset_id, sa, amounts, receivers, consumer_account)
         event = keeper.lock_payment_condition.subscribe_condition_fulfilled(
             agreement_id, 15, None, (), wait=True, from_block=0
@@ -184,7 +184,8 @@ def test_access_proof(client, provider_account, consumer_account):
         # Consume using url index
 
         # generate the grant token
-        grant_token = generate_access_grant_token(consumer_account, agreement_id, ddo.did)
+        grant_token = generate_access_proof_grant_token(consumer_account, agreement_id, ddo.did, get_buyer_public_key(), "/access-proof")
+        print(grant_token)
 
         # request access token
         response = client.post("/api/v1/gateway/services/oauth/token", data={
@@ -193,17 +194,21 @@ def test_access_proof(client, provider_account, consumer_account):
         })
         access_token = response.get_json()["access_token"]
 
+        agreement = keeper.agreement_manager.get_agreement(agreement_id)
+        cond_ids = agreement.condition_ids
+        print(keeper.condition_manager.get_condition_state(cond_ids[0]))
+        print(keeper.condition_manager.get_condition_state(cond_ids[1]))
+        print(keeper.condition_manager.get_condition_state(cond_ids[2]))
+        assert keeper.condition_manager.get_condition_state(cond_ids[0]) == ConditionState.Fulfilled.value
+        assert keeper.condition_manager.get_condition_state(cond_ids[1]) == ConditionState.Fulfilled.value
+        assert keeper.condition_manager.get_condition_state(cond_ids[2]) == ConditionState.Fulfilled.value
+
         endpoint = BaseURLs.ASSETS_URL + '/access-proof/%s/%d' % (agreement_id, index)
         response = client.get(
             endpoint,
             headers={"Authorization": f"Bearer {access_token}"}
         )
 
-        agreement = keeper.agreement_manager.get_agreement(agreement_id)
-        cond_ids = agreement.condition_ids
-        assert keeper.condition_manager.get_condition_state(cond_ids[0]) == ConditionState.Fulfilled.value
-        assert keeper.condition_manager.get_condition_state(cond_ids[1]) == ConditionState.Fulfilled.value
-        assert keeper.condition_manager.get_condition_state(cond_ids[2]) == ConditionState.Fulfilled.value
         assert response.status == '200 OK'
         assert len(keeper.did_registry.get_provenance_method_events('USED', did_bytes=did_to_id_bytes(ddo.did))) == 1
 

@@ -41,7 +41,7 @@ def fulfill_access_proof_condition(keeper, agreement_id, cond_ids, asset_hash, c
 
     recheck_condition = False
     if access_condition_status != ConditionState.Fulfilled.value:
-        logger.debug('Fulfilling Access condition')
+        logger.debug('Fulfilling Access proof condition')
         try:
             keeper.access_proof_condition.fulfill(
                 agreement_id, asset_hash, consumer_address, provider_address, cipher, proof, provider_acc
@@ -52,10 +52,10 @@ def fulfill_access_proof_condition(keeper, agreement_id, cond_ids, asset_hash, c
     if recheck_condition:
         access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
         if access_condition_status != ConditionState.Fulfilled.value:
-            logger.error('Error in access condition fulfill')
+            logger.error('Error in access proof condition fulfill')
             return False
         else:
-            logger.info('The access condition was already fulfilled')
+            logger.info('The access proof condition was already fulfilled')
 
     access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
     return access_condition_status == ConditionState.Fulfilled.value
@@ -131,8 +131,9 @@ def fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset, prov
     escrow_condition_status = keeper.condition_manager.get_condition_state(cond_ids[2])
 
     if escrow_condition_status != ConditionState.Fulfilled.value:
-        logger.debug('Fulfilling EscrowPayment condition %s' % agreement_id)
+        logger.info('Fulfilling EscrowPayment condition %s' % agreement_id)
         service_agreement = asset.get_service(service_type)
+        print(service_agreement)
         # did_owner = keeper.agreement_manager.get_agreement_did_owner(agreement_id)
         access_id, lock_id = cond_ids[:2]
 

@@ -4,7 +4,7 @@
   "description": "Javascript SDK for connecting with Nevermined Data Platform ",
   "scripts": {
     "build": "npm run clean && npm run build:tsc",
-    "build:tsc": "tsc --sourceMap .",
+    "build:tsc": "tsc --sourceMap",
     "test": "mocha",
     "clean": "rm -rf ./dist/ ./doc/ ./.nyc_output",
     "lint": "eslint --ignore-path .gitignore --ext .ts,.tsx .",

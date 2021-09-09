@@ -19,7 +19,7 @@ from eth_utils.hexadecimal import remove_0x_prefix
 from metadata_driver_aws.data_plugin import Plugin
 from metadata_driver_aws.config_parser import parse_config
 
-from nevermined_gateway.util import do_secret_store_encrypt, get_config, get_provider_key_file, get_provider_password, get_rsa_public_key_file, keeper_instance, web3, get_provider_public_key
+from nevermined_gateway.util import do_secret_store_encrypt, get_config, get_provider_key_file, get_provider_password, get_rsa_public_key_file, keeper_instance, web3, get_provider_public_key, get_buyer_public_key
 
 
 def get_sample_ddo():
@@ -113,10 +113,16 @@ def get_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_key()
     metadata = ddo['service'][0]['attributes']
     metadata['main']['files'][0]['url'] = key
     metadata['main']['files'][0]['checksum'] = str(uuid.uuid4())
+    hash = poseidon_hash(key)
+    providerKey = get_provider_public_key()
     metadata['additionalInformation'] = {
-        "providerKey": get_provider_public_key(),
-        "poseidonHash": poseidon_hash(key)
+        "providerKey": {
+            "x": providerKey[0],
+            "y": providerKey[1]
+        },
+        "poseidonHash": hash
     }
+    print(metadata['additionalInformation'])
 
     escrow_payment_condition = ddo['service'][1]['attributes']['serviceAgreementTemplate']['conditions'][2]
     _amounts = get_param_value_by_name(escrow_payment_condition['parameters'], '_amounts')
@@ -130,9 +136,14 @@ def get_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_key()
             "timeout": 3600,
             "datePublished": metadata[MetadataMain.KEY]['dateCreated'],
             "_amounts": _amounts,
+            "_hash": hash,
+            # "_weird": str(uuid.uuid4()),
+            # "_grantee": get_buyer_public_key(),
+            "_providerPub": providerKey,
             "_receivers": _receivers
         }
     }
+    print(checksum(access_service_attributes))
 
     access_service_descriptor = ServiceDescriptor.access_proof_service_descriptor(
         access_service_attributes,
@@ -287,8 +298,11 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
     checksums = dict()
     for service in services:
         try:
+            print('adding service')
             checksums[str(service.index)] = checksum(service.main)
+            print(checksums[str(service.index)])
         except Exception as e:
+            print(e)
             pass
 
     # Adding proof to the ddo.
@@ -391,7 +405,7 @@ def place_order(provider_account, ddo, consumer_account, service_type=ServiceTyp
     if service_type == ServiceTypes.ASSET_ACCESS:
         agreement_template = keeper.access_template
     elif service_type == ServiceTypes.ASSET_ACCESS_PROOF:
-        agreement_template = keeper.access_template
+        agreement_template = keeper.access_proof_template
     elif service_type == ServiceTypes.NFT_SALES:
         agreement_template = keeper.nft_sales_template
     elif service_type == ServiceTypes.CLOUD_COMPUTE:
@@ -401,11 +415,18 @@ def place_order(provider_account, ddo, consumer_account, service_type=ServiceTyp
 
     publisher_address = provider_account.address
 
-    print(ddo.get_service(ServiceTypes.ASSET_ACCESS_PROOF))
-    print(ddo.get_service(ServiceTypes.ASSET_ACCESS_PROOF).as_dictionary())
+    # dict = ddo.get_service(service_type).as_dictionary()
+    # print(dict['attributes']['main']) 
     service_agreement = ServiceAgreement.from_ddo(service_type, ddo)
-    condition_ids = service_agreement.generate_agreement_condition_ids(
-        agreement_id, ddo.asset_id, consumer_account.address, keeper)
+    
+    if service_type == ServiceTypes.ASSET_ACCESS_PROOF:
+      consumer_pub = get_buyer_public_key()
+      condition_ids = service_agreement.generate_agreement_condition_ids(
+          agreement_id, ddo.asset_id, consumer_pub, keeper)
+    else:
+      condition_ids = service_agreement.generate_agreement_condition_ids(
+          agreement_id, ddo.asset_id, consumer_account.address, keeper)
+
     time_locks = service_agreement.conditions_timelocks
     time_outs = service_agreement.conditions_timeouts
     agreement_template.create_agreement(

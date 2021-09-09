@@ -25,7 +25,8 @@ from nevermined_gateway.constants import (BaseURLs, ConditionState,
 from nevermined_gateway.identity.jwk_utils import jwk_to_eth_address, recover_public_keys_from_assertion, \
     recover_public_keys_from_eth_assertion
 from nevermined_gateway.util import (get_provider_account, get_provider_babyjub_key, is_access_granted, is_owner_granted,
-                                     keeper_instance, was_compute_triggered, is_nft_access_condition_fulfilled)
+                                     keeper_instance, was_compute_triggered, is_nft_access_condition_fulfilled,
+                                     get_asset_url_at_index)
 from web3 import Web3
 from nevermined_gateway.snark_util import call_prover
 
@@ -47,6 +48,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
 
     def __init__(self, request, server):
         super().__init__(request, server)
+        logger.info('bearer init')
         self.provider_account = get_provider_account()
         self.provider_key = get_provider_babyjub_key()
 
@@ -80,6 +82,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
         return possible_public_keys[0]
 
     def authenticate_client(self, claims):
+        logger.info('Auth client')
         possible_eth_addresses = [jwk_to_eth_address(jwk) for jwk in self.possible_public_keys]
 
         try:
@@ -172,16 +175,12 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
         escrow_condition_status = keeper.condition_manager.get_condition_state(
                 cond_ids[2])
 
-        logger.debug('AccessProofCondition: %d' % access_condition_status)
-        logger.debug('LockPaymentCondition: %d' % lock_condition_status)
-        logger.debug('EscrowPaymentCondition: %d' % escrow_condition_status)
+        logger.info('AccessProofCondition: %d' % access_condition_status)
+        logger.info('LockPaymentCondition: %d' % lock_condition_status)
+        logger.info('EscrowPaymentCondition: %d' % escrow_condition_status)
 
         consumer_pub = ['0x'+consumer_address[0:64], '0x'+consumer_address[64:128]]
         provider_pub = [self.provider_key.x, self.provider_key.y]
-        #if provider_pub[0] != self.provider_key.x or provider_pub[1] != self.provider_key.y:
-        #    logger.debug('Wrong provider key' % provider_address)
-        #    raise InvalidClientError(
-        #            f"ServiceAgreement {agreement_id} not fulfilled, wrong provider public key {provider_address}")
 
         if lock_condition_status != ConditionState.Fulfilled.value:
             logger.debug('ServiceAgreement %s was not paid. Forbidden' % agreement_id)
@@ -190,11 +189,17 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
 
         if escrow_condition_status != ConditionState.Fulfilled.value:
             # compute the proof
-            res = call_prover(consumer_pub, self.provider_key.secret, asset.metadata['main']['files'][0]['url'])
-            fulfill_access_proof_condition(keeper, agreement_id, cond_ids, asset_id, consumer_pub, provider_pub, res.cipher, res.proof, 
+            print(asset.metadata['main'])
+            auth_method = asset.authorization.main['service']
+            print(provider_pub)
+            url = '0x' + get_asset_url_at_index(0, asset, self.provider_account, auth_method)
+            print(url)
+            res = call_prover(consumer_pub, self.provider_key.secret, url)
+            print(res)
+            fulfill_access_proof_condition(keeper, agreement_id, cond_ids, asset_id, consumer_pub, provider_pub, res['cipher'], res['proof'], 
                                      self.provider_account)
             fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset,
-                                             self.provider_account)
+                                             self.provider_account, ServiceTypes.ASSET_ACCESS_PROOF)
 
     def validate_nft_access(self, agreement_id, did, consumer_address):
         keeper = keeper_instance()
