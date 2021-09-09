@@ -27,7 +27,7 @@ from nevermined_gateway.identity.jwk_utils import jwk_to_eth_address, recover_pu
 from nevermined_gateway.util import (get_provider_account, get_provider_babyjub_key, is_access_granted, is_owner_granted,
                                      keeper_instance, was_compute_triggered, is_nft_access_condition_fulfilled)
 from web3 import Web3
-from snark_util import call_prover
+from nevermined_gateway.snark_util import call_prover
 
 logger = logging.getLogger(__name__)
 
