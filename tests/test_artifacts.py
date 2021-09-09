@@ -9,6 +9,7 @@ from nevermined_gateway.config import Config
 
 INFURA_TOKEN = os.environ.get("INFURA_TOKEN")
 
+pytestmark = pytest.mark.skip()
 
 @pytest.mark.parametrize("keeper_url,network_name", [
     [f"https://mainnet.infura.io/v3/{INFURA_TOKEN}", "mainnet"],
