@@ -157,7 +157,6 @@ def test_access(client, provider_account, consumer_account):
 def test_access_proof(client, provider_account, consumer_account):
     for method in constants.ConfigSections.DECRYPTION_METHODS:
         ddo = get_proof_ddo(provider_account, providers=[provider_account.address], auth_service=method)
-        print(ddo)
 
         # initialize an agreement
         agreement_id = place_order(provider_account, ddo, consumer_account, ServiceTypes.ASSET_ACCESS_PROOF)
@@ -165,7 +164,7 @@ def test_access_proof(client, provider_account, consumer_account):
         keeper = keeper_instance()
         index = 0
 
-        event = keeper.access_template.subscribe_agreement_created(
+        event = keeper.access_proof_template.subscribe_agreement_created(
             agreement_id, 15, None, (), wait=True, from_block=0
         )
         assert event, "Agreement event is not found, check the keeper node's logs"
@@ -196,6 +195,7 @@ def test_access_proof(client, provider_account, consumer_account):
 
         agreement = keeper.agreement_manager.get_agreement(agreement_id)
         cond_ids = agreement.condition_ids
+        print(cond_ids)
         print(keeper.condition_manager.get_condition_state(cond_ids[0]))
         print(keeper.condition_manager.get_condition_state(cond_ids[1]))
         print(keeper.condition_manager.get_condition_state(cond_ids[2]))

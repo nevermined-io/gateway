@@ -196,7 +196,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
             print(url)
             res = call_prover(consumer_pub, self.provider_key.secret, url)
             print(res)
-            fulfill_access_proof_condition(keeper, agreement_id, cond_ids, asset_id, consumer_pub, provider_pub, res['cipher'], res['proof'], 
+            fulfill_access_proof_condition(keeper, agreement_id, cond_ids, res['hash'], consumer_pub, provider_pub, res['cipher'], res['proof'], 
                                      self.provider_account)
             fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset,
                                              self.provider_account, ServiceTypes.ASSET_ACCESS_PROOF)

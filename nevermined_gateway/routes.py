@@ -11,6 +11,7 @@ from common_utils_py.utils.crypto import (ecdsa_encryption_from_file,
                                           rsa_encryption_from_file)
 from eth_utils import remove_0x_prefix
 from flask import Blueprint, jsonify, request
+from flask.wrappers import Response
 from secret_store_client.client import RPCError
 from authlib.integrations.flask_oauth2 import current_token
 
@@ -294,6 +295,11 @@ def access_proof(agreement_id, index=0):
         url = get_asset_url_at_index(index, asset, provider_acc, auth_method)
         used_by(generate_random_id(), did, consumer_address, 'access', '0x00', 'access proof', provider_acc,
                 keeper)
+        return Response(
+            url,
+            '200',
+            content_type=content_type
+        )
         return get_asset(request, requests_session, content_type, url, app.config['CONFIG_FILE'])
 
     except (ValueError, Exception) as e:

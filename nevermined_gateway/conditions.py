@@ -39,14 +39,16 @@ def fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_
 def fulfill_access_proof_condition(keeper, agreement_id, cond_ids, asset_hash, consumer_address, provider_address, cipher, proof, provider_acc):
     access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
 
-    recheck_condition = False
+    recheck_condition = True
     if access_condition_status != ConditionState.Fulfilled.value:
-        logger.debug('Fulfilling Access proof condition')
+        logger.info('Fulfilling Access proof condition')
         try:
-            keeper.access_proof_condition.fulfill(
+            res = keeper.access_proof_condition.fulfill(
                 agreement_id, asset_hash, consumer_address, provider_address, cipher, proof, provider_acc
             )
-        except Exception:
+            print(res)
+        except Exception as e:
+            print(e)
             recheck_condition = True
 
     if recheck_condition:
