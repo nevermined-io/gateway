@@ -1,4 +1,3 @@
-import configparser
 import logging
 import sys
 
@@ -16,8 +15,6 @@ from nevermined_gateway import version
 from nevermined_gateway.util import keeper_instance, get_provider_account, get_provider_key_file, \
     get_provider_password, get_rsa_public_key_file
 
-config = Config(filename=app.config['CONFIG_FILE'])
-gateway_url = config.get(ConfigSections.RESOURCES, 'gateway.url')
 
 requests_session = get_requests_session()
 logger = logging.getLogger(__name__)
@@ -40,6 +37,7 @@ def get_external_contracts():
 
 @app.route("/")
 def root_info():
+    config = Config(filename=app.config['CONFIG_FILE'])
     keeper = keeper_instance()
     info = {
         'software': Metadata.TITLE,
@@ -71,16 +69,20 @@ def spec():
 
 
 # Call factory function to create our blueprint
-swaggerui_blueprint = get_swaggerui_blueprint(
-    BaseURLs.SWAGGER_URL,
-    gateway_url + '/spec',
-    config={  # Swagger UI config overrides
-        'app_name': "Test application"
-    },
-    )
+def get_swagger_blueprint():
+    config = Config(filename=app.config['CONFIG_FILE'])
+    gateway_url = config.get(ConfigSections.RESOURCES, 'gateway.url')
+
+    return get_swaggerui_blueprint(
+        BaseURLs.SWAGGER_URL,
+        gateway_url + '/spec',
+        config={  # Swagger UI config overrides
+            'app_name': "Test application"
+        },
+        )
 
 # Register blueprint at URL
-app.register_blueprint(swaggerui_blueprint, url_prefix=BaseURLs.SWAGGER_URL)
+app.register_blueprint(get_swagger_blueprint(), url_prefix=BaseURLs.SWAGGER_URL)
 app.register_blueprint(services, url_prefix=BaseURLs.ASSETS_URL)
 
 if __name__ == '__main__':

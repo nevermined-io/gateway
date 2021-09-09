@@ -3,7 +3,6 @@ import json
 import logging
 import mimetypes
 import os
-import site
 import uuid
 from datetime import datetime
 from os import getenv
@@ -18,6 +17,7 @@ from eth_utils import remove_0x_prefix
 from flask import Response
 from metadata_driver_interface.driver_interface import DriverInterface
 from secret_store_client.client import Client as SecretStore
+from nevermined_contracts import get_artifacts_path
 
 from nevermined_gateway.config import Config
 from nevermined_gateway.constants import ConditionState
@@ -238,14 +238,10 @@ def get_env_property(env_variable, property_name):
 
 
 def get_keeper_path(config):
-    path = config.keeper_path
-    if not os.path.exists(path):
-        if os.getenv('VIRTUAL_ENV'):
-            path = os.path.join(os.getenv('VIRTUAL_ENV'), 'artifacts')
-        else:
-            path = os.path.join(site.PREFIXES[0], 'artifacts')
+    if config.keeper_path and config.keeper_path != '':
+        return config.keeper_path
 
-    return path
+    return get_artifacts_path()
 
 
 def keeper_instance():

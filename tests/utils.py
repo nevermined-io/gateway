@@ -300,7 +300,7 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
     did = ddo._did
 
     for service in services:
-        if service.type == ServiceTypes.ASSET_ACCESS or service.type == ServiceTypes.NFT_ACCESS or service.type == ServiceTypes.ASSET_PROOF_ACCESS:
+        if service.type == ServiceTypes.ASSET_ACCESS or service.type == ServiceTypes.NFT_ACCESS or service.type == ServiceTypes.ASSET_ACCESS_PROOF:
             access_service = ServiceFactory.complete_access_service(
                 did,
                 service.service_endpoint,
@@ -390,6 +390,8 @@ def place_order(provider_account, ddo, consumer_account, service_type=ServiceTyp
 
     if service_type == ServiceTypes.ASSET_ACCESS:
         agreement_template = keeper.access_template
+    elif service_type == ServiceTypes.ASSET_ACCESS_PROOF:
+        agreement_template = keeper.access_template
     elif service_type == ServiceTypes.NFT_SALES:
         agreement_template = keeper.nft_sales_template
     elif service_type == ServiceTypes.CLOUD_COMPUTE:
@@ -399,6 +401,8 @@ def place_order(provider_account, ddo, consumer_account, service_type=ServiceTyp
 
     publisher_address = provider_account.address
 
+    print(ddo.get_service(ServiceTypes.ASSET_ACCESS_PROOF))
+    print(ddo.get_service(ServiceTypes.ASSET_ACCESS_PROOF).as_dictionary())
     service_agreement = ServiceAgreement.from_ddo(service_type, ddo)
     condition_ids = service_agreement.generate_agreement_condition_ids(
         agreement_id, ddo.asset_id, consumer_account.address, keeper)

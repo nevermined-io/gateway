@@ -256,7 +256,7 @@ def access(agreement_id, index=0):
 @services.route('/access-proof/<agreement_id>', methods=['GET'])
 @services.route('/access-proof/<agreement_id>/<int:index>', methods=['GET'])
 @require_oauth()
-def access(agreement_id, index=0):
+def access_proof(agreement_id, index=0):
     """Allows to get access to an asset data file.
     swagger_from_file: docs/access.yml
     """
