@@ -3,6 +3,7 @@ keeper.url = ${KEEPER_URL}
 secret_store.url = ${SECRET_STORE_URL}
 parity.url = ${PARITY_URL}
 compute_api.url = ${COMPUTE_API_URL}
+keeper.path = ${KEEPER_PATH}
 
 
 [resources]
