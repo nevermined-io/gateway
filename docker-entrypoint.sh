@@ -1,6 +1,7 @@
 #!/bin/sh
 
 export CONFIG_FILE=/nevermined-gateway/config.ini
+export KEEPER_PATH=${KEEPER_PATH:-'"'}
 envsubst < /nevermined-gateway/config.ini.template > /nevermined-gateway/config.ini
 if [ "${LOCAL_CONTRACTS}" = "true" ]; then
   echo "Waiting for contracts to be generated..."
