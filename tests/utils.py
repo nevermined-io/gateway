@@ -62,7 +62,7 @@ def get_file_url():
     return "https://raw.githubusercontent.com/tbertinmahieux/MSongsDB/master/Tasks_Demos/CoverSongs/shs_dataset_test.txt"
 
 def get_key():
-    return "4e657665726d696e65640a436f707972696768742032303230204b65796b6f20476d62482e0a0a546869732070726f6475637420696e636c75646573"
+    return "23fefefefefefefefefeefefefefefefef2323abababababababab"
 
 
 def write_s3():

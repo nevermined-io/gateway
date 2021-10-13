@@ -6,6 +6,7 @@ const { makeKey, secretToPublic, makePublic, encryptKey, ecdh, prove, hashKey } 
 async function main() {
     console.error(process.argv)
     let providerK = makeKey(process.argv[2])
+    console.error(providerK)
     let providerPub = secretToPublic(providerK)
     let data = Buffer.from(process.argv[3].substr(2), 'hex')
     let buyerPub = makePublic(process.argv[4], process.argv[5])
