@@ -22,6 +22,18 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Set up node.js
+      uses: actions/setup-node@v1
+      with:
+        node-version: '14.x'
+    - name: Install rapidsnark
+      run: |
+        git clone https://github.com/nevermined-io/rapidsnark
+        cd rapidsnark
+        git submodule update --init --recursive
+        sh ./scripts/install-linux.sh
+        cd ..
+        rm -rf rapidsnark
     - name: Install minikube v1.22.0
       run: |
         wget https://storage.googleapis.com/minikube/releases/v1.22.0/minikube-linux-amd64
@@ -65,6 +77,13 @@ jobs:
         export RSA_PUBKEY_FILE=tests/resources/data/rsa_pub_key.pem
         export AUTHLIB_INSECURE_TRANSPORT=true
         export INFURA_TOKEN=${{ secrets.INFURA_TOKEN }}
+
+        export PROVIDER_BABYJUB_SECRET=abc                              
+        export BUYER_BABYJUB_SECRET=abd
+        export PROVIDER_BABYJUB_PUBLIC1=0x2e3133fbdaeb5486b665ba78c0e7e749700a5c32b1998ae14f7d1532972602bb
+        export PROVIDER_BABYJUB_PUBLIC2=0x0b932f02e59f90cdd761d9d5e7c15c8e620efce4ce018bf54015d68d9cb35561
+        export BUYER_BABYJUB_PUBLIC1=0x0d7cdd240c2f5b0640839c49fbaaf016a8c5571b8f592e2b62ea939063545981
+        export BUYER_BABYJUB_PUBLIC2=0x14b14fa0a30ec744dde9f32d519c65ebaa749bfe991a32deea44b83a4e5c65bb
 
         pip install pytest
         pytest -v

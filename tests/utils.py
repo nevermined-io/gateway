@@ -122,7 +122,6 @@ def get_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_key()
         },
         "poseidonHash": hash
     }
-    print(metadata['additionalInformation'])
 
     escrow_payment_condition = ddo['service'][1]['attributes']['serviceAgreementTemplate']['conditions'][2]
     _amounts = get_param_value_by_name(escrow_payment_condition['parameters'], '_amounts')
@@ -143,7 +142,6 @@ def get_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_key()
             "_receivers": _receivers
         }
     }
-    print(checksum(access_service_attributes))
 
     access_service_descriptor = ServiceDescriptor.access_proof_service_descriptor(
         access_service_attributes,
@@ -298,11 +296,8 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
     checksums = dict()
     for service in services:
         try:
-            print('adding service')
             checksums[str(service.index)] = checksum(service.main)
-            print(checksums[str(service.index)])
         except Exception as e:
-            print(e)
             pass
 
     # Adding proof to the ddo.
@@ -415,8 +410,6 @@ def place_order(provider_account, ddo, consumer_account, service_type=ServiceTyp
 
     publisher_address = provider_account.address
 
-    # dict = ddo.get_service(service_type).as_dictionary()
-    # print(dict['attributes']['main']) 
     service_agreement = ServiceAgreement.from_ddo(service_type, ddo)
     
     if service_type == ServiceTypes.ASSET_ACCESS_PROOF:

@@ -184,7 +184,6 @@ def test_access_proof(client, provider_account, consumer_account):
 
         # generate the grant token
         grant_token = generate_access_proof_grant_token(consumer_account, agreement_id, ddo.did, get_buyer_public_key(), "/access-proof")
-        print(grant_token)
 
         # request access token
         response = client.post("/api/v1/gateway/services/oauth/token", data={
@@ -195,10 +194,6 @@ def test_access_proof(client, provider_account, consumer_account):
 
         agreement = keeper.agreement_manager.get_agreement(agreement_id)
         cond_ids = agreement.condition_ids
-        print(cond_ids)
-        print(keeper.condition_manager.get_condition_state(cond_ids[0]))
-        print(keeper.condition_manager.get_condition_state(cond_ids[1]))
-        print(keeper.condition_manager.get_condition_state(cond_ids[2]))
         assert keeper.condition_manager.get_condition_state(cond_ids[0]) == ConditionState.Fulfilled.value
         assert keeper.condition_manager.get_condition_state(cond_ids[1]) == ConditionState.Fulfilled.value
         assert keeper.condition_manager.get_condition_state(cond_ids[2]) == ConditionState.Fulfilled.value
@@ -228,7 +223,6 @@ def test_download(client, provider_account):
     access_token = response.get_json()["access_token"]
 
     endpoint = BaseURLs.ASSETS_URL + '/download/%d' % (index)
-    print(endpoint)
     response = client.get(
         endpoint,
         headers={"Authorization": f"Bearer {access_token}"}
