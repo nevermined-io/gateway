@@ -3,7 +3,7 @@ import json
 from common_utils_py.utils.keytransfer import make_prover, prove, prove_transfer, hash_key
 from web3 import Web3
 
-prover = make_prover('keytransfer.zkey', 'keytransfer.dat')
+prover = make_prover("/usr/local/share/keytransfer/keytransfer.zkey", "/usr/local/share/keytransfer/keytransfer.dat")
 
 def call_prover(consumer_pub, provider_secret, asset_plain):
 #    print(asset_plain)
