@@ -48,7 +48,6 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
 
     def __init__(self, request, server):
         super().__init__(request, server)
-        logger.info('bearer init')
         self.provider_account = get_provider_account()
         self.provider_key = get_provider_babyjub_key()
 
@@ -189,13 +188,9 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
 
         if escrow_condition_status != ConditionState.Fulfilled.value:
             # compute the proof
-            print(asset.metadata['main'])
             auth_method = asset.authorization.main['service']
-            print(provider_pub)
             url = '0x' + get_asset_url_at_index(0, asset, self.provider_account, auth_method)
-            print(url)
             res = call_prover(consumer_pub, self.provider_key.secret, url)
-            print(res)
             fulfill_access_proof_condition(keeper, agreement_id, cond_ids, res['hash'], consumer_pub, provider_pub, res['cipher'], res['proof'], 
                                      self.provider_account)
             fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset,
