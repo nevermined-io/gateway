@@ -136,8 +136,6 @@ def get_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_key()
             "datePublished": metadata[MetadataMain.KEY]['dateCreated'],
             "_amounts": _amounts,
             "_hash": hash,
-            # "_weird": str(uuid.uuid4()),
-            # "_grantee": get_buyer_public_key(),
             "_providerPub": providerKey,
             "_receivers": _receivers
         }

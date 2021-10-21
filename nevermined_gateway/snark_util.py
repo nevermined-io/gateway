@@ -1,7 +1,10 @@
 from common_utils_py.utils.keytransfer import make_prover, prove_transfer, hash_key
+from nevermined_gateway.util import get_config
 from web3 import Web3
 
-prover = make_prover("/usr/local/share/keytransfer/keytransfer.zkey", "/usr/local/share/keytransfer/keytransfer.dat")
+config = get_config()
+
+prover = make_prover(config.keytransfer_zkey, config.keytransfer_dat)
 
 def call_prover(consumer_pub, provider_secret, asset_plain):
     c = Web3.keccak(text=provider_secret)
