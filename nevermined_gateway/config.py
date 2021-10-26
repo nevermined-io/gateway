@@ -14,6 +14,9 @@ NAME_SECRET_STORE_URL = 'secret_store.url'
 NAME_PARITY_URL = 'parity.url'
 NAME_COMPUTE_API_URL = 'compute_api.url'
 
+KEYTRANSFER_ZKEY_FILE = 'zkey'
+KEYTRANSFER_DAT_FILE = 'dat'
+
 environ_names = {
     NAME_KEEPER_URL: ['KEEPER_URL', 'Keeper URL'],
     NAME_KEEPER_PATH: ['KEEPER_PATH', 'Path to the keeper contracts'],
@@ -24,6 +27,8 @@ environ_names = {
     NAME_SECRET_STORE_URL: ['SECRET_STORE_URL', 'Secret Store URL'],
     NAME_PARITY_URL: ['PARITY_URL', 'Parity URL'],
     NAME_COMPUTE_API_URL: ['COMPUTE_API_URL', 'Compute API URL'],
+    KEYTRANSFER_ZKEY_FILE: ['KEYTRANSFER_ZKEY_FILE', 'zkey file for keytransfer'],
+    KEYTRANSFER_DAT_FILE: ['KEYTRANSFER_DAT_FILE', 'dat file for keytransfer'],
 }
 
 
@@ -119,6 +124,14 @@ class Config(configparser.ConfigParser):
     @property
     def auth_token_message(self):
         return self.get('resources', NAME_AUTH_TOKEN_MESSAGE, fallback=None)
+
+    @property
+    def keytransfer_zkey(self):
+        return self.get('snark', KEYTRANSFER_ZKEY_FILE, fallback='/usr/local/share/keytransfer/keytransfer.zkey')
+
+    @property
+    def keytransfer_dat(self):
+        return self.get('snark', KEYTRANSFER_DAT_FILE, fallback='/usr/local/share/keytransfer/keytransfer.dat')
 
     @property
     def auth_token_expiration(self):

@@ -18,8 +18,8 @@ with open("nevermined_gateway/version.py") as version_file:
 # or pip install -e .
 install_requirements = [
     # Install squid-py and all its dependencies first
-    'common-utils-py==0.7.5',
-    'contracts-lib-py==0.7.16',
+    'common-utils-py==0.7.7',
+    'contracts-lib-py==0.7.17',
     'nevermined-secret-store==0.1.1',
     'Flask==1.1.2',
     'Flask-Cors==3.0.9',
@@ -28,13 +28,12 @@ install_requirements = [
     'Jinja2>=2.10.1',
     'requests~=2.21.0',
     'gunicorn==19.9.0',
-    'nevermined-metadata-driver-interface>=0.1.5',
+    'nevermined-metadata-driver-interface==0.2.0',
     'nevermined-metadata-driver-azure>=0.1.0',
-    'nevermined-metadata-driver-aws>=0.1.0',
-    'nevermined-metadata-driver-onprem>=0.1.0',
+    'nevermined-metadata-driver-onprem==0.1.0',
     'nevermined-metadata-driver-ipfs>=0.1.0',
     'nevermined-metadata-driver-filecoin>=0.2.1',
-    'nevermined-metadata-driver-aws==0.2.1'
+    'nevermined-metadata-driver-aws==0.2.1',
     'Werkzeug>=0.15.3',
     'ldap3==2.8.1',
     # secp256k1 support was added recently and the latest release of authlib does not included it yet
