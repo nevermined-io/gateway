@@ -29,6 +29,7 @@ from nevermined_gateway.util import (get_provider_account, get_provider_babyjub_
                                      get_asset_url_at_index)
 from web3 import Web3
 from nevermined_gateway.snark_util import call_prover
+from common_utils_py.utils import keytransfer
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +100,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
         elif claims["aud"] == BaseURLs.ASSETS_URL + "/nft-access":
             self.validate_nft_access(claims["sub"], claims["did"], claims["iss"])
         elif claims["aud"] == BaseURLs.ASSETS_URL + "/access-proof":
-            self.validate_access_proof(claims["sub"], claims["did"], claims["buyer"])
+            self.validate_access_proof(claims["sub"], claims["did"], claims["iss"], claims["buyer"], claims["babysig"])
         elif claims["aud"] == BaseURLs.ASSETS_URL + "/download":
             self.validate_owner(claims["did"], claims["iss"])
         elif claims["aud"] == BaseURLs.ASSETS_URL + "/compute":
@@ -161,7 +162,14 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
                 logger.warning(msg)
                 raise InvalidClientError(msg)
 
-    def validate_access_proof(self, agreement_id, did, consumer_address):
+    def validate_access_proof(self, agreement_id, did, eth_address, consumer_address, jubjub_sig):
+        consumer_pub = ['0x'+consumer_address[0:64], '0x'+consumer_address[64:128]]
+        provider_pub = [self.provider_key.x, self.provider_key.y]
+
+        if not keytransfer.verify([int(consumer_pub[0],16), int(consumer_pub[1],16)], int(eth_address,16), jubjub_sig):
+            raise InvalidClientError(
+                    f"ServiceAgreement {agreement_id}: babyjubjub signature doesn't match")
+
         keeper = keeper_instance()
 
         agreement = keeper.agreement_manager.get_agreement(agreement_id)
@@ -178,9 +186,6 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
         logger.info('LockPaymentCondition: %d' % lock_condition_status)
         logger.info('EscrowPaymentCondition: %d' % escrow_condition_status)
 
-        consumer_pub = ['0x'+consumer_address[0:64], '0x'+consumer_address[64:128]]
-        provider_pub = [self.provider_key.x, self.provider_key.y]
-
         if lock_condition_status != ConditionState.Fulfilled.value:
             logger.debug('ServiceAgreement %s was not paid. Forbidden' % agreement_id)
             raise InvalidClientError(
@@ -191,6 +196,16 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
             auth_method = asset.authorization.main['service']
             url = '0x' + get_asset_url_at_index(0, asset, self.provider_account, auth_method)
             res = call_prover(consumer_pub, self.provider_key.secret, url)
+            # check that the condition ID is correct
+            cond_id = keeper.access_proof_condition.generate_id(
+                agreement_id,
+                ['bytes32', 'bytes32', 'bytes32', 'bytes32', 'bytes32'],
+                [res['hash'], consumer_pub[0], consumer_pub[1], provider_pub[0], provider_pub[1]]
+            )
+            if cond_ids[0] != cond_id.hex():
+                raise InvalidClientError(
+                        f"ServiceAgreement {agreement_id}: public key doesn't match {consumer_address}")
+
             fulfill_access_proof_condition(keeper, agreement_id, cond_ids, res['hash'], consumer_pub, provider_pub, res['cipher'], res['proof'], 
                                      self.provider_account)
             fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset,
