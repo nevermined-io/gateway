@@ -4,8 +4,17 @@ LABEL maintainer="Keyko <root@keyko.io>"
 ARG VERSION
 
 RUN apt-get update \
-    && apt-get install gcc gettext-base -y \
+    && apt-get install gcc gettext-base -y sudo cron curl git g++ nasm libgmp-dev libsodium-dev build-essential \
+    && curl -sL https://deb.nodesource.com/setup_14.x | sudo bash - \
+    && sudo apt-get -y install nodejs \
     && apt-get clean
+
+RUN git clone https://github.com/nevermined-io/rapidsnark \
+    && cd rapidsnark \
+    && git submodule update --init --recursive \
+    && sh ./scripts/install-linux.sh \
+    && cd .. \
+    && rm -rf rapidsnark
 
 COPY . /nevermined-gateway
 WORKDIR /nevermined-gateway
@@ -22,6 +31,10 @@ ENV PROVIDER_PASSWORD=''
 ENV PROVIDER_KEYFILE=''
 ENV RSA_PRIVKEY_FILE=''
 ENV RSA_PUBKEY_FILE=''
+
+ENV PROVIDER_BABYJUB_SECRET='abc'
+ENV PROVIDER_BABYJUB_PUBLIC1='0x2e3133fbdaeb5486b665ba78c0e7e749700a5c32b1998ae14f7d1532972602bb'
+ENV PROVIDER_BABYJUB_PUBLIC2='0x0b932f02e59f90cdd761d9d5e7c15c8e620efce4ce018bf54015d68d9cb35561'
 
 ENV AZURE_ACCOUNT_NAME=''
 ENV AZURE_ACCOUNT_KEY=''

@@ -300,7 +300,6 @@ def access_proof(agreement_id, index=0):
             '200',
             content_type=content_type
         )
-        return get_asset(request, requests_session, content_type, url, app.config['CONFIG_FILE'])
 
     except (ValueError, Exception) as e:
         logger.error(f'Error- {str(e)}', exc_info=1)
