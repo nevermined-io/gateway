@@ -23,6 +23,7 @@ from nevermined_gateway.util import (build_download_response, check_auth_token,
                                      is_token_valid, keeper_instance, verify_signature, web3, get_asset)
 from nevermined_gateway import version
 from .utils import get_registered_ddo, get_proof_ddo, place_order, lock_payment, generate_new_id
+from common_utils_py.metadata.metadata import Metadata
 
 PURCHASE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/access/initialize'
 SERVICE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/consume'
@@ -122,6 +123,7 @@ def test_access(client, provider_account, consumer_account):
             keeper.dispenser.request_tokens(50 - consumer_balance, consumer_account)
 
         sa = ServiceAgreement.from_ddo(ServiceTypes.ASSET_ACCESS, ddo)
+        amounts = [0,0]
         lock_payment(agreement_id, ddo.asset_id, sa, amounts, receivers, consumer_account)
         event = keeper.lock_payment_condition.subscribe_condition_fulfilled(
             agreement_id, 15, None, (), wait=True, from_block=0
