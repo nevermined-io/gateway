@@ -15,11 +15,8 @@ logger = logging.getLogger(__name__)
 def fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address, provider_acc):
     access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
 
-<<<<<<< HEAD
     recheck_condition = False
     tx_hash = None
-=======
->>>>>>> origin/master
     if access_condition_status != ConditionState.Fulfilled.value:
         logger.debug('Fulfilling Access condition')
         try:
@@ -33,7 +30,6 @@ def fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_
             else:
                 logger.info('The access condition was already fulfilled')
 
-<<<<<<< HEAD
         if tx_hash and not keeper.access_condition.is_tx_successful(tx_hash):
             recheck_condition = True
 
@@ -44,9 +40,10 @@ def fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_
             return False
         else:
             logger.info('The access condition was already fulfilled')
-=======
+
     access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
     return access_condition_status == ConditionState.Fulfilled.value
+
 
 def fulfill_access_proof_condition(keeper, agreement_id, cond_ids, asset_hash, consumer_address, provider_address, cipher, proof, provider_acc):
     access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
@@ -63,7 +60,6 @@ def fulfill_access_proof_condition(keeper, agreement_id, cond_ids, asset_hash, c
                 logger.error('Error in access proof condition fulfill')
             else:
                 logger.info('The access proof condition was already fulfilled')
->>>>>>> origin/master
 
     access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
     return access_condition_status == ConditionState.Fulfilled.value
