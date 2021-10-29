@@ -16,13 +16,17 @@ def fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_
     access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
 
     recheck_condition = False
+    tx_hash = None
     if access_condition_status != ConditionState.Fulfilled.value:
         logger.debug('Fulfilling Access condition')
         try:
-            keeper.access_condition.fulfill(
+            tx_hash = keeper.access_condition.fulfill(
                 agreement_id, asset_id, consumer_address, provider_acc
             )
         except Exception:
+            recheck_condition = True
+
+        if tx_hash and not keeper.access_condition.is_tx_successful(tx_hash):
             recheck_condition = True
 
     if recheck_condition:

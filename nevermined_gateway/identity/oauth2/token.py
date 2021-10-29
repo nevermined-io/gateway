@@ -116,7 +116,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
             agreement = keeper.agreement_manager.get_agreement(agreement_id)
             cond_ids = agreement.condition_ids
             asset = DIDResolver(keeper.did_registry).resolve(did)
-            asset_id = did.replace(NEVERMINED_PREFIX, "")
+            asset_id = f'0x{did.replace(NEVERMINED_PREFIX, "")}'
 
             access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
             lock_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
@@ -132,8 +132,11 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
                 raise InvalidClientError(
                     f"ServiceAgreement {agreement_id} was not paid, LockPaymentCondition status is {lock_condition_status}")
 
-            fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address,
-                                     self.provider_account)
+            fulfilled = fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address,
+                                                 self.provider_account)
+            if not fulfilled:
+                raise InvalidClientError('Server error fulfilling access condition')
+
             fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset,
                                              self.provider_account)
 
