@@ -143,7 +143,7 @@ def test_download_endpoint(client, provider_account):
     })
     assert response.status_code == 200
 
-
+@pytest.mark.xfail(reason="See https://github.com/nevermined-io/compute-api/issues/33")
 def test_execute_endpoint(client, provider_account, consumer_account):
     ddo_compute = get_registered_compute_ddo(provider_account, providers=[provider_account.address])
     ddo_algorithm = get_registered_algorithm_ddo(consumer_account, providers=[provider_account.address])
