@@ -10,7 +10,7 @@ from common_utils_py.agreements.service_types import ServiceTypes
 from common_utils_py.did import DID, did_to_id, did_to_id_bytes
 from common_utils_py.http_requests.requests_session import get_requests_session
 from common_utils_py.oauth2.token import NeverminedJWTBearerGrant, generate_access_grant_token, \
-    generate_download_grant_token
+    generate_download_grant_token, generate_access_proof_grant_token
 from common_utils_py.utils.utilities import to_checksum_addresses, checksum
 from contracts_lib_py.utils import add_ethereum_prefix_and_hash_msg
 from eth_utils import add_0x_prefix
@@ -19,10 +19,10 @@ from werkzeug.utils import get_content_type
 from nevermined_gateway import constants
 from nevermined_gateway.constants import BaseURLs, ConditionState
 from nevermined_gateway.util import (build_download_response, check_auth_token,
-                                     generate_token, get_download_url, get_provider_account,
+                                     generate_token, get_buyer_public_key, get_download_url, get_provider_account,
                                      is_token_valid, keeper_instance, verify_signature, web3, get_asset)
 from nevermined_gateway import version
-from .utils import get_registered_ddo, place_order, lock_payment, generate_new_id
+from .utils import get_registered_ddo, get_proof_ddo, place_order, lock_payment, generate_new_id
 
 PURCHASE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/access/initialize'
 SERVICE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/consume'
@@ -154,6 +154,59 @@ def test_access(client, provider_account, consumer_account):
         assert response.status == '200 OK'
         assert len(keeper.did_registry.get_provenance_method_events('USED', did_bytes=did_to_id_bytes(ddo.did))) == 1
 
+def test_access_proof(client, provider_account, consumer_account):
+    for method in constants.ConfigSections.DECRYPTION_METHODS:
+        ddo = get_proof_ddo(provider_account, providers=[provider_account.address], auth_service=method)
+
+        # initialize an agreement
+        agreement_id = place_order(provider_account, ddo, consumer_account, ServiceTypes.ASSET_ACCESS_PROOF)
+
+        keeper = keeper_instance()
+        index = 0
+
+        event = keeper.access_proof_template.subscribe_agreement_created(
+            agreement_id, 15, None, (), wait=True, from_block=0
+        )
+        assert event, "Agreement event is not found, check the keeper node's logs"
+
+        consumer_balance = keeper.token.get_token_balance(consumer_account.address)
+        if consumer_balance < 50:
+            keeper.dispenser.request_tokens(50 - consumer_balance, consumer_account)
+
+        sa = ServiceAgreement.from_ddo(ServiceTypes.ASSET_ACCESS_PROOF, ddo)
+        lock_payment(agreement_id, ddo.asset_id, sa, amounts, receivers, consumer_account)
+        event = keeper.lock_payment_condition.subscribe_condition_fulfilled(
+            agreement_id, 15, None, (), wait=True, from_block=0
+        )
+        assert event, "Lock reward condition fulfilled event is not found, check the keeper node's logs"
+
+        # Consume using url index
+
+        # generate the grant token
+        grant_token = generate_access_proof_grant_token(consumer_account, agreement_id, ddo.did, get_buyer_public_key(), "/access-proof")
+
+        # request access token
+        response = client.post("/api/v1/gateway/services/oauth/token", data={
+            "grant_type": NeverminedJWTBearerGrant.GRANT_TYPE,
+            "assertion": grant_token
+        })
+        access_token = response.get_json()["access_token"]
+
+        agreement = keeper.agreement_manager.get_agreement(agreement_id)
+        cond_ids = agreement.condition_ids
+        assert keeper.condition_manager.get_condition_state(cond_ids[0]) == ConditionState.Fulfilled.value
+        assert keeper.condition_manager.get_condition_state(cond_ids[1]) == ConditionState.Fulfilled.value
+        assert keeper.condition_manager.get_condition_state(cond_ids[2]) == ConditionState.Fulfilled.value
+
+        endpoint = BaseURLs.ASSETS_URL + '/access-proof/%s/%d' % (agreement_id, index)
+        response = client.get(
+            endpoint,
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+
+        assert response.status == '200 OK'
+        assert len(keeper.did_registry.get_provenance_method_events('USED', did_bytes=did_to_id_bytes(ddo.did))) == 1
+
 
 def test_download(client, provider_account):
     ddo = get_registered_ddo(provider_account, providers=[provider_account.address])
@@ -170,7 +223,6 @@ def test_download(client, provider_account):
     access_token = response.get_json()["access_token"]
 
     endpoint = BaseURLs.ASSETS_URL + '/download/%d' % (index)
-    print(endpoint)
     response = client.get(
         endpoint,
         headers={"Authorization": f"Bearer {access_token}"}

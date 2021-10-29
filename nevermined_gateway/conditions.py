@@ -15,8 +15,11 @@ logger = logging.getLogger(__name__)
 def fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address, provider_acc):
     access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
 
+<<<<<<< HEAD
     recheck_condition = False
     tx_hash = None
+=======
+>>>>>>> origin/master
     if access_condition_status != ConditionState.Fulfilled.value:
         logger.debug('Fulfilling Access condition')
         try:
@@ -24,8 +27,13 @@ def fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_
                 agreement_id, asset_id, consumer_address, provider_acc
             )
         except Exception:
-            recheck_condition = True
+            access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
+            if access_condition_status != ConditionState.Fulfilled.value:
+                logger.error('Error in access condition fulfill')
+            else:
+                logger.info('The access condition was already fulfilled')
 
+<<<<<<< HEAD
         if tx_hash and not keeper.access_condition.is_tx_successful(tx_hash):
             recheck_condition = True
 
@@ -36,6 +44,26 @@ def fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_
             return False
         else:
             logger.info('The access condition was already fulfilled')
+=======
+    access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
+    return access_condition_status == ConditionState.Fulfilled.value
+
+def fulfill_access_proof_condition(keeper, agreement_id, cond_ids, asset_hash, consumer_address, provider_address, cipher, proof, provider_acc):
+    access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
+
+    if access_condition_status != ConditionState.Fulfilled.value:
+        logger.info('Fulfilling Access proof condition')
+        try:
+            keeper.access_proof_condition.fulfill(
+                agreement_id, asset_hash, consumer_address, provider_address, cipher, proof, provider_acc
+            )
+        except Exception:
+            access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
+            if access_condition_status != ConditionState.Fulfilled.value:
+                logger.error('Error in access proof condition fulfill')
+            else:
+                logger.info('The access proof condition was already fulfilled')
+>>>>>>> origin/master
 
     access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
     return access_condition_status == ConditionState.Fulfilled.value
@@ -84,7 +112,6 @@ def fulfill_nft_holder_and_access_condition(keeper, agreement_id, cond_ids, asse
 def fulfill_compute_condition(keeper, agreement_id, cond_ids, asset_id, consumer_address, provider_acc):
     compute_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
 
-    recheck_condition = False
     if compute_condition_status != ConditionState.Fulfilled.value:
         logger.debug('Fulfilling Compute condition')
         try:
@@ -92,15 +119,11 @@ def fulfill_compute_condition(keeper, agreement_id, cond_ids, asset_id, consumer
                 agreement_id, asset_id, consumer_address, provider_acc
             )
         except Exception:
-            recheck_condition = True
-
-    if recheck_condition:
-        compute_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
-        if compute_condition_status != ConditionState.Fulfilled.value:
-            logger.error('Error in compute condition fulfill')
-            return False
-        else:
-            logger.info('The compute condition was already fulfilled')
+            compute_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
+            if compute_condition_status != ConditionState.Fulfilled.value:
+                logger.error('Error in compute condition fulfill')
+            else:
+                logger.info('The compute condition was already fulfilled')
 
     compute_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
     return compute_condition_status == ConditionState.Fulfilled.value
@@ -122,7 +145,6 @@ def fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset, prov
         if token_address is None or len(token_address) == 0:
             token_address = keeper.token.address
 
-        recheck_condition = False
         try:
             keeper.escrow_payment_condition.fulfill(
                 add_0x_prefix(agreement_id),
@@ -136,13 +158,9 @@ def fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset, prov
                 provider_acc
             )
         except Exception:
-            recheck_condition = True
-
-        if recheck_condition:
             escrow_condition_status = keeper.condition_manager.get_condition_state(cond_ids[2])
             if escrow_condition_status != ConditionState.Fulfilled.value:
                 logger.error('Error in escrowReward fulfill')
-                return False
             else:
                 logger.info('The escrowReward condition was already fulfilled')
 

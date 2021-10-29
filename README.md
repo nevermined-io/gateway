@@ -73,6 +73,7 @@ export PROVIDER_KEYFILE=tests/resources/data/publisher_key_file.json
 export RSA_PRIVKEY_FILE=tests/resources/data/rsa_priv_key.pem
 export RSA_PUBKEY_FILE=tests/resources/data/rsa_pub_key.pem
 export CONFIG_FILE=config.ini
+export AUTHLIB_INSECURE_TRANSPORT=true
 
 ./scripts/wait_for_migration_and_extract_keeper_artifacts.sh
 flask run --port=8030
@@ -85,6 +86,14 @@ openssl genrsa -out tests/resources/data/rsa_priv_key.pem 1024
 openssl rsa -in tests/resources/data/rsa_priv_key.pem -pubout -out tests/resources/data/rsa_pub_key.pem
 ```
 
+```bash
+export PROVIDER_BABYJUB_SECRET=abc
+export BUYER_BABYJUB_SECRET=abd
+export PROVIDER_BABYJUB_PUBLIC1=0x2e3133fbdaeb5486b665ba78c0e7e749700a5c32b1998ae14f7d1532972602bb
+export PROVIDER_BABYJUB_PUBLIC2=0x0b932f02e59f90cdd761d9d5e7c15c8e620efce4ce018bf54015d68d9cb35561
+export BUYER_BABYJUB_PUBLIC1=0x0d7cdd240c2f5b0640839c49fbaaf016a8c5571b8f592e2b62ea939063545981
+export BUYER_BABYJUB_PUBLIC2=0x14b14fa0a30ec744dde9f32d519c65ebaa749bfe991a32deea44b83a4e5c65bb
+```
 
 That will use HTTP (i.e. not SSL/TLS).
 
