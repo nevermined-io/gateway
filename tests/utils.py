@@ -97,7 +97,7 @@ def get_registered_ddo(account, providers=None, auth_service='PSK-RSA', url=get_
         "price": metadata[MetadataMain.KEY]['price'],
         "timeout": 3600,
         "datePublished": metadata[MetadataMain.KEY]['dateCreated'],
-        "_amounts": list(map(lambda a: 0, _amounts)),
+        "_amounts": _amounts,
         "_receivers": _receivers
     }}
 
