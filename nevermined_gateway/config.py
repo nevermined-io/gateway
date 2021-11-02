@@ -5,6 +5,8 @@ import logging
 import os
 from pathlib import Path
 
+DEFAULT_NAME_METADATA_URL = 'http://172.17.0.1:5000'
+
 NAME_KEEPER_URL = 'keeper.url'
 NAME_KEEPER_PATH = 'keeper.path'
 NAME_AUTH_TOKEN_MESSAGE = 'auth_token_message'
@@ -16,6 +18,7 @@ NAME_COMPUTE_API_URL = 'compute_api.url'
 
 KEYTRANSFER_ZKEY_FILE = 'zkey'
 KEYTRANSFER_DAT_FILE = 'dat'
+NAME_METADATA_URL = 'metadata.url'
 
 environ_names = {
     NAME_KEEPER_URL: ['KEEPER_URL', 'Keeper URL'],
@@ -29,6 +32,7 @@ environ_names = {
     NAME_COMPUTE_API_URL: ['COMPUTE_API_URL', 'Compute API URL'],
     KEYTRANSFER_ZKEY_FILE: ['KEYTRANSFER_ZKEY_FILE', 'zkey file for keytransfer'],
     KEYTRANSFER_DAT_FILE: ['KEYTRANSFER_DAT_FILE', 'dat file for keytransfer'],
+    NAME_METADATA_URL: ['METADATA_URL', 'Metadata URL'],
 }
 
 
@@ -166,3 +170,8 @@ class Config(configparser.ConfigParser):
     @property
     def external_contracts(self):
         return self._external_contracts
+    
+    @property
+    def metadata_url(self):
+        """URL of metadata component. (e.g.): http://mymetadata:5000."""
+        return self.get('resources', NAME_METADATA_URL, fallback=DEFAULT_NAME_METADATA_URL)

@@ -235,6 +235,10 @@ def get_buyer_public_key():
     public2 = os.getenv('BUYER_BABYJUB_PUBLIC2', '')
     return [public1, public2]
 
+def get_buyer_secret_key():
+    secret = os.getenv('BUYER_BABYJUB_SECRET', '')
+    return secret
+
 def get_env_property(env_variable, property_name):
     return getenv(
         env_variable,

@@ -19,10 +19,11 @@ from werkzeug.utils import get_content_type
 from nevermined_gateway import constants
 from nevermined_gateway.constants import BaseURLs, ConditionState
 from nevermined_gateway.util import (build_download_response, check_auth_token,
-                                     generate_token, get_buyer_public_key, get_download_url, get_provider_account,
+                                     generate_token, get_buyer_public_key, get_buyer_secret_key, get_download_url, get_provider_account,
                                      is_token_valid, keeper_instance, verify_signature, web3, get_asset)
 from nevermined_gateway import version
 from .utils import get_registered_ddo, get_proof_ddo, place_order, lock_payment, generate_new_id
+from common_utils_py.metadata.metadata import Metadata
 
 PURCHASE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/access/initialize'
 SERVICE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/consume'
@@ -183,7 +184,7 @@ def test_access_proof(client, provider_account, consumer_account):
         # Consume using url index
 
         # generate the grant token
-        grant_token = generate_access_proof_grant_token(consumer_account, agreement_id, ddo.did, get_buyer_public_key(), "/access-proof")
+        grant_token = generate_access_proof_grant_token(consumer_account, agreement_id, ddo.did, get_buyer_secret_key(), "/access-proof")
 
         # request access token
         response = client.post("/api/v1/gateway/services/oauth/token", data={
