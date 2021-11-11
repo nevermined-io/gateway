@@ -69,6 +69,7 @@ jobs:
         # the latest version of pip (version 20.3) seems to have a lot of problems
         pip install pip==20.2.4
         pip install -r requirements_dev.txt
+        pip install awscli --ignore-installed six
     - name: Test with pytest
       run: |
         export PROVIDER_ADDRESS=0x00bd138abd70e2f00903268f3db08f2d25677c9e
