@@ -21,6 +21,8 @@ WORKDIR /nevermined-gateway
 
 RUN pip install pip==20.2.4
 RUN pip install .
+# Installing aws dependency here to avoid conflicts with urlib3
+RUN pip install awscli --ignore-installed six
 
 # config.ini configuration file variables
 ENV KEEPER_URL='http://127.0.0.1:8545'
