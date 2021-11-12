@@ -87,7 +87,11 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
         metadata_api = Metadata(self.config.metadata_url)
         ddo = metadata_api.get_asset_ddo(did)
         aservice = ddo.get_service(service_type)
-        (id1, id2, id3) = aservice.generate_agreement_condition_ids(agreement_id, asset_id, consumer_address, keeper)
+        token_address = None
+        list_services_filtered = list(filter(lambda x: x.type == 'access', ddo.services))
+        if len(list_services_filtered) > 0:
+            token_address = list_services_filtered[0].main['_tokenAddress']
+        (id1, id2, id3) = aservice.generate_agreement_condition_ids(agreement_id, asset_id, consumer_address, keeper, token_address)
         ids = [id1, id2, id3]
         if ids != cond_ids:
             raise InvalidClientError(f"ServiceAgreement {agreement_id} doesn't match ddo")
