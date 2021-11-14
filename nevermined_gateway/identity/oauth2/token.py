@@ -89,7 +89,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
         aservice = ddo.get_service(service_type)
         token_address = None
         list_services_filtered = list(filter(lambda x: x.type == 'access', ddo.services))
-        if len(list_services_filtered) > 0:
+        if len(list_services_filtered) > 0 and '_tokenAddress' in list_services_filtered[0].main:
             token_address = list_services_filtered[0].main['_tokenAddress']
         (id1, id2, id3) = aservice.generate_agreement_condition_ids(agreement_id, asset_id, consumer_address, keeper, token_address)
         ids = [id1, id2, id3]
