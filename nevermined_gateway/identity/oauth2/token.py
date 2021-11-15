@@ -87,10 +87,9 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
         metadata_api = Metadata(self.config.metadata_url)
         ddo = metadata_api.get_asset_ddo(did)
         aservice = ddo.get_service(service_type)
-        token_address = None
-        list_services_filtered = list(filter(lambda x: x.type == 'access', ddo.services))
-        if len(list_services_filtered) > 0 and '_tokenAddress' in list_services_filtered[0].main:
-            token_address = list_services_filtered[0].main['_tokenAddress']
+        token_address = aservice.get_param_value_by_name('_tokenAddress')
+        if token_address is None or len(token_address) == 0:
+            token_address = keeper.token.address
         (id1, id2, id3) = aservice.generate_agreement_condition_ids(agreement_id, asset_id, consumer_address, keeper, token_address)
         ids = [id1, id2, id3]
         if ids != cond_ids:
