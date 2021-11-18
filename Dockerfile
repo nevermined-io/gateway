@@ -54,7 +54,6 @@ ENV AZURE_SHARE_INPUT='compute'
 ENV AZURE_SHARE_OUTPUT='output'
 
 ENV GATEWAY_URL='http://0.0.0.0:8030'
-ENV NAME_METADATA_URL='http://127.0.0.1:8545'
 
 # docker-entrypoint.sh configuration file variables
 ENV GATEWAY_WORKERS='1'

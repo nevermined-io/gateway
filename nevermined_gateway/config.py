@@ -170,8 +170,3 @@ class Config(configparser.ConfigParser):
     @property
     def external_contracts(self):
         return self._external_contracts
-    
-    @property
-    def metadata_url(self):
-        """URL of metadata component. (e.g.): http://mymetadata:5000."""
-        return self.get('resources', NAME_METADATA_URL, fallback=DEFAULT_NAME_METADATA_URL)

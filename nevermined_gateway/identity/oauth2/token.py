@@ -84,8 +84,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
         return possible_public_keys[0]
 
     def check_ddo(self, did, agreement_id, asset_id, consumer_address, keeper, cond_ids, service_type):
-        metadata_api = Metadata(self.config.metadata_url)
-        ddo = metadata_api.get_asset_ddo(did)
+        ddo = DIDResolver(keeper.did_registry).resolve(did)
         aservice = ddo.get_service(service_type)
         token_address = aservice.get_param_value_by_name('_tokenAddress')
         if token_address is None or len(token_address) == 0:
@@ -225,7 +224,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
                 raise InvalidClientError(
                         f"ServiceAgreement {agreement_id}: public key doesn't match {consumer_address}")
 
-            fulfill_access_proof_condition(keeper, agreement_id, cond_ids, res['hash'], consumer_pub, provider_pub, res['cipher'], res['proof'], 
+            fulfill_access_proof_condition(keeper, agreement_id, cond_ids, res['hash'], consumer_pub, provider_pub, res['cipher'], res['proof'],
                                      self.provider_account)
             fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset,
                                              self.provider_account, ServiceTypes.ASSET_ACCESS_PROOF)
@@ -263,14 +262,13 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
             agreement = keeper.agreement_manager.get_agreement(agreement_id)
             cond_ids = agreement.condition_ids
             access_cond_id = cond_ids[1]
-            metadata_api = Metadata(self.config.metadata_url)
-            ddo = metadata_api.get_asset_ddo(did)
+            ddo = DIDResolver(keeper.did_registry).resolve(did)
 
             nft_access_service_agreement = ServiceAgreement.from_ddo(service_type, ddo)
 
             (nft_access_cond_id, nft_holder_cond_id) = nft_access_service_agreement.generate_agreement_condition_ids(agreement_id, asset_id, consumer_address, keeper)
             if [nft_holder_cond_id, nft_access_cond_id] != cond_ids:
-                raise InvalidClientError(f"ServiceAgreement {agreement_id} doesn't match ddo")                
+                raise InvalidClientError(f"ServiceAgreement {agreement_id} doesn't match ddo")
 
             if not is_nft_access_condition_fulfilled(
                     agreement_id,
