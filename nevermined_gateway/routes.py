@@ -357,7 +357,7 @@ def nft_access(agreement_id, index=0):
         return f'Error : {str(e)}', 500
 
 
-@services.route('/nft-transfer/', methods=['POST'])
+@services.route('/nft-transfer', methods=['POST'])
 def nft_transfer():
     """Allows the provider transfer and release the rewards.
     swagger_from_file: docs/nft_access.yml
@@ -397,7 +397,7 @@ def nft_transfer():
         return msg, 402
 
     if not is_nft_transfer_approved(nft_holder_address, get_provider_account().address, keeper):
-        msg = f'Gateway is not approved to transfer nfts from {nft_holder_address}'
+        msg = f'Gateway ({get_provider_account().address}) is not approved to transfer nfts from {nft_holder_address}'
         logger.warning(msg)
         return msg, 405
 
