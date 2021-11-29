@@ -6,6 +6,9 @@ from authlib.jose.errors import BadSignatureError
 from common_utils_py.did import id_to_did, NEVERMINED_PREFIX
 from common_utils_py.did_resolver.did_resolver import DIDResolver
 from common_utils_py.http_requests.requests_session import get_requests_session
+from common_utils_py.agreements.service_agreement import ServiceAgreement
+from common_utils_py.agreements.service_types import ServiceTypes
+
 from common_utils_py.utils.crypto import (ecdsa_encryption_from_file,
                                           get_ecdsa_public_key_from_file,
                                           rsa_encryption_from_file)
@@ -14,8 +17,10 @@ from flask import Blueprint, jsonify, request
 from flask.wrappers import Response
 from secret_store_client.client import RPCError
 from authlib.integrations.flask_oauth2 import current_token
+from web3 import Web3
 
 from nevermined_gateway import constants
+from nevermined_gateway.conditions import fulfill_for_delegate_nft_transfer_condition
 from nevermined_gateway.identity.oauth2.authorization_server import create_authorization_server
 from nevermined_gateway.identity.oauth2.resource_server import create_resource_server
 from nevermined_gateway.log import setup_logging
@@ -24,9 +29,9 @@ from nevermined_gateway.util import (check_required_attributes,
                                      do_secret_store_encrypt, get_asset_url_at_index, get_config,
                                      get_provider_account, get_provider_key_file,
                                      get_provider_password, get_rsa_public_key_file,
-                                     is_access_granted, keeper_instance,
+                                     is_access_granted, is_nft_transfer_approved, is_nft_transfer_condition_fulfilled, keeper_instance,
                                      setup_keeper, upload_file, used_by, verify_signature, was_compute_triggered,
-                                     get_asset, generate_random_id)
+                                     get_asset, generate_random_id, is_lock_payment_condition_fulfilled)
 
 setup_logging()
 services = Blueprint('services', __name__)
@@ -351,6 +356,72 @@ def nft_access(agreement_id, index=0):
         logger.error(f'Error- {str(e)}', exc_info=1)
         return f'Error : {str(e)}', 500
 
+
+@services.route('/nft-transfer/', methods=['POST'])
+def nft_transfer():
+    """Allows the provider transfer and release the rewards.
+    swagger_from_file: docs/nft_access.yml
+    """
+    required_attributes = ['agreementId', 'nftHolder', 'nftReceiver', 'nftAmount']
+    data = request.json
+
+    msg, status = check_required_attributes(required_attributes, data, 'nft-transfer')
+    if msg:
+        return msg, status
+
+    agreement_id = data.get('agreementId')
+    nft_holder_address = data.get('nftHolder')
+    nft_receiver_address = data.get('nftReceiver')
+    nft_amount = data.get('nftAmount')
+
+    keeper = keeper_instance()
+    agreement = keeper.agreement_manager.get_agreement(agreement_id)
+    did = id_to_did(agreement.did)
+    ddo  = DIDResolver(keeper.did_registry).resolve(did)
+
+    try:
+        ServiceAgreement.from_ddo(ServiceTypes.NFT_SALES, ddo)
+    except ValueError as e:
+        logger.error('nft-sales service not found on ddo for %s', did)
+        return str(e), 400
+
+    (
+        lock_payment_condition_id,
+        nft_transfer_condition_id,
+        escrow_payment_condition_id
+    ) = agreement.condition_ids
+
+    if not is_lock_payment_condition_fulfilled(lock_payment_condition_id, keeper):
+        msg = f'lockPayment condition for agreement_id={agreement_id} is not fulfilled'
+        logger.warning(msg)
+        return msg, 402
+
+    if not is_nft_transfer_approved(nft_holder_address, get_provider_account().address, keeper):
+        msg = f'Gateway is not approved to transfer nfts from {nft_holder_address}'
+        logger.warning(msg)
+        return msg, 405
+
+    # fulfill transferNFT condition
+    if not is_nft_transfer_condition_fulfilled(nft_transfer_condition_id, keeper):
+        logger.debug('NFTTransfer condition not fulfilled')
+        result = fulfill_for_delegate_nft_transfer_condition(
+            agreement_id,
+            agreement.did,
+            Web3.toChecksumAddress(nft_holder_address),
+            Web3.toChecksumAddress(nft_receiver_address),
+            nft_amount,
+            lock_payment_condition_id,
+            keeper
+        )
+        if result is False:
+            msg = f'There was an error fulfilling the NFTTransfer condition for agreement_id={agreement_id}'
+            logger.error(msg)
+            return msg, 500
+
+
+    # fulfill escrowPayment condition
+
+    return 'Not Implemented', 500
 
 @services.route('/execute/<agreement_id>', methods=['POST'])
 @require_oauth()

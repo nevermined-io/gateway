@@ -9,7 +9,7 @@ from os import getenv
 
 from common_utils_py.did import did_to_id, convert_to_bytes
 from common_utils_py.utils.crypto import ecdsa_decryption, rsa_decryption_aes
-from contracts_lib_py import Keeper
+from contracts_lib_py import Keeper, keeper
 from contracts_lib_py.contract_handler import ContractHandler
 from contracts_lib_py.utils import add_ethereum_prefix_and_hash_msg, get_account
 from contracts_lib_py.web3_provider import Web3Provider
@@ -133,6 +133,17 @@ def is_access_granted(agreement_id, did, consumer_address, keeper):
     logger.info(is_granted)
     return is_granted
 
+
+def is_lock_payment_condition_fulfilled(lock_payment_condition_id, keeper):
+    return keeper.condition_manager.get_condition_state(lock_payment_condition_id) == ConditionState.Fulfilled.value
+
+
+def is_nft_transfer_condition_fulfilled(nft_transfer_condition_id, keeper):
+    return keeper.condition_manager.get_condition_state(nft_transfer_condition_id) == ConditionState.Fulfilled.value
+
+
+def is_nft_transfer_approved(account_address, operator_address, keeper):
+    return keeper.did_registry.is_nft_approved_for_all(account_address, operator_address)
 
 def is_nft_access_condition_fulfilled(agreement_id, access_cond_id, consumer_address, keeper):
     agreement_consumer = keeper.nft_access_template.get_agreement_consumer(agreement_id)
