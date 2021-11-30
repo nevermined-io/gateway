@@ -24,6 +24,8 @@ def test_nft_access(client, provider_account, consumer_account):
     (nft_access_cond_id, nft_holder_cond_id) = nft_access_service_agreement.generate_agreement_condition_ids(
         agreement_id, asset_id, consumer_account.address, keeper)
 
+    print('NFT_ACCESS_DID: ' + asset_id)
+
     keeper.nft_access_template.create_agreement(
         agreement_id,
         asset_id,
@@ -120,6 +122,7 @@ def test_nft_transfer(client, provider_account, consumer_account):
     nft_amounts = 1
     agreement_id = ServiceAgreement.create_new_agreement_id()
 
+    print('NFT_SALES_DID: ' + asset_id)
 
     nft_sales_service_agreement = ServiceAgreement.from_ddo(ServiceTypes.NFT_SALES, ddo)
     (

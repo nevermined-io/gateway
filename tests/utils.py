@@ -1,3 +1,4 @@
+import copy
 import json
 from nevermined_gateway.snark_util import poseidon_hash
 import uuid
@@ -167,10 +168,7 @@ def get_nft_ddo(account, providers=None, auth_service='PSK-RSA'):
     transfer_nft_condition = ddo['service'][1]['attributes']['serviceAgreementTemplate']['conditions'][1]
     _nftHolder = get_param_value_by_name(transfer_nft_condition['parameters'], '_nftHolder')
 
-
-    _total_price = 0
-    for i in _amounts:
-        _total_price += int(i)
+    _total_price = sum(int(x) for x in _amounts)
 
     asset_rewards = {
         "_amounts": _amounts,
@@ -190,7 +188,7 @@ def get_nft_ddo(account, providers=None, auth_service='PSK-RSA'):
         "datePublished": metadata['main']['dateCreated']
     }}
 
-    sales_service_attributes = access_service_attributes
+    sales_service_attributes = copy.deepcopy(access_service_attributes)
     sales_service_attributes['main']['name'] = 'nftSalesAgreement'
     sales_service_attributes['main']['_nftHolder'] = _nftHolder
 
@@ -401,6 +399,9 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
                 del file['url']
             metadata['encryptedFiles'] = encrypted_files
 
+    ddo_with_did = DDO(did, json_text=ddo.as_text().replace('/{did}', '/' + did))
+    ddo_service_endpoint = ddo_service_endpoint.replace('/{did}', '/' + did)
+
     if mint > 0 or royalties is not None or cap is not None:
         keeper.did_registry.register_mintable_did(
             did_seed,
@@ -421,8 +422,8 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
             account=account,
             providers=providers
         )
-    metadata_api.publish_asset_ddo(ddo)
-    return ddo
+    metadata_api.publish_asset_ddo(ddo_with_did)
+    return ddo_with_did
 
 
 def place_order(provider_account, ddo, consumer_account, service_type=ServiceTypes.ASSET_ACCESS):
