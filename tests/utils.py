@@ -410,7 +410,7 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
             cap=cap,
             royalties=royalties,
             account=account,
-            providers=None
+            providers=providers
         )
         if mint > 0:
             keeper.did_registry.mint(ddo.asset_id, mint, account=account)

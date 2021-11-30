@@ -66,6 +66,14 @@ def consumer_account():
     return get_account(1)
 
 
+@pytest.fixture
+def publisher_account():
+    os.environ['PARITY_ADDRESS2'] = '0xa99d43d86a0758d5632313b8fa3972b6088a21bb'
+    os.environ['PARITY_PASSWORD2'] = 'secret'
+    os.environ['PARITY_KEYFILE2'] = 'tests/resources/data/publisher2_key_file.json'
+    return get_account(2)
+
+
 def get_sample_ddo():
     return json.loads(urlopen(
         'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs'
