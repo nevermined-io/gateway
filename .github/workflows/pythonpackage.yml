@@ -14,6 +14,7 @@ jobs:
 
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: [3.7]
         network: ['--spree-embedded-contracts', '--polygon']
@@ -80,7 +81,7 @@ jobs:
         export AUTHLIB_INSECURE_TRANSPORT=true
         export INFURA_TOKEN=${{ secrets.INFURA_TOKEN }}
 
-        export PROVIDER_BABYJUB_SECRET=abc                              
+        export PROVIDER_BABYJUB_SECRET=abc
         export BUYER_BABYJUB_SECRET=abd
         export PROVIDER_BABYJUB_PUBLIC1=0x2e3133fbdaeb5486b665ba78c0e7e749700a5c32b1998ae14f7d1532972602bb
         export PROVIDER_BABYJUB_PUBLIC2=0x0b932f02e59f90cdd761d9d5e7c15c8e620efce4ce018bf54015d68d9cb35561
