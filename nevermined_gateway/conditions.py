@@ -1,12 +1,15 @@
 import logging
 
 from common_utils_py.agreements.service_types import ServiceTypes
+from common_utils_py.did import did_to_id
 from common_utils_py.utils.utilities import to_checksum_addresses
 from contracts_lib_py.web3_provider import Web3Provider
 from eth_utils import add_0x_prefix
+from eth_utils.hexadecimal import remove_0x_prefix
 
 from nevermined_gateway.constants import ConditionState
 from nevermined_gateway.log import setup_logging
+from nevermined_gateway.util import get_provider_account
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -162,3 +165,21 @@ def fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset, prov
 
     escrow_condition_status = keeper.condition_manager.get_condition_state(cond_ids[2])
     return escrow_condition_status == ConditionState.Fulfilled.value
+
+
+def fulfill_for_delegate_nft_transfer_condition(agreement_id, did, nft_holder_address, nft_receiver_address,
+                                   nft_amount, lock_payment_condition_id, keeper):
+
+    logger.debug('Fulfilling NFTTransfer condition')
+    tx_hash = keeper.transfer_nft_condition.fulfill_for_delegate(
+        agreement_id,
+        did,
+        nft_holder_address,
+        nft_receiver_address,
+        nft_amount,
+        lock_payment_condition_id,
+        get_provider_account()
+    )
+
+    return keeper.transfer_nft_condition.is_tx_successful(tx_hash)
+

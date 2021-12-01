@@ -1,11 +1,12 @@
+import time
 from common_utils_py.agreements.service_agreement import ServiceAgreement
 from common_utils_py.agreements.service_types import ServiceTypes
 from common_utils_py.did import did_to_id_bytes
 from common_utils_py.oauth2.token import NeverminedJWTBearerGrant, generate_access_grant_token
 
-from nevermined_gateway.constants import BaseURLs
-from nevermined_gateway.util import (keeper_instance)
-from .utils import get_nft_ddo
+from nevermined_gateway.constants import BaseURLs, ConditionState
+from nevermined_gateway.util import get_provider_account, keeper_instance, init_account_envvars
+from .utils import get_nft_ddo, lock_payment
 
 
 def test_nft_access(client, provider_account, consumer_account):
@@ -23,6 +24,8 @@ def test_nft_access(client, provider_account, consumer_account):
 
     (nft_access_cond_id, nft_holder_cond_id) = nft_access_service_agreement.generate_agreement_condition_ids(
         agreement_id, asset_id, consumer_account.address, keeper)
+
+    print('NFT_ACCESS_DID: ' + asset_id)
 
     keeper.nft_access_template.create_agreement(
         agreement_id,
@@ -109,3 +112,99 @@ def test_nft_access_no_balance(client, provider_account, consumer_account):
     )
 
     assert response.status != '200 OK'
+
+
+def test_nft_transfer(client, provider_account, consumer_account, publisher_account):
+    print('PROVIDER_ACCOUNT= ' + provider_account.address)
+    print('PUBLISHER_ACCOUNT= ' + publisher_account.address)
+    print('CONSUMER_ACCOUNT= ' + consumer_account.address)
+
+    keeper = keeper_instance()
+    ddo = get_nft_ddo(publisher_account, providers=[provider_account.address])
+    asset_id = ddo.asset_id
+    nft_amounts = 1
+    agreement_id = ServiceAgreement.create_new_agreement_id()
+
+    print('NFT_SALES_DID: ' + asset_id)
+
+    nft_sales_service_agreement = ServiceAgreement.from_ddo(ServiceTypes.NFT_SALES, ddo)
+    (
+        transfer_nft_condition_id,
+        lock_payment_condition_id,
+        escrow_payment_condition_id
+    ) = nft_sales_service_agreement.generate_agreement_condition_ids(
+        agreement_id,
+        asset_id,
+        consumer_account.address,
+        keeper
+    )
+
+    keeper.nft_sales_template.create_agreement(
+        agreement_id,
+        asset_id,
+        [lock_payment_condition_id, transfer_nft_condition_id, escrow_payment_condition_id],
+        nft_sales_service_agreement.conditions_timelocks,
+        nft_sales_service_agreement.conditions_timeouts,
+        consumer_account.address,
+        consumer_account
+    )
+    event = keeper.nft_sales_template.subscribe_agreement_created(
+        agreement_id, 15, None, (), wait=True, from_block=0
+    )
+    assert event, "Agreement event is not found, check the keeper node's logs"
+
+    agreement = keeper.agreement_manager.get_agreement(agreement_id)
+    cond_ids = agreement.condition_ids
+
+    keeper.token.token_approve(
+        keeper.lock_payment_condition.address,
+        nft_sales_service_agreement.get_price(),
+        consumer_account
+    )
+
+    keeper.dispenser.request_tokens(50, consumer_account)
+
+    lock_payment(
+        agreement_id,
+        ddo.asset_id,
+        nft_sales_service_agreement,
+        nft_sales_service_agreement.get_amounts_int(),
+        nft_sales_service_agreement.get_receivers(),
+        consumer_account
+    )
+    event = keeper.lock_payment_condition.subscribe_condition_fulfilled(
+            agreement_id, 15, None, (), wait=True, from_block=0
+        )
+    assert event, "Lock reward condition fulfilled event is not found, check the keeper " \
+                  "node's logs"
+
+    keeper.nft_upgreadeable.set_approval_for_all(
+        get_provider_account().address,
+        True,
+        publisher_account
+    )
+
+    time.sleep(10)
+
+    is_approved = keeper.nft_upgreadeable.is_approved_for_all(
+        publisher_account.address,
+        provider_account.address
+    )
+    assert is_approved is True
+
+    response = client.post(
+        BaseURLs.ASSETS_URL + '/nft-transfer',
+        json={
+            'agreementId': agreement_id,
+            'nftHolder': publisher_account.address,
+            'nftReceiver': consumer_account.address,
+            'nftAmount': nft_amounts
+        }
+    )
+    assert response.status_code == 200
+
+    assert keeper.condition_manager.get_condition_state(cond_ids[0]) == ConditionState.Fulfilled.value
+    assert keeper.condition_manager.get_condition_state(cond_ids[1]) == ConditionState.Fulfilled.value
+    assert keeper.condition_manager.get_condition_state(cond_ids[2]) == ConditionState.Fulfilled.value
+
+

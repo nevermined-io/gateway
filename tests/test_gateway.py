@@ -155,6 +155,8 @@ def test_access(client, provider_account, consumer_account):
         assert response.status == '200 OK'
         assert len(keeper.did_registry.get_provenance_method_events('USED', did_bytes=did_to_id_bytes(ddo.did))) == 1
 
+
+@pytest.mark.skip(reason="See https://github.com/nevermined-io/common-utils-py/issues/40")
 def test_access_proof(client, provider_account, consumer_account):
     for method in constants.ConfigSections.DECRYPTION_METHODS:
         ddo = get_proof_ddo(provider_account, providers=[provider_account.address], auth_service=method)
