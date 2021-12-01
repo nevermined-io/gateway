@@ -7,7 +7,7 @@ from common_utils_py.did import id_to_did, NEVERMINED_PREFIX
 from common_utils_py.did_resolver.did_resolver import DIDResolver
 from common_utils_py.http_requests.requests_session import get_requests_session
 from common_utils_py.agreements.service_agreement import ServiceAgreement
-from common_utils_py.agreements.service_types import ServiceTypes
+from common_utils_py.agreements.service_types import ServiceAuthorizationTypes, ServiceTypes
 
 from common_utils_py.utils.crypto import (ecdsa_encryption_from_file,
                                           get_ecdsa_public_key_from_file,
@@ -20,7 +20,7 @@ from authlib.integrations.flask_oauth2 import current_token
 from web3 import Web3
 
 from nevermined_gateway import constants
-from nevermined_gateway.conditions import fulfill_for_delegate_nft_transfer_condition
+from nevermined_gateway.conditions import fulfill_escrow_payment_condition, fulfill_for_delegate_nft_transfer_condition
 from nevermined_gateway.identity.oauth2.authorization_server import create_authorization_server
 from nevermined_gateway.identity.oauth2.resource_server import create_resource_server
 from nevermined_gateway.log import setup_logging
@@ -29,7 +29,7 @@ from nevermined_gateway.util import (check_required_attributes,
                                      do_secret_store_encrypt, get_asset_url_at_index, get_config,
                                      get_provider_account, get_provider_key_file,
                                      get_provider_password, get_rsa_public_key_file,
-                                     is_access_granted, is_nft_transfer_approved, is_nft_transfer_condition_fulfilled, keeper_instance,
+                                     is_access_granted, is_escrow_payment_condition_fulfilled, is_nft_transfer_approved, is_nft_transfer_condition_fulfilled, keeper_instance,
                                      setup_keeper, upload_file, used_by, verify_signature, was_compute_triggered,
                                      get_asset, generate_random_id, is_lock_payment_condition_fulfilled)
 
@@ -420,8 +420,26 @@ def nft_transfer():
 
 
     # fulfill escrowPayment condition
+    if not is_escrow_payment_condition_fulfilled(escrow_payment_condition_id, keeper):
+        logger.debug('EscrowPayment condition not fulfilled')
+        result = fulfill_escrow_payment_condition(
+            keeper,
+            agreement_id,
+            [
+                nft_transfer_condition_id,
+                lock_payment_condition_id,
+                escrow_payment_condition_id
+            ],
+            ddo,
+            get_provider_account(),
+            service_type=ServiceTypes.NFT_SALES
+        )
+        if result is False:
+            msg = f'There was an error fulfilling the EscrowPayment condition for agreement_id={agreement_id}'
+            logger.error(msg)
+            return msg, 500
 
-    return 'Not Implemented', 500
+    return '', 201
 
 @services.route('/execute/<agreement_id>', methods=['POST'])
 @require_oauth()
