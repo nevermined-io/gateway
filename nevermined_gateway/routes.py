@@ -360,7 +360,7 @@ def nft_access(agreement_id, index=0):
 @services.route('/nft-transfer', methods=['POST'])
 def nft_transfer():
     """Allows the provider transfer and release the rewards.
-    swagger_from_file: docs/nft_access.yml
+    swagger_from_file: docs/nft_transfer.yml
     """
     required_attributes = ['agreementId', 'nftHolder', 'nftReceiver', 'nftAmount']
     data = request.json
@@ -439,7 +439,7 @@ def nft_transfer():
             logger.error(msg)
             return msg, 500
 
-    return '', 201
+    return 'success', 200
 
 @services.route('/execute/<agreement_id>', methods=['POST'])
 @require_oauth()

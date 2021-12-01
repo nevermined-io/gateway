@@ -190,8 +190,7 @@ def test_nft_transfer(client, provider_account, consumer_account, publisher_acco
         publisher_account.address,
         provider_account.address
     )
-
-    print('Is approved for all: ', is_approved)
+    assert is_approved is True
 
     response = client.post(
         BaseURLs.ASSETS_URL + '/nft-transfer',
@@ -202,9 +201,7 @@ def test_nft_transfer(client, provider_account, consumer_account, publisher_acco
             'nftAmount': nft_amounts
         }
     )
-
-    print(vars(response))
-
+    assert response.status_code == 200
 
     assert keeper.condition_manager.get_condition_state(cond_ids[0]) == ConditionState.Fulfilled.value
     assert keeper.condition_manager.get_condition_state(cond_ids[1]) == ConditionState.Fulfilled.value
