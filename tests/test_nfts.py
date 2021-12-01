@@ -1,10 +1,11 @@
+import time
 from common_utils_py.agreements.service_agreement import ServiceAgreement
 from common_utils_py.agreements.service_types import ServiceTypes
 from common_utils_py.did import did_to_id_bytes
 from common_utils_py.oauth2.token import NeverminedJWTBearerGrant, generate_access_grant_token
 
-from nevermined_gateway.constants import BaseURLs
-from nevermined_gateway.util import get_provider_account, keeper_instance
+from nevermined_gateway.constants import BaseURLs, ConditionState
+from nevermined_gateway.util import get_provider_account, keeper_instance, init_account_envvars
 from .utils import get_nft_ddo, lock_payment
 
 
@@ -113,11 +114,13 @@ def test_nft_access_no_balance(client, provider_account, consumer_account):
     assert response.status != '200 OK'
 
 
-def test_nft_transfer(client, provider_account, consumer_account):
-    # small hack so that the publisher is not the provider
-    provider_account, consumer_account = consumer_account, provider_account
+def test_nft_transfer(client, provider_account, consumer_account, publisher_account):
+    print('PROVIDER_ACCOUNT= ' + provider_account.address)
+    print('PUBLISHER_ACCOUNT= ' + publisher_account.address)
+    print('CONSUMER_ACCOUNT= ' + consumer_account.address)
+
     keeper = keeper_instance()
-    ddo = get_nft_ddo(provider_account)
+    ddo = get_nft_ddo(publisher_account, providers=[provider_account.address])
     asset_id = ddo.asset_id
     nft_amounts = 1
     agreement_id = ServiceAgreement.create_new_agreement_id()
@@ -150,6 +153,9 @@ def test_nft_transfer(client, provider_account, consumer_account):
     )
     assert event, "Agreement event is not found, check the keeper node's logs"
 
+    agreement = keeper.agreement_manager.get_agreement(agreement_id)
+    cond_ids = agreement.condition_ids
+
     keeper.token.token_approve(
         keeper.lock_payment_condition.address,
         nft_sales_service_agreement.get_price(),
@@ -175,18 +181,33 @@ def test_nft_transfer(client, provider_account, consumer_account):
     keeper.nft_upgreadeable.set_approval_for_all(
         get_provider_account().address,
         True,
-        provider_account
+        publisher_account
     )
+
+    time.sleep(10)
+
+    is_approved = keeper.nft_upgreadeable.is_approved_for_all(
+        publisher_account.address,
+        provider_account.address
+    )
+
+    print('Is approved for all: ', is_approved)
 
     response = client.post(
         BaseURLs.ASSETS_URL + '/nft-transfer',
         json={
             'agreementId': agreement_id,
-            'nftHolder': provider_account.address,
+            'nftHolder': publisher_account.address,
             'nftReceiver': consumer_account.address,
             'nftAmount': nft_amounts
         }
     )
 
-    print(response.status_code)
-    print(response.data)
+    print(vars(response))
+
+
+    assert keeper.condition_manager.get_condition_state(cond_ids[0]) == ConditionState.Fulfilled.value
+    assert keeper.condition_manager.get_condition_state(cond_ids[1]) == ConditionState.Fulfilled.value
+    assert keeper.condition_manager.get_condition_state(cond_ids[2]) == ConditionState.Fulfilled.value
+
+

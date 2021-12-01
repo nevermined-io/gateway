@@ -149,6 +149,7 @@ def is_nft_transfer_condition_fulfilled(nft_transfer_condition_id, keeper):
 def is_nft_transfer_approved(account_address, operator_address, keeper):
     return keeper.did_registry.is_nft_approved_for_all(account_address, operator_address)
 
+
 def is_nft_access_condition_fulfilled(agreement_id, access_cond_id, consumer_address, keeper):
     agreement_consumer = keeper.nft_access_template.get_agreement_consumer(agreement_id)
     logger.debug(agreement_consumer)

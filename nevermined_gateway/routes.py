@@ -377,7 +377,7 @@ def nft_transfer():
     keeper = keeper_instance()
     agreement = keeper.agreement_manager.get_agreement(agreement_id)
     did = id_to_did(agreement.did)
-    ddo  = DIDResolver(keeper.did_registry).resolve(did)
+    ddo = DIDResolver(keeper.did_registry).resolve(did)
 
     try:
         ServiceAgreement.from_ddo(ServiceTypes.NFT_SALES, ddo)

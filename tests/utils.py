@@ -1,5 +1,8 @@
 import copy
 import json
+
+from eth_utils import to_checksum_address
+
 from nevermined_gateway.snark_util import poseidon_hash
 import uuid
 from urllib.request import urlopen
@@ -161,13 +164,15 @@ def get_nft_ddo(account, providers=None, auth_service='PSK-RSA'):
 
     escrow_payment_condition = ddo['service'][1]['attributes']['serviceAgreementTemplate']['conditions'][2]
     _number_nfts = 1
-    _amounts = get_param_value_by_name(escrow_payment_condition['parameters'], '_amounts')
-    _receivers = to_checksum_addresses(
-        get_param_value_by_name(escrow_payment_condition['parameters'], '_receivers'))
+    # _amounts = get_param_value_by_name(escrow_payment_condition['parameters'], '_amounts')
+    # _receivers = to_checksum_addresses(
+    #     get_param_value_by_name(escrow_payment_condition['parameters'], '_receivers'))
+    _amounts = ['9']
+    _receivers = to_checksum_addresses([account.address])
 
     transfer_nft_condition = ddo['service'][1]['attributes']['serviceAgreementTemplate']['conditions'][1]
-    _nftHolder = get_param_value_by_name(transfer_nft_condition['parameters'], '_nftHolder')
-
+    # _nftHolder = get_param_value_by_name(transfer_nft_condition['parameters'], '_nftHolder')
+    _nftHolder = to_checksum_address(account.address)
     _total_price = sum(int(x) for x in _amounts)
 
     asset_rewards = {
@@ -410,7 +415,7 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
             cap=cap,
             royalties=royalties,
             account=account,
-            providers=None
+            providers=providers
         )
         if mint > 0:
             keeper.did_registry.mint(ddo.asset_id, mint, account=account)
