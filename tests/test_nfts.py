@@ -1,3 +1,4 @@
+import time
 from common_utils_py.agreements.service_agreement import ServiceAgreement
 from common_utils_py.agreements.service_types import ServiceTypes
 from common_utils_py.did import did_to_id_bytes
@@ -114,8 +115,6 @@ def test_nft_access_no_balance(client, provider_account, consumer_account):
 
 
 def test_nft_transfer(client, provider_account, consumer_account, publisher_account):
-    ## small hack so that the publisher is not the provider
-    # provider_account, consumer_account = consumer_account, provider_account
     print('PROVIDER_ACCOUNT= ' + provider_account.address)
     print('PUBLISHER_ACCOUNT= ' + publisher_account.address)
     print('CONSUMER_ACCOUNT= ' + consumer_account.address)
@@ -154,6 +153,9 @@ def test_nft_transfer(client, provider_account, consumer_account, publisher_acco
     )
     assert event, "Agreement event is not found, check the keeper node's logs"
 
+    agreement = keeper.agreement_manager.get_agreement(agreement_id)
+    cond_ids = agreement.condition_ids
+
     keeper.token.token_approve(
         keeper.lock_payment_condition.address,
         nft_sales_service_agreement.get_price(),
@@ -182,12 +184,14 @@ def test_nft_transfer(client, provider_account, consumer_account, publisher_acco
         publisher_account
     )
 
+    time.sleep(10)
+
     is_approved = keeper.nft_upgreadeable.is_approved_for_all(
         publisher_account.address,
         provider_account.address
     )
 
-    print('Is approved for all: %b', is_approved)
+    print('Is approved for all: ', is_approved)
 
     response = client.post(
         BaseURLs.ASSETS_URL + '/nft-transfer',
@@ -201,8 +205,7 @@ def test_nft_transfer(client, provider_account, consumer_account, publisher_acco
 
     print(vars(response))
 
-    agreement = keeper.agreement_manager.get_agreement(agreement_id)
-    cond_ids = agreement.condition_ids
+
     assert keeper.condition_manager.get_condition_state(cond_ids[0]) == ConditionState.Fulfilled.value
     assert keeper.condition_manager.get_condition_state(cond_ids[1]) == ConditionState.Fulfilled.value
     assert keeper.condition_manager.get_condition_state(cond_ids[2]) == ConditionState.Fulfilled.value
