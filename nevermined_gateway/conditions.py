@@ -70,8 +70,9 @@ def fulfill_access_proof_condition(keeper, agreement_id, cond_ids, asset_hash, c
 
 def is_nft_holder(keeper, asset_id, number_nfts, consumer_address):
     try:
-        return keeper.did_registry.balance(consumer_address, asset_id) >= number_nfts
-    except Exception:
+        return keeper.nft_upgradeable.balance(consumer_address, asset_id) >= number_nfts
+    except Exception as e:
+        logger.error(e)
         return False
 
 

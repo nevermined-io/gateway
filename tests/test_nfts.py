@@ -15,9 +15,9 @@ def test_nft_access(client, provider_account, consumer_account):
     asset_id = ddo.asset_id
     nft_amounts = 1
 
-    keeper.did_registry.transfer_nft(asset_id, consumer_account.address, nft_amounts, provider_account)
+    keeper.nft_upgradeable.transfer_nft(asset_id, consumer_account.address, nft_amounts, provider_account)
 
-    assert keeper.did_registry.balance(consumer_account.address, asset_id) >= nft_amounts
+    assert keeper.nft_upgradeable.balance(consumer_account.address, asset_id) >= nft_amounts
 
     nft_access_service_agreement = ServiceAgreement.from_ddo(ServiceTypes.NFT_ACCESS, ddo)
     agreement_id = ServiceAgreement.create_new_agreement_id()
@@ -66,7 +66,7 @@ def test_nft_access_no_agreement(client, provider_account, consumer_account):
     nft_amounts = 1
 
     keeper = keeper_instance()
-    keeper.did_registry.transfer_nft(ddo.asset_id, consumer_account.address, nft_amounts, provider_account)
+    keeper.nft_upgradeable.transfer_nft(ddo.asset_id, consumer_account.address, nft_amounts, provider_account)
 
     no_agreement_id = '0x'
     # generate the grant token
@@ -178,7 +178,7 @@ def test_nft_transfer(client, provider_account, consumer_account, publisher_acco
     assert event, "Lock reward condition fulfilled event is not found, check the keeper " \
                   "node's logs"
 
-    keeper.nft_upgreadeable.set_approval_for_all(
+    keeper.nft_upgradeable.set_approval_for_all(
         get_provider_account().address,
         True,
         publisher_account
@@ -186,7 +186,7 @@ def test_nft_transfer(client, provider_account, consumer_account, publisher_acco
 
     time.sleep(10)
 
-    is_approved = keeper.nft_upgreadeable.is_approved_for_all(
+    is_approved = keeper.nft_upgradeable.is_approved_for_all(
         publisher_account.address,
         provider_account.address
     )
