@@ -35,6 +35,13 @@ environ_names = {
     NAME_METADATA_URL: ['METADATA_URL', 'Metadata URL'],
 }
 
+upload_backends = {
+    'ipfs': 'ipfs',
+    'filecoin': 'cid',
+    'amazon': 's3',
+    'azure': 'azure',
+    'onprem': 'onprem'
+}
 
 class Config(configparser.ConfigParser):
     """Class to manage the squid-py configuration."""

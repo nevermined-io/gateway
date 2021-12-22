@@ -1,14 +1,13 @@
 import json
 import logging
-import tempfile
-from authlib.jose.errors import BadSignatureError
 
+from authlib.integrations.flask_oauth2 import current_token
+from authlib.jose.errors import BadSignatureError
+from common_utils_py.agreements.service_agreement import ServiceAgreement
+from common_utils_py.agreements.service_types import ServiceTypes
 from common_utils_py.did import id_to_did, NEVERMINED_PREFIX
 from common_utils_py.did_resolver.did_resolver import DIDResolver
 from common_utils_py.http_requests.requests_session import get_requests_session
-from common_utils_py.agreements.service_agreement import ServiceAgreement
-from common_utils_py.agreements.service_types import ServiceAuthorizationTypes, ServiceTypes
-
 from common_utils_py.utils.crypto import (ecdsa_encryption_from_file,
                                           get_ecdsa_public_key_from_file,
                                           rsa_encryption_from_file)
@@ -16,11 +15,11 @@ from eth_utils import remove_0x_prefix
 from flask import Blueprint, jsonify, request
 from flask.wrappers import Response
 from secret_store_client.client import RPCError
-from authlib.integrations.flask_oauth2 import current_token
 from web3 import Web3
 
 from nevermined_gateway import constants
 from nevermined_gateway.conditions import fulfill_escrow_payment_condition, fulfill_for_delegate_nft_transfer_condition
+from nevermined_gateway.config import upload_backends
 from nevermined_gateway.identity.oauth2.authorization_server import create_authorization_server
 from nevermined_gateway.identity.oauth2.resource_server import create_resource_server
 from nevermined_gateway.log import setup_logging
@@ -29,9 +28,11 @@ from nevermined_gateway.util import (check_required_attributes,
                                      do_secret_store_encrypt, get_asset_url_at_index, get_config,
                                      get_provider_account, get_provider_key_file,
                                      get_provider_password, get_rsa_public_key_file,
-                                     is_access_granted, is_escrow_payment_condition_fulfilled, is_nft_transfer_approved, is_nft_transfer_condition_fulfilled, keeper_instance,
-                                     setup_keeper, upload_file, used_by, verify_signature, was_compute_triggered,
-                                     get_asset, generate_random_id, is_lock_payment_condition_fulfilled)
+                                     is_access_granted, is_escrow_payment_condition_fulfilled, is_nft_transfer_approved,
+                                     is_nft_transfer_condition_fulfilled, keeper_instance,
+                                     setup_keeper, used_by, verify_signature, was_compute_triggered,
+                                     get_asset, generate_random_id, is_lock_payment_condition_fulfilled,
+                                     get_upload_enabled, upload_content)
 
 setup_logging()
 services = Blueprint('services', __name__)
@@ -147,27 +148,49 @@ def publish():
         return f'Error: {str(e)}', 500
 
 
-@services.route('/upload/filecoin', methods=['POST'])
-def upload_filecoin():
+@services.route('/upload/<backend>', methods=['POST'])
+def upload(backend=None):
+    if not get_upload_enabled():
+        return 'Upload not supported in this server', 501
+
+    if not upload_backends.keys().__contains__(backend):
+        return 'Backend not implemented', 501
+
     file_ = request.files.get('file')
     if file_ is None:
         return 'No file provided in request', 400
 
-    # filecoin data_plugin.upload expects a file so here
-    # we need to first store it in a temporary file and pass
-    # the filename to the driver.
-    #
-    # we can maybe add a `upload_bytes` method in the filecoin driver
-    with tempfile.NamedTemporaryFile() as f:
-        f.write(file_.read())
-        f.flush()
-        try:
-            cid = upload_file(f.name, app.config['CONFIG_FILE'])
-            logger.info(f"Uploaded to file with cid {cid} to filecoin")
-            return {'url': f'cid://{cid}' }, 201
-        except Exception as e:
-            logger.error(f'Filecoin Driver error when uploading file: {e}')
-            return f'Error: {str(e)}', 500
+    try:
+        url = upload_content(file_, upload_backends[backend], app.config['CONFIG_FILE'])
+        return {'url': url }, 201
+    except Exception as e:
+        logger.error(f'Driver error when uploading file: {e}')
+        return f'Error: {str(e)}', 500
+
+
+
+
+# @services.route('/upload/filecoin', methods=['POST'])
+# def upload_filecoin():
+#     file_ = request.files.get('file')
+#     if file_ is None:
+#         return 'No file provided in request', 400
+#
+#     # filecoin data_plugin.upload expects a file so here
+#     # we need to first store it in a temporary file and pass
+#     # the filename to the driver.
+#     #
+#     # we can maybe add a `upload_bytes` method in the filecoin driver
+#     with tempfile.NamedTemporaryFile() as f:
+#         f.write(file_.read())
+#         f.flush()
+#         try:
+#             cid = upload_filecoin_file(f.name, app.config['CONFIG_FILE'])
+#             logger.info(f"Uploaded to file with cid {cid} to filecoin")
+#             return {'url': f'cid://{cid}' }, 201
+#         except Exception as e:
+#             logger.error(f'Filecoin Driver error when uploading file: {e}')
+#             return f'Error: {str(e)}', 500
 
 
 @services.route('/download/<int:index>', methods=['GET'])
