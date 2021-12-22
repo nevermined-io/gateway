@@ -150,6 +150,7 @@ def publish():
 
 @services.route('/upload/<backend>', methods=['POST'])
 def upload(backend=None):
+
     if not get_upload_enabled():
         return 'Upload not supported in this server', 501
 
@@ -160,37 +161,16 @@ def upload(backend=None):
     if file_ is None:
         return 'No file provided in request', 400
 
+    data = request.args
+
     try:
-        url = upload_content(file_, upload_backends[backend], app.config['CONFIG_FILE'])
+        file_name = data.get('fileName', file_.filename)
+        url = upload_content(file_.read(), file_name, upload_backends[backend], app.config['CONFIG_FILE'])
         return {'url': url }, 201
     except Exception as e:
         logger.error(f'Driver error when uploading file: {e}')
         return f'Error: {str(e)}', 500
 
-
-
-
-# @services.route('/upload/filecoin', methods=['POST'])
-# def upload_filecoin():
-#     file_ = request.files.get('file')
-#     if file_ is None:
-#         return 'No file provided in request', 400
-#
-#     # filecoin data_plugin.upload expects a file so here
-#     # we need to first store it in a temporary file and pass
-#     # the filename to the driver.
-#     #
-#     # we can maybe add a `upload_bytes` method in the filecoin driver
-#     with tempfile.NamedTemporaryFile() as f:
-#         f.write(file_.read())
-#         f.flush()
-#         try:
-#             cid = upload_filecoin_file(f.name, app.config['CONFIG_FILE'])
-#             logger.info(f"Uploaded to file with cid {cid} to filecoin")
-#             return {'url': f'cid://{cid}' }, 201
-#         except Exception as e:
-#             logger.error(f'Filecoin Driver error when uploading file: {e}')
-#             return f'Error: {str(e)}', 500
 
 
 @services.route('/download/<int:index>', methods=['GET'])

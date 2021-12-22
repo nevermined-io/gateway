@@ -402,22 +402,18 @@ def get_content_binary(url, config_file):
         raise
 
 
-def upload_content(content, protocol, config_file):
+def upload_content(content, file_name, protocol, config_file):
     try:
         logger.debug('Connecting through Metadata Driver Interface to upload file.')
         osm = DriverInterface(protocol, config_file)
 
-        if protocol is 'cid://':
-            cid = osm.data_plugin.upload_bytes(content)
+        if protocol.startswith('cid'):
+            cid = osm.data_plugin.upload_bytes(content, file_name)
             logger.debug(f'Metadata Driver Interface uploaded the file: {cid}')
-            return 'cid://{cid}'
+            return 'cid://' + cid
         else:
-            # with tempfile.NamedTemporaryFile() as f:
-            #     f.write(content.read())
-            #     f.flush()
-            #     f.close()
-            response = osm.data_plugin.upload_bytes(content)
-            # f.delete()
+
+            response = osm.data_plugin.upload_bytes(content, file_name)
             logger.debug(f'Metadata Driver Interface uploaded the file: {response}')
             return response
 

@@ -36,10 +36,10 @@ environ_names = {
 }
 
 upload_backends = {
-    'ipfs': 'ipfs',
-    'filecoin': 'cid',
-    'amazon': 's3',
-    'azure': 'azure',
+    'ipfs': 'ipfs://',
+    'filecoin': 'cid://',
+    's3': 's3://',
+    'azure': 'core.windows.net',
     'onprem': 'onprem'
 }
 

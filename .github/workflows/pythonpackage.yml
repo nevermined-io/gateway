@@ -80,6 +80,7 @@ jobs:
         export RSA_PUBKEY_FILE=tests/resources/data/rsa_pub_key.pem
         export AUTHLIB_INSECURE_TRANSPORT=true
         export INFURA_TOKEN=${{ secrets.INFURA_TOKEN }}
+        export ESTUARY_TOKEN=${{ secrets.ESTUARY_TOKEN }}
 
         export PROVIDER_BABYJUB_SECRET=abc
         export BUYER_BABYJUB_SECRET=abd
