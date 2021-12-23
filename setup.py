@@ -31,7 +31,7 @@ install_requirements = [
     'nevermined-metadata-driver-interface>=0.3.0',
     'nevermined-metadata-driver-azure>=0.1.0',
     'nevermined-metadata-driver-onprem==0.2.0',
-    'nevermined-metadata-driver-ipfs>=0.1.0',
+    'nevermined-metadata-driver-ipfs>=0.1.1',
     'nevermined-metadata-driver-filecoin>=0.3.0',
     'nevermined-metadata-driver-aws>=0.3.0',
     'Werkzeug>=0.15.3',
