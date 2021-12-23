@@ -394,7 +394,7 @@ def get_content_binary(url, config_file):
     try:
         logger.debug('Connecting through Metadata Driver Interface to generate the content binary.')
         osm = DriverInterface(url, config_file)
-        content_binary = osm.data_plugin.download(url)
+        content_binary = osm.data_plugin.download_bytes(url)
         logger.debug(f'Metadata Driver Interface downloaded the binary from the url: {url}')
         return content_binary
     except Exception as e:

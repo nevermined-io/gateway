@@ -1,4 +1,3 @@
-import io
 import json
 import mimetypes
 import uuid
@@ -7,23 +6,44 @@ from unittest.mock import MagicMock, Mock
 import pytest
 from common_utils_py.agreements.service_agreement import ServiceAgreement
 from common_utils_py.agreements.service_types import ServiceTypes
-from common_utils_py.did import DID, did_to_id, did_to_id_bytes
-from common_utils_py.http_requests.requests_session import get_requests_session
+from common_utils_py.did import DID, did_to_id_bytes
 from common_utils_py.oauth2.token import NeverminedJWTBearerGrant, generate_access_grant_token, \
     generate_download_grant_token, generate_access_proof_grant_token
-from common_utils_py.utils.utilities import to_checksum_addresses, checksum
+from common_utils_py.utils.utilities import to_checksum_addresses
 from contracts_lib_py.utils import add_ethereum_prefix_and_hash_msg
 from eth_utils import add_0x_prefix
 from werkzeug.utils import get_content_type
 
 from nevermined_gateway import constants
+from nevermined_gateway import version
 from nevermined_gateway.constants import BaseURLs, ConditionState
 from nevermined_gateway.util import (build_download_response, check_auth_token,
-                                     generate_token, get_buyer_public_key, get_buyer_secret_key, get_download_url, get_provider_account,
-                                     is_token_valid, keeper_instance, verify_signature, web3, get_asset)
+                                     generate_token, get_buyer_secret_key, get_provider_account,
+                                     is_token_valid, keeper_instance, verify_signature, web3)
+from tests.utils import get_registered_ddo, get_proof_ddo, place_order, lock_payment, generate_new_id
+import json
+import mimetypes
+import uuid
+from unittest.mock import MagicMock, Mock
+
+import pytest
+from common_utils_py.agreements.service_agreement import ServiceAgreement
+from common_utils_py.agreements.service_types import ServiceTypes
+from common_utils_py.did import DID, did_to_id_bytes
+from common_utils_py.oauth2.token import NeverminedJWTBearerGrant, generate_access_grant_token, \
+    generate_download_grant_token, generate_access_proof_grant_token
+from common_utils_py.utils.utilities import to_checksum_addresses
+from contracts_lib_py.utils import add_ethereum_prefix_and_hash_msg
+from eth_utils import add_0x_prefix
+from werkzeug.utils import get_content_type
+
+from nevermined_gateway import constants
 from nevermined_gateway import version
-from .utils import get_registered_ddo, get_proof_ddo, place_order, lock_payment, generate_new_id
-from common_utils_py.metadata.metadata import Metadata
+from nevermined_gateway.constants import BaseURLs, ConditionState
+from nevermined_gateway.util import (build_download_response, check_auth_token,
+                                     generate_token, get_buyer_secret_key, get_provider_account,
+                                     is_token_valid, keeper_instance, verify_signature, web3)
+from tests.utils import get_registered_ddo, get_proof_ddo, place_order, lock_payment, generate_new_id
 
 PURCHASE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/access/initialize'
 SERVICE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/consume'
@@ -365,45 +385,6 @@ def test_encryption_content(client):
         result = json.loads(post_response.data.decode('utf-8'))
         assert len(result['hash']) > 1
         assert len(result['public-key']) > 1
-
-
-def test_download_ipfs_file(client):
-    cid = 'QmQfpdcMWnLTXKKW9GPV7NgtEugghgD6HgzSF6gSrp2mL9'
-    url = f'ipfs://{cid}'
-    download_url = get_download_url(url, None)
-    requests_session = get_requests_session()
-
-    request = Mock()
-    request.range = None
-
-    print(f'got ipfs download url: {download_url}')
-    assert download_url and download_url.endswith(f'ipfs/{cid}')
-    response = build_download_response(request, requests_session, download_url, download_url, None)
-    assert response.data, f'got no data {response.data}'
-
-
-def test_download_filecoin_file():
-    cid = 'QmW68jbcqSRtqSQb6xkukQ6tfonZGhu1VrZv9zAicNmovs'
-    url = f'cid://{cid}'
-    download_url = get_download_url(url, None)
-    requests_session = get_requests_session()
-
-    request = Mock()
-    request.range = None
-
-    print(f'got filecoin download url: {download_url}')
-    assert download_url and download_url == url
-    response = get_asset(request, requests_session, '', url, None)
-    assert response is None  # In the local tests we are not using a real connection to a PowerGate node
-
-
-@pytest.mark.skip(reason='Needs powergate')
-def test_upload_filecoin_file(client):
-    file_ = (io.BytesIO(b"Hello, Nevermined!"), 'test.txt')
-    data = {'file': file_}
-    response = client.post('/api/v1/gateway/services/upload/filecoin', data=data, content_type='multipart/form-data')
-    assert response.status_code == 201
-    assert response.json['url'] == 'cid://QmSJA3xNH62sj4xggZZzCp2VXpsXbkR9zYoqNYXp3c4xuN'
 
 
 def test_build_download_response():

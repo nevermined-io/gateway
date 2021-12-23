@@ -172,7 +172,6 @@ def upload(backend=None):
         return f'Error: {str(e)}', 500
 
 
-
 @services.route('/download/<int:index>', methods=['GET'])
 @require_oauth()
 def download(index=0):
