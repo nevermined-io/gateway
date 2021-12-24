@@ -3,8 +3,10 @@ import json
 import logging
 import mimetypes
 import os
+import tempfile
 import uuid
 from datetime import datetime
+from distutils.util import strtobool
 from os import getenv
 
 from common_utils_py.did import did_to_id, convert_to_bytes
@@ -72,6 +74,10 @@ def get_rsa_private_key_file():
 
 def get_rsa_public_key_file():
     return os.getenv('RSA_PUBKEY_FILE', '')
+
+
+def get_upload_enabled():
+    return strtobool(os.getenv("UPLOAD_ENABLED", "true"))
 
 
 def get_config():
@@ -388,7 +394,7 @@ def get_content_binary(url, config_file):
     try:
         logger.debug('Connecting through Metadata Driver Interface to generate the content binary.')
         osm = DriverInterface(url, config_file)
-        content_binary = osm.data_plugin.download(url)
+        content_binary = osm.data_plugin.download_bytes(url)
         logger.debug(f'Metadata Driver Interface downloaded the binary from the url: {url}')
         return content_binary
     except Exception as e:
@@ -396,7 +402,27 @@ def get_content_binary(url, config_file):
         raise
 
 
-def upload_file(file, config_file):
+def upload_content(content, file_name, protocol, config_file):
+    try:
+        logger.debug('Connecting through Metadata Driver Interface to upload file.')
+        osm = DriverInterface(protocol, config_file)
+
+        if protocol.startswith('cid'):
+            cid = osm.data_plugin.upload_bytes(content, file_name)
+            logger.debug(f'Metadata Driver Interface uploaded the file: {cid}')
+            return 'cid://' + cid
+        else:
+
+            response = osm.data_plugin.upload_bytes(content, file_name)
+            logger.debug(f'Metadata Driver Interface uploaded the file: {response}')
+            return response
+
+    except Exception as e:
+        logger.error(f'Error uploading (using Metadata Driver Interface): {str(e)}')
+        raise
+
+
+def upload_filecoin_file(file, config_file):
     try:
         logger.debug('Connecting through Metadata Driver Interface to upload file.')
         osm = DriverInterface('cid://', config_file)

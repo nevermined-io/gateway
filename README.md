@@ -118,6 +118,25 @@ Then execute this command:
 gunicorn --certfile cert.pem --keyfile key.pem -b 0.0.0.0:8030 -w 1 nevermined_gateway.run:app
 ```
 
+## Contents Upload
+
+The gateway can operate as an uploader of contents to different storage providers (Filecoin, IPFS, Amazon S3, On Premise, etc).
+This functionality can be enabled/disabled by the gateway operator using the `UPLOAD_ENABLED` environment variable.
+
+If `UPLOAD_ENABLED` is `true`, the users will be able to send `HTTP POST` requests to store contents in a backend. 
+If not, the gateway will return a `HTTP 501 Not Implemented` error message.
+
+To correctly use this functionality, the gateway operator must configure the proper environment variables allowing to connect to the backend providers supported.
+
+### Filecoin
+
+To allow to connect with Filecoin, the gateway needs to configure the following environment variables:
+
+* `ESTUARY_TOKEN` - Estuary Application token allowing to connect with their infrastructure. More information [here](https://estuary.tech/)  
+* `ESTUARY_GATEWAY` - (Optional) Url of the Estuary gateway to retrieve Filecoin contents. Default value: `https://shuttle-4.estuary.tech` 
+* `IPFS_GATEWAY` - (Optional) Url of the IPFS gateway to retrieve Filecoin contents. Default value: `https://dweb.link/ipfs/:cid`
+
+
 ## API documentation
 
 Once you have Nevermined Gateway running you can get access to the API documentation at:
