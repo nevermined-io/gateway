@@ -18,7 +18,7 @@ from secret_store_client.client import RPCError
 from web3 import Web3
 
 from nevermined_gateway import constants
-from nevermined_gateway.conditions import fulfill_escrow_payment_condition, fulfill_for_delegate_nft_transfer_condition
+from nevermined_gateway.conditions import fulfill_escrow_payment_condition, fulfill_for_delegate_nft_transfer_condition, is_nft_holder
 from nevermined_gateway.config import upload_backends
 from nevermined_gateway.identity.oauth2.authorization_server import create_authorization_server
 from nevermined_gateway.identity.oauth2.resource_server import create_resource_server
@@ -392,6 +392,11 @@ def nft_transfer():
         nft_transfer_condition_id,
         escrow_payment_condition_id
     ) = agreement.condition_ids
+
+    if not is_nft_holder(keeper, agreement.did, nft_amount, nft_holder_address):
+        msg = f'Holder {nft_holder_address} does not have enough NFTs to transfer'
+        logger.warning(msg)
+        return msg, 406
 
     if not is_lock_payment_condition_fulfilled(lock_payment_condition_id, keeper):
         msg = f'lockPayment condition for agreement_id={agreement_id} is not fulfilled'

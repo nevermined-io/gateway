@@ -42,5 +42,7 @@ responses:
     description: The nftReceiver has not locked the payment.
   405:
     description: The nftHolder has not approved the gateway to perform the NFT transfer.
+  406:
+    description: The nftHolder does not have enough nfts to transfer.
   500:
     description: Error
