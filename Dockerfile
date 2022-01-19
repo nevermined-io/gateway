@@ -1,7 +1,8 @@
-FROM python:3.8-slim-buster as rapidsnark
+FROM python:3.8-slim-buster
+LABEL maintainer="Keyko <root@keyko.io>"
 
 RUN apt-get update \
-    && apt-get install gcc gettext-base -y sudo cron curl git g++ nasm libgmp-dev libsodium-dev build-essential \
+    && apt-get install gcc gettext-base -y sudo cron curl git g++ nasm libgmp-dev libsodium-dev build-essential pkg-config \
     && curl -sL https://deb.nodesource.com/setup_14.x | sudo bash - \
     && sudo apt-get -y install nodejs \
     && apt-get clean
@@ -13,19 +14,11 @@ RUN git clone https://github.com/nevermined-io/rapidsnark \
     && cd .. \
     && rm -rf rapidsnark
 
-FROM python:3.8-slim-buster
-LABEL maintainer="Keyko <root@keyko.io>"
-
 ARG VERSION
 
-COPY --from=rapidsnark /usr/local/lib /usr/local/lib
-COPY --from=rapidsnark /usr/local/share/keytransfer /usr/local/share/keytransfer
-
-RUN apt-get update \
-    && apt-get install gcc libgmp-dev libsodium-dev gettext-base -y \
-    && apt-get clean
-
-RUN ldconfig
+RUN git clone https://github.com/mrsmkl/snark-tools
+WORKDIR /snark-tools
+RUN npm i -g
 
 COPY . /nevermined-gateway
 WORKDIR /nevermined-gateway
