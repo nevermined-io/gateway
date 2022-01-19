@@ -25,7 +25,7 @@ from nevermined_gateway.identity.oauth2.resource_server import create_resource_s
 from nevermined_gateway.log import setup_logging
 from nevermined_gateway.myapp import app
 from nevermined_gateway.util import (check_required_attributes,
-                                     do_secret_store_encrypt, get_asset_url_at_index, get_config,
+                                     do_secret_store_encrypt, encrypt, generate_password, get_asset_url_at_index, get_config,
                                      get_provider_account, get_provider_key_file,
                                      get_provider_password, get_rsa_public_key_file,
                                      is_access_granted, is_escrow_payment_condition_fulfilled, is_nft_transfer_approved,
@@ -165,7 +165,13 @@ def upload(backend=None):
 
     try:
         file_name = data.get('fileName', file_.filename)
-        url = upload_content(file_.read(), file_name, upload_backends[backend], app.config['CONFIG_FILE'])
+        if data.get('encrypt') == 'true':
+            password = generate_password()
+            filedata = encrypt(password, file_)
+            url = upload_content(filedata, file_name, upload_backends[backend], app.config['CONFIG_FILE'])
+            return {'url': url, 'password': password}, 201
+        fdata = file_.read()
+        url = upload_content(fdata, file_name, upload_backends[backend], app.config['CONFIG_FILE'])
         return {'url': url }, 201
     except Exception as e:
         logger.error(f'Driver error when uploading file: {e}')

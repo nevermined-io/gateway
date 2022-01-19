@@ -1,10 +1,8 @@
 FROM python:3.8-slim-buster
 LABEL maintainer="Keyko <root@keyko.io>"
 
-ARG VERSION
-
 RUN apt-get update \
-    && apt-get install gcc gettext-base -y sudo cron curl git g++ nasm libgmp-dev libsodium-dev build-essential \
+    && apt-get install gcc gettext-base -y sudo cron curl git g++ nasm libgmp-dev libsodium-dev build-essential pkg-config \
     && curl -sL https://deb.nodesource.com/setup_14.x | sudo bash - \
     && sudo apt-get -y install nodejs \
     && apt-get clean
@@ -15,6 +13,12 @@ RUN git clone https://github.com/nevermined-io/rapidsnark \
     && sh ./scripts/install-linux.sh \
     && cd .. \
     && rm -rf rapidsnark
+
+ARG VERSION
+
+RUN git clone https://github.com/mrsmkl/snark-tools
+WORKDIR /snark-tools
+RUN npm i -g
 
 COPY . /nevermined-gateway
 WORKDIR /nevermined-gateway

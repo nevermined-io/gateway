@@ -36,6 +36,9 @@ jobs:
         sh ./scripts/install-linux.sh
         cd ..
         rm -rf rapidsnark
+        git clone https://github.com/mrsmkl/snark-tools
+        cd snark-tools
+        npm i -g
     - name: Install minikube v1.22.0
       run: |
         wget https://storage.googleapis.com/minikube/releases/v1.22.0/minikube-linux-amd64

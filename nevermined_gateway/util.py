@@ -3,15 +3,18 @@ import json
 import logging
 import mimetypes
 import os
-import tempfile
+import string
+import secrets
 import uuid
 from datetime import datetime
 from distutils.util import strtobool
-from os import getenv
+from os import getenv, urandom
+from Crypto.Cipher import AES
+from hashlib import pbkdf2_hmac
 
 from common_utils_py.did import did_to_id, convert_to_bytes
 from common_utils_py.utils.crypto import ecdsa_decryption, rsa_decryption_aes
-from contracts_lib_py import Keeper, keeper
+from contracts_lib_py import Keeper
 from contracts_lib_py.contract_handler import ContractHandler
 from contracts_lib_py.utils import add_ethereum_prefix_and_hash_msg, get_account
 from contracts_lib_py.web3_provider import Web3Provider
@@ -476,3 +479,27 @@ def used_by(provenance_id, did, consumer_address, activity_id, signature, attrib
 
 def generate_random_id():
     return uuid.uuid4().hex + uuid.uuid4().hex
+
+def encrypt(password, input):
+    bs = AES.block_size
+    salt = urandom(bs - len(b'Salted__'))
+    pbk = pbkdf2_hmac('sha256', password.encode('utf8'), salt, 10000, 48)
+    key = pbk[:32]
+    iv = pbk[32:48]
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    result = (b'Salted__' + salt)
+    finished = False
+    while not finished:
+        chunk = input.read(1024 * bs)
+        if len(chunk) == 0 or len(chunk) % bs != 0:
+            padding_length = (bs - len(chunk) % bs) or bs
+            chunk += (padding_length * chr(padding_length)).encode()
+            finished = True
+        result += cipher.encrypt(chunk)
+    return result
+
+def generate_password():
+    password = ""
+    for _ in range(16):
+        password += secrets.choice(string.printable)
+    return password
