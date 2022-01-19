@@ -32,8 +32,8 @@ def test_upload_download_filecoin_file(client):
 def test_upload_encrypt_download_filecoin_file(client):
 
     file_ = (io.BytesIO(b"Hello, Nevermined!"), 'test.txt')
-    data = {'file': file_}
-    response = client.post('/api/v1/gateway/services/upload-encrypt/filecoin', data=data, content_type='multipart/form-data')
+    data = {'file': file_, 'encrypt': 'true'}
+    response = client.post('/api/v1/gateway/services/upload/filecoin', data=data, content_type='multipart/form-data')
 
     assert response.status_code == 201
     url = response.json['url']

@@ -165,36 +165,14 @@ def upload(backend=None):
 
     try:
         file_name = data.get('fileName', file_.filename)
+        if data.get('encrypt') == 'true':
+            password = generate_password()
+            filedata = encrypt(password, file_)
+            url = upload_content(filedata, file_name, upload_backends[backend], app.config['CONFIG_FILE'])
+            return {'url': url, 'password': password}, 201
         fdata = file_.read()
-        print(fdata)
         url = upload_content(fdata, file_name, upload_backends[backend], app.config['CONFIG_FILE'])
         return {'url': url }, 201
-    except Exception as e:
-        logger.error(f'Driver error when uploading file: {e}')
-        return f'Error: {str(e)}', 500
-
-
-@services.route('/upload-encrypt/<backend>', methods=['POST'])
-def upload_encrypt(backend=None):
-
-    if not get_upload_enabled():
-        return 'Upload not supported in this server', 501
-
-    if not upload_backends.keys().__contains__(backend):
-        return 'Backend not implemented', 501
-
-    file_ = request.files.get('file')
-    if file_ is None:
-        return 'No file provided in request', 400
-
-    data = request.args
-
-    try:
-        file_name = data.get('fileName', file_.filename)
-        password = generate_password()
-        filedata = encrypt(password, file_)
-        url = upload_content(filedata, file_name, upload_backends[backend], app.config['CONFIG_FILE'])
-        return {'url': url, 'password': password}, 201
     except Exception as e:
         logger.error(f'Driver error when uploading file: {e}')
         return f'Error: {str(e)}', 500
