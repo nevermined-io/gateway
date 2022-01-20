@@ -161,7 +161,7 @@ def upload(backend=None):
     if file_ is None:
         return 'No file provided in request', 400
 
-    data = request.args
+    data = request.form
 
     try:
         file_name = data.get('fileName', file_.filename)
