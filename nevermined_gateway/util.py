@@ -500,6 +500,6 @@ def encrypt(password, input):
 
 def generate_password():
     password = ""
-    for _ in range(16):
+    for _ in range(32):
         password += secrets.choice('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%&()*+,-./:;<=>?@[]^_{|}~ ')
     return password
