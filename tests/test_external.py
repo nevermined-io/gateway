@@ -32,12 +32,12 @@ def test_upload_download_filecoin_file(client):
 def test_upload_encrypt_download_filecoin_file(client):
 
     file_ = (io.BytesIO(b"Hello, Nevermined!"), 'test.txt')
-    data = {'file': file_, 'encrypt': 'true'}
+    data = {'encrypt': 'true', 'file': file_}
     response = client.post('/api/v1/gateway/services/upload/filecoin', data=data, content_type='multipart/form-data')
 
     assert response.status_code == 201
     url = response.json['url']
-    print(response.json)
+    assert 'password' in response.json
     assert url.startswith('cid://')
     assert len(url) > 40
 
