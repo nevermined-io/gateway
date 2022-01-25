@@ -26,7 +26,7 @@ from nevermined_gateway.log import setup_logging
 from nevermined_gateway.myapp import app
 from nevermined_gateway.util import (check_required_attributes,
                                      do_secret_store_encrypt, encrypt, generate_password, get_asset_url_at_index, get_config,
-                                     get_provider_account, get_provider_key_file,
+                                     get_provider_account, get_provider_babyjub_key, get_provider_key_file,
                                      get_provider_password, get_rsa_public_key_file,
                                      is_access_granted, is_escrow_payment_condition_fulfilled, is_nft_transfer_approved,
                                      is_nft_transfer_condition_fulfilled, keeper_instance,
@@ -177,6 +177,11 @@ def upload(backend=None):
         logger.error(f'Driver error when uploading file: {e}')
         return f'Error: {str(e)}', 500
 
+@services.route('/info', methods=['GET'])
+def info():
+    key = get_provider_babyjub_key()
+    babyjub = {'x': key.x, 'y': key.y}
+    return {'description':  'Nevermined gateway', 'babyjub': babyjub }, 201
 
 @services.route('/download/<int:index>', methods=['GET'])
 @require_oauth()
