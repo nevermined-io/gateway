@@ -12,7 +12,7 @@ from nevermined_gateway.constants import BaseURLs, ConfigSections, Metadata
 from nevermined_gateway.myapp import app
 from nevermined_gateway.routes import services
 from nevermined_gateway import version
-from nevermined_gateway.util import keeper_instance, get_provider_account, get_provider_key_file, \
+from nevermined_gateway.util import get_provider_babyjub_key, keeper_instance, get_provider_account, get_provider_key_file, \
     get_provider_password, get_rsa_public_key_file
 
 
@@ -39,6 +39,7 @@ def get_external_contracts():
 def root_info():
     config = Config(filename=app.config['CONFIG_FILE'])
     keeper = keeper_instance()
+    key = get_provider_babyjub_key()
     info = {
         'software': Metadata.TITLE,
         'version': version.__version__,
@@ -48,7 +49,8 @@ def root_info():
         'external-contracts': get_external_contracts(),
         'keeper-version': keeper.did_registry.version,
         'provider-address': get_provider_account().address,
-        'ecdsa-public-key': get_ecdsa_public_key_from_file(get_provider_key_file(), get_provider_password())
+        'ecdsa-public-key': get_ecdsa_public_key_from_file(get_provider_key_file(), get_provider_password()),
+        'babyjub-public-key': {'x': key.x, 'y': key.y}
     }
 
     try:

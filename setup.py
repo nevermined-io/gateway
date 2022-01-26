@@ -27,7 +27,7 @@ install_requirements = [
     'flask-swagger-ui==3.25.0',
     'Jinja2>=2.10.1',
     'requests~=2.21.0',
-    'gunicorn==19.9.0',
+    'gunicorn==20.1.0',
     'nevermined-metadata-driver-interface>=0.4.1',
     'nevermined-metadata-driver-azure>=0.1.0',
     'nevermined-metadata-driver-onprem==0.2.0',
