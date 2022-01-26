@@ -177,12 +177,6 @@ def upload(backend=None):
         logger.error(f'Driver error when uploading file: {e}')
         return f'Error: {str(e)}', 500
 
-@services.route('/info', methods=['GET'])
-def info():
-    key = get_provider_babyjub_key()
-    babyjub = {'x': key.x, 'y': key.y}
-    return {'description':  'Nevermined gateway', 'babyjub': babyjub }, 201
-
 @services.route('/download/<int:index>', methods=['GET'])
 @require_oauth()
 def download(index=0):
