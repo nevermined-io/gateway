@@ -54,7 +54,7 @@ jobs:
         cd nevermined-tools
         rm -rf "${HOME}/.nevermined/nevermined-contracts/artifacts"
 
-        ./start_nevermined.sh --latest --no-marketplace --no-gateway --ldap --compute ${{ matrix.network }} &
+        ./start_nevermined.sh --latest --no-marketplace --no-gateway --no-graph --ldap --compute ${{ matrix.network }} &
 
         # wait for the compute api to be online
         # the compute api is the last service to come online
