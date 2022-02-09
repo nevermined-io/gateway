@@ -190,6 +190,7 @@ def get_nft_ddo(account, providers=None, auth_service='PSK-RSA'):
         "_amounts": _amounts,
         "_receivers": _receivers,
         "_numberNfts": str(_number_nfts),
+        "_tokenAddress": "",
         "datePublished": metadata['main']['dateCreated']
     }}
 
