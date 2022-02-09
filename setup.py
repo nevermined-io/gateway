@@ -48,7 +48,7 @@ install_requirements = [
 setup_requirements = ['pytest-runner', ]
 
 test_requirements = [
-    'contracts-lib-py==0.11.0'
+    'contracts-lib-py==0.11.0',
     'coverage',
     'docker',
     'pylint',
