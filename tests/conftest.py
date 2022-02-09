@@ -32,7 +32,7 @@ def env_setup(monkeypatch):
     monkeypatch.setenv("PROVIDER_KEYFILE", provider_keyfile.as_posix())
     monkeypatch.setenv("RSA_PRIVKEY_FILE", rsa_priv_keyfile.as_posix())
     monkeypatch.setenv("RSA_PUBKEY_FILE", rsa_pub_keyfile.as_posix())
-    monkeypatch.setenv("ESTUARY_GATEWAY", "https://shuttle-4.estuary.tech")
+    monkeypatch.setenv("ESTUARY_GATEWAY", "https://shuttle-5.estuary.tech")
     monkeypatch.setenv("IPFS_GATEWAY", "https://dweb.link/ipfs/:cid")
 
 

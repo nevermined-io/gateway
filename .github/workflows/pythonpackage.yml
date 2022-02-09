@@ -84,7 +84,6 @@ jobs:
         export AUTHLIB_INSECURE_TRANSPORT=true
         export INFURA_TOKEN=${{ secrets.INFURA_TOKEN }}
         export ESTUARY_TOKEN=${{ secrets.ESTUARY_TOKEN }}
-        export ESTUARY_GATEWAY=https://api.estuary.tech
 
         export PROVIDER_BABYJUB_SECRET=abc
         export BUYER_BABYJUB_SECRET=abd
