@@ -3,4 +3,4 @@
 Follows option 3 of https://packaging.python.org/guides/single-sourcing-package-version/
 """
 
-__version__ = '0.12.0'
+__version__ = '0.12.1'
