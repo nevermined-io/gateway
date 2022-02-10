@@ -19,6 +19,7 @@ with open("nevermined_gateway/version.py") as version_file:
 install_requirements = [
     # Install squid-py and all its dependencies first
     'common-utils-py==0.10.0',
+    'contracts-lib-py==0.11.0',
     'nevermined-secret-store==0.1.1',
     'Flask==1.1.2',
     'Flask-Cors==3.0.9',
@@ -49,7 +50,6 @@ install_requirements = [
 setup_requirements = ['pytest-runner', ]
 
 test_requirements = [
-    'contracts-lib-py==0.11.0',
     'coverage',
     'docker',
     'pylint',
