@@ -1,6 +1,7 @@
 import logging
 import sys
 
+from urllib.parse import urlparse
 from common_utils_py.http_requests.requests_session import get_requests_session
 from common_utils_py.utils.crypto import get_ecdsa_public_key_from_file, get_content_keyfile_from_path
 from flask import jsonify
@@ -12,9 +13,9 @@ from nevermined_gateway.constants import BaseURLs, ConfigSections, Metadata
 from nevermined_gateway.myapp import app
 from nevermined_gateway.routes import services
 from nevermined_gateway import version
-from nevermined_gateway.util import get_provider_babyjub_key, keeper_instance, get_provider_account, get_provider_key_file, \
+from nevermined_gateway.util import get_provider_babyjub_key, keeper_instance, get_provider_account, \
+    get_provider_key_file, \
     get_provider_password, get_rsa_public_key_file
-
 
 requests_session = get_requests_session()
 logger = logging.getLogger(__name__)
@@ -40,10 +41,11 @@ def root_info():
     config = Config(filename=app.config['CONFIG_FILE'])
     keeper = keeper_instance()
     key = get_provider_babyjub_key()
+    url_keeper = urlparse(config.keeper_url)
     info = {
         'software': Metadata.TITLE,
         'version': version.__version__,
-        'keeper-url': config.keeper_url,
+        'keeper-url': url_keeper.scheme + '://' + url_keeper.netloc,
         'network': keeper.network_name,
         'contracts': get_contracts(),
         'external-contracts': get_external_contracts(),
@@ -81,7 +83,8 @@ def get_swagger_blueprint():
         config={  # Swagger UI config overrides
             'app_name': "Test application"
         },
-        )
+    )
+
 
 # Register blueprint at URL
 app.register_blueprint(get_swagger_blueprint(), url_prefix=BaseURLs.SWAGGER_URL)
