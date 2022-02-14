@@ -1,11 +1,10 @@
 import logging
 
 from common_utils_py.agreements.service_types import ServiceTypes
-from common_utils_py.did import did_to_id
 from common_utils_py.utils.utilities import to_checksum_addresses
 from contracts_lib_py.web3_provider import Web3Provider
 from eth_utils import add_0x_prefix
-from eth_utils.hexadecimal import remove_0x_prefix
+from web3 import Web3
 
 from nevermined_gateway.constants import ConditionState
 from nevermined_gateway.log import setup_logging
@@ -70,7 +69,7 @@ def fulfill_access_proof_condition(keeper, agreement_id, cond_ids, asset_hash, c
 
 def is_nft_holder(keeper, asset_id, number_nfts, consumer_address):
     try:
-        return keeper.nft_upgradeable.balance(consumer_address, asset_id) >= number_nfts
+        return keeper.nft_upgradeable.balance(Web3.toChecksumAddress(consumer_address), asset_id) >= number_nfts
     except Exception as e:
         logger.error(e)
         return False
