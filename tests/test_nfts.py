@@ -11,7 +11,7 @@ from .utils import get_nft_ddo, lock_payment
 
 def test_nft_access(client, provider_account, consumer_account, publisher_account):
     keeper = keeper_instance()
-    ddo = get_nft_ddo(provider_account, providers=[provider_account.address])
+    ddo = get_nft_ddo(provider_account, consumer_account.address, providers=[provider_account.address])
     asset_id = ddo.asset_id
     nft_amounts = 1
 
@@ -20,10 +20,10 @@ def test_nft_access(client, provider_account, consumer_account, publisher_accoun
     assert keeper.nft_upgradeable.balance(consumer_account.address, asset_id) >= nft_amounts
 
     nft_access_service_agreement = ServiceAgreement.from_ddo(ServiceTypes.NFT_ACCESS, ddo)
-    agreement_id = ServiceAgreement.create_new_agreement_id()
+    agreement_id_seed = ServiceAgreement.create_new_agreement_id()
 
-    (nft_access_cond_id, nft_holder_cond_id) = nft_access_service_agreement.generate_agreement_condition_ids(
-        agreement_id, asset_id, consumer_account.address, keeper, consumer_account.address, consumer_account.address)
+    (agreement_id, nft_access_cond_id, nft_holder_cond_id) = nft_access_service_agreement.generate_agreement_condition_ids(
+        agreement_id_seed, asset_id, consumer_account.address, keeper, consumer_account.address, consumer_account.address)
 
     print('NFT_ACCESS_DID: ' + asset_id)
 
@@ -62,7 +62,7 @@ def test_nft_access(client, provider_account, consumer_account, publisher_accoun
 
 
 def test_nft_access_no_agreement(client, provider_account, consumer_account):
-    ddo = get_nft_ddo(provider_account, providers=[provider_account.address])
+    ddo = get_nft_ddo(provider_account, consumer_account.address, providers=[provider_account.address])
     nft_amounts = 1
 
     keeper = keeper_instance()
@@ -90,7 +90,7 @@ def test_nft_access_no_agreement(client, provider_account, consumer_account):
 
 
 def test_nft_access_no_balance(client, provider_account, consumer_account):
-    ddo = get_nft_ddo(provider_account, providers=[provider_account.address])
+    ddo = get_nft_ddo(provider_account, consumer_account.address, providers=[provider_account.address])
 
     no_agreement_id = '0x'
     # generate the grant token
@@ -120,7 +120,7 @@ def test_nft_transfer(client, provider_account, consumer_account, publisher_acco
     print('CONSUMER_ACCOUNT= ' + consumer_account.address)
 
     keeper = keeper_instance()
-    ddo = get_nft_ddo(publisher_account, providers=[provider_account.address])
+    ddo = get_nft_ddo(publisher_account, consumer_account.address, providers=[provider_account.address])
     asset_id = ddo.asset_id
     nft_amounts = 1
     agreement_id_seed = ServiceAgreement.create_new_agreement_id()
@@ -152,7 +152,7 @@ def test_nft_transfer(client, provider_account, consumer_account, publisher_acco
         consumer_account
     )
     event = keeper.nft_sales_template.subscribe_agreement_created(
-        agreement_id[0], 15, None, (), wait=True, from_block=0
+        agreement_id[1], 15, None, (), wait=True, from_block=0
     )
     assert event, "Agreement event is not found, check the keeper node's logs"
 
