@@ -9,7 +9,7 @@ from nevermined_gateway.util import get_provider_account, keeper_instance, init_
 from .utils import get_nft_ddo, lock_payment
 
 
-def test_nft_access(client, provider_account, consumer_account):
+def test_nft_access(client, provider_account, consumer_account, publisher_account):
     keeper = keeper_instance()
     ddo = get_nft_ddo(provider_account, providers=[provider_account.address])
     asset_id = ddo.asset_id
@@ -23,26 +23,26 @@ def test_nft_access(client, provider_account, consumer_account):
     agreement_id = ServiceAgreement.create_new_agreement_id()
 
     (nft_access_cond_id, nft_holder_cond_id) = nft_access_service_agreement.generate_agreement_condition_ids(
-        agreement_id, asset_id, consumer_account.address, keeper)
+        agreement_id, asset_id, consumer_account.address, keeper, consumer_account.address, consumer_account.address)
 
     print('NFT_ACCESS_DID: ' + asset_id)
 
     keeper.nft_access_template.create_agreement(
-        agreement_id,
+        agreement_id[0],
         asset_id,
-        [nft_holder_cond_id, nft_access_cond_id],
+        [nft_holder_cond_id[0], nft_access_cond_id[0]],
         nft_access_service_agreement.conditions_timelocks,
         nft_access_service_agreement.conditions_timeouts,
         consumer_account.address,
         consumer_account
     )
     event = keeper.nft_access_template.subscribe_agreement_created(
-        agreement_id, 15, None, (), wait=True, from_block=0
+        agreement_id[1], 15, None, (), wait=True, from_block=0
     )
     assert event, "Agreement event is not found, check the keeper node's logs"
 
     # generate the grant token
-    grant_token = generate_access_grant_token(consumer_account, agreement_id, ddo.did, uri="/nft-access")
+    grant_token = generate_access_grant_token(consumer_account, agreement_id[1], ddo.did, uri="/nft-access")
 
     # request access token
     response = client.post("/api/v1/gateway/services/oauth/token", data={
@@ -123,38 +123,40 @@ def test_nft_transfer(client, provider_account, consumer_account, publisher_acco
     ddo = get_nft_ddo(publisher_account, providers=[provider_account.address])
     asset_id = ddo.asset_id
     nft_amounts = 1
-    agreement_id = ServiceAgreement.create_new_agreement_id()
+    agreement_id_seed = ServiceAgreement.create_new_agreement_id()
 
     print('NFT_SALES_DID: ' + asset_id)
 
     nft_sales_service_agreement = ServiceAgreement.from_ddo(ServiceTypes.NFT_SALES, ddo)
     (
+        agreement_id,
         transfer_nft_condition_id,
         lock_payment_condition_id,
         escrow_payment_condition_id
     ) = nft_sales_service_agreement.generate_agreement_condition_ids(
-        agreement_id,
+        agreement_id_seed,
         asset_id,
         consumer_account.address,
-        keeper
+        keeper,
+        consumer_account.address,
+        consumer_account.address
     )
 
     keeper.nft_sales_template.create_agreement(
-        agreement_id,
+        agreement_id[0],
         asset_id,
-        [lock_payment_condition_id, transfer_nft_condition_id, escrow_payment_condition_id],
+        [lock_payment_condition_id[0], transfer_nft_condition_id[0], escrow_payment_condition_id[0]],
         nft_sales_service_agreement.conditions_timelocks,
         nft_sales_service_agreement.conditions_timeouts,
         consumer_account.address,
         consumer_account
     )
     event = keeper.nft_sales_template.subscribe_agreement_created(
-        agreement_id, 15, None, (), wait=True, from_block=0
+        agreement_id[0], 15, None, (), wait=True, from_block=0
     )
     assert event, "Agreement event is not found, check the keeper node's logs"
 
-    agreement = keeper.agreement_manager.get_agreement(agreement_id)
-    cond_ids = agreement.condition_ids
+    cond_ids = [lock_payment_condition_id[1], transfer_nft_condition_id[1], escrow_payment_condition_id[1]]
 
     keeper.token.token_approve(
         keeper.lock_payment_condition.address,
@@ -165,7 +167,7 @@ def test_nft_transfer(client, provider_account, consumer_account, publisher_acco
     keeper.dispenser.request_tokens(50, consumer_account)
 
     lock_payment(
-        agreement_id,
+        agreement_id[1],
         ddo.asset_id,
         nft_sales_service_agreement,
         nft_sales_service_agreement.get_amounts_int(),
@@ -173,7 +175,7 @@ def test_nft_transfer(client, provider_account, consumer_account, publisher_acco
         consumer_account
     )
     event = keeper.lock_payment_condition.subscribe_condition_fulfilled(
-            agreement_id, 15, None, (), wait=True, from_block=0
+            agreement_id[1], 15, None, (), wait=True, from_block=0
         )
     assert event, "Lock reward condition fulfilled event is not found, check the keeper " \
                   "node's logs"
@@ -195,7 +197,7 @@ def test_nft_transfer(client, provider_account, consumer_account, publisher_acco
     response = client.post(
         BaseURLs.ASSETS_URL + '/nft-transfer',
         json={
-            'agreementId': agreement_id,
+            'agreementId': agreement_id[1],
             'nftHolder': publisher_account.address,
             'nftReceiver': consumer_account.address,
             'nftAmount': nft_amounts

@@ -83,15 +83,18 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
 
         return possible_public_keys[0]
 
-    def check_ddo(self, did, agreement_id, asset_id, consumer_address, keeper, cond_ids, service_type):
+    def check_ddo(self, did, agreement_id_seed, asset_id, consumer_address, keeper, cond_ids, service_type, creator_address):
         ddo = DIDResolver(keeper.did_registry).resolve(did)
         aservice = ddo.get_service(service_type)
         token_address = aservice.get_param_value_by_name('_tokenAddress')
         if token_address is None or len(token_address) == 0:
             token_address = keeper.token.address
-        (id1, id2, id3) = aservice.generate_agreement_condition_ids(agreement_id, asset_id, consumer_address, keeper, token_address)
-        ids = [id1, id2, id3]
+        (agreement_id, id1, id2, id3) = aservice.generate_agreement_condition_ids(agreement_id_seed, asset_id, consumer_address, keeper, creator_address, creator_address, token_address)
+        ids = [id1[1], id2[1], id3[1]]
         if ids != cond_ids:
+            print("****************** ids not match")
+            print(ids, cond_ids)
+            print([id1[0], id2[0], id3[0]])
             raise InvalidClientError(f"ServiceAgreement {agreement_id} doesn't match ddo")
 
     def authenticate_client(self, claims):
@@ -134,9 +137,10 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
             # 3. If not granted, verification of agreement and conditions
             agreement = keeper.agreement_manager.get_agreement(agreement_id)
             cond_ids = agreement.condition_ids
+            print(["zuu", agreement.condition_id_seeds])
             asset = DIDResolver(keeper.did_registry).resolve(did)
             asset_id = f'0x{did.replace(NEVERMINED_PREFIX, "")}'
-            self.check_ddo(did, agreement_id, asset_id, consumer_address, keeper, cond_ids, ServiceTypes.ASSET_ACCESS)
+            self.check_ddo(did, agreement.id_seed, asset_id, consumer_address, keeper, cond_ids, ServiceTypes.ASSET_ACCESS, agreement.owner)
 
             access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
             lock_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
@@ -193,7 +197,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
         cond_ids = agreement.condition_ids
         asset = DIDResolver(keeper.did_registry).resolve(did)
         asset_id = did.replace(NEVERMINED_PREFIX, "")
-        self.check_ddo(did, agreement_id, asset_id, consumer_pub, keeper, cond_ids, ServiceTypes.ASSET_ACCESS_PROOF)
+        self.check_ddo(did, agreement.id_seed, asset_id, consumer_pub, keeper, cond_ids, ServiceTypes.ASSET_ACCESS_PROOF, agreement.owner)
 
         access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
         lock_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
@@ -318,7 +322,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
 
             agreement = keeper.agreement_manager.get_agreement(agreement_id)
             cond_ids = agreement.condition_ids
-            self.check_ddo(did, agreement_id, asset_id, consumer_address, keeper, cond_ids, ServiceTypes.CLOUD_COMPUTE)
+            self.check_ddo(did, agreement_id, asset_id, consumer_address, keeper, cond_ids, ServiceTypes.CLOUD_COMPUTE, agreement.owner)
 
             compute_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
             lock_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])

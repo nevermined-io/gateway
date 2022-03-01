@@ -85,7 +85,7 @@ def write_s3():
     return s3_url
 
 
-def get_registered_ddo(account, providers=None, auth_service='PSK-RSA', url=get_file_url()):
+def get_registered_ddo(account, return_address, providers=None, auth_service='PSK-RSA', url=get_file_url()):
     ddo = get_sample_ddo()
     metadata = ddo['service'][0]['attributes']
     metadata['main']['files'][0]['url'] = url
@@ -103,6 +103,7 @@ def get_registered_ddo(account, providers=None, auth_service='PSK-RSA', url=get_
         "timeout": 3600,
         "datePublished": metadata[MetadataMain.KEY]['dateCreated'],
         "_amounts": _amounts,
+        "_returnAddress": return_address,
         "_receivers": _receivers
     }}
 
@@ -113,7 +114,7 @@ def get_registered_ddo(account, providers=None, auth_service='PSK-RSA', url=get_
 
     return register_ddo(metadata, account, providers, auth_service, [access_service_descriptor])
 
-def get_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_key()):
+def get_proof_ddo(account, return_address, providers=None, auth_service='PSK-RSA', key=get_key()):
     ddo = get_sample_ddo()
     metadata = ddo['service'][0]['attributes']
     metadata['main']['files'][0]['url'] = key
@@ -142,6 +143,7 @@ def get_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_key()
             "_amounts": _amounts,
             "_hash": hash,
             "_providerPub": providerKey,
+            "_returnAddress": return_address,
             "_receivers": _receivers
         }
     }
@@ -154,7 +156,7 @@ def get_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_key()
     return register_ddo(metadata, account, providers, auth_service, [access_service_descriptor])
 
 
-def get_nft_ddo(account, providers=None, auth_service='PSK-RSA'):
+def get_nft_ddo(account, return_address, providers=None, auth_service='PSK-RSA'):
     ddo = get_sample_nft_ddo()
     metadata = ddo['service'][0]['attributes']
     metadata['main']['files'][0][
@@ -191,6 +193,7 @@ def get_nft_ddo(account, providers=None, auth_service='PSK-RSA'):
         "_receivers": _receivers,
         "_numberNfts": str(_number_nfts),
         "_tokenAddress": "",
+        "_returnAddress": return_address,
         "datePublished": metadata['main']['dateCreated']
     }}
 
@@ -221,7 +224,7 @@ def get_param_value_by_name(parameters, name):
             return p['value']
 
 
-def get_registered_compute_ddo(account, providers=None, auth_service='PSK-RSA'):
+def get_registered_compute_ddo(account, return_address, providers=None, auth_service='PSK-RSA'):
     ddo = get_sample_ddo()
     metadata = ddo['service'][0]['attributes']
     metadata['main']['files'][0][
@@ -243,6 +246,7 @@ def get_registered_compute_ddo(account, providers=None, auth_service='PSK-RSA'):
             "timeout": 86400,
             "_amounts": _amounts,
             "_receivers": _receivers,
+            "_returnAddress": return_address,
             "provider": {}
         }
     }
@@ -434,7 +438,7 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
 
 def place_order(provider_account, ddo, consumer_account, service_type=ServiceTypes.ASSET_ACCESS):
     keeper = keeper_instance()
-    agreement_id = ServiceAgreement.create_new_agreement_id()
+    agreement_id_seed = ServiceAgreement.create_new_agreement_id()
 
     if service_type == ServiceTypes.ASSET_ACCESS:
         agreement_template = keeper.access_template
@@ -453,26 +457,25 @@ def place_order(provider_account, ddo, consumer_account, service_type=ServiceTyp
 
     if service_type == ServiceTypes.ASSET_ACCESS_PROOF:
       consumer_pub = get_buyer_public_key()
-      condition_ids = service_agreement.generate_agreement_condition_ids(
-          agreement_id, ddo.asset_id, consumer_pub, keeper)
+      (agreement_id, id1, id2, id3) = service_agreement.generate_agreement_condition_ids(
+          agreement_id_seed, ddo.asset_id, consumer_pub, keeper, consumer_account.address, consumer_account.address)
     else:
-      condition_ids = service_agreement.generate_agreement_condition_ids(
-          agreement_id, ddo.asset_id, consumer_account.address, keeper)
+      (agreement_id, id1, id2, id3) = service_agreement.generate_agreement_condition_ids(
+          agreement_id_seed, ddo.asset_id, consumer_account.address, keeper, consumer_account.address, consumer_account.address)
 
     time_locks = service_agreement.conditions_timelocks
     time_outs = service_agreement.conditions_timeouts
     agreement_template.create_agreement(
-        agreement_id,
+        agreement_id[0],
         ddo.asset_id,
-        condition_ids,
-
+        [id1[0], id2[0], id3[0]],
         time_locks,
         time_outs,
         consumer_account.address,
         consumer_account
     )
 
-    return agreement_id
+    return agreement_id[1]
 
 
 def lock_payment(agreement_id, did, service_agreement, amounts, receivers, consumer_account, token_address=None):
