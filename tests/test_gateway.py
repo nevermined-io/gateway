@@ -125,7 +125,7 @@ def test_consume(client, provider_account, consumer_account):
 
 def test_access(client, provider_account, consumer_account):
     for method in constants.ConfigSections.DECRYPTION_METHODS:
-        ddo = get_registered_ddo(provider_account, consumer_account.address, providers=[provider_account.address], auth_service=method)
+        ddo = get_registered_ddo(provider_account, providers=[provider_account.address], auth_service=method)
 
         # initialize an agreement
         agreement_id = place_order(provider_account, ddo, consumer_account)
@@ -178,7 +178,7 @@ def test_access(client, provider_account, consumer_account):
 
 def test_access_proof(client, provider_account, consumer_account):
     for method in constants.ConfigSections.DECRYPTION_METHODS:
-        ddo = get_proof_ddo(provider_account, consumer_account.address, providers=[provider_account.address], auth_service=method)
+        ddo = get_proof_ddo(provider_account, providers=[provider_account.address], auth_service=method)
 
         # initialize an agreement
         agreement_id = place_order(provider_account, ddo, consumer_account, ServiceTypes.ASSET_ACCESS_PROOF)
@@ -231,7 +231,7 @@ def test_access_proof(client, provider_account, consumer_account):
 
 
 def test_download(client, provider_account):
-    ddo = get_registered_ddo(provider_account, provider_account.address, providers=[provider_account.address])
+    ddo = get_registered_ddo(provider_account, providers=[provider_account.address])
     index = 0
 
     # generate the grant token

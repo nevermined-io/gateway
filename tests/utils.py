@@ -85,7 +85,7 @@ def write_s3():
     return s3_url
 
 
-def get_registered_ddo(account, return_address, providers=None, auth_service='PSK-RSA', url=get_file_url()):
+def get_registered_ddo(account, providers=None, auth_service='PSK-RSA', url=get_file_url()):
     ddo = get_sample_ddo()
     metadata = ddo['service'][0]['attributes']
     metadata['main']['files'][0]['url'] = url
@@ -103,7 +103,7 @@ def get_registered_ddo(account, return_address, providers=None, auth_service='PS
         "timeout": 3600,
         "datePublished": metadata[MetadataMain.KEY]['dateCreated'],
         "_amounts": _amounts,
-        "_returnAddress": return_address,
+        # "_returnAddress": return_address,
         "_receivers": _receivers
     }}
 
@@ -114,7 +114,7 @@ def get_registered_ddo(account, return_address, providers=None, auth_service='PS
 
     return register_ddo(metadata, account, providers, auth_service, [access_service_descriptor])
 
-def get_proof_ddo(account, return_address, providers=None, auth_service='PSK-RSA', key=get_key()):
+def get_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_key()):
     ddo = get_sample_ddo()
     metadata = ddo['service'][0]['attributes']
     metadata['main']['files'][0]['url'] = key
@@ -143,7 +143,7 @@ def get_proof_ddo(account, return_address, providers=None, auth_service='PSK-RSA
             "_amounts": _amounts,
             "_hash": hash,
             "_providerPub": providerKey,
-            "_returnAddress": return_address,
+            # "_returnAddress": return_address,
             "_receivers": _receivers
         }
     }
@@ -156,7 +156,7 @@ def get_proof_ddo(account, return_address, providers=None, auth_service='PSK-RSA
     return register_ddo(metadata, account, providers, auth_service, [access_service_descriptor])
 
 
-def get_nft_ddo(account, return_address, providers=None, auth_service='PSK-RSA'):
+def get_nft_ddo(account, providers=None, auth_service='PSK-RSA'):
     ddo = get_sample_nft_ddo()
     metadata = ddo['service'][0]['attributes']
     metadata['main']['files'][0][
@@ -193,7 +193,7 @@ def get_nft_ddo(account, return_address, providers=None, auth_service='PSK-RSA')
         "_receivers": _receivers,
         "_numberNfts": str(_number_nfts),
         "_tokenAddress": "",
-        "_returnAddress": return_address,
+        # "_returnAddress": return_address,
         "datePublished": metadata['main']['dateCreated']
     }}
 
@@ -224,7 +224,7 @@ def get_param_value_by_name(parameters, name):
             return p['value']
 
 
-def get_registered_compute_ddo(account, return_address, providers=None, auth_service='PSK-RSA'):
+def get_registered_compute_ddo(account, providers=None, auth_service='PSK-RSA'):
     ddo = get_sample_ddo()
     metadata = ddo['service'][0]['attributes']
     metadata['main']['files'][0][
@@ -246,7 +246,7 @@ def get_registered_compute_ddo(account, return_address, providers=None, auth_ser
             "timeout": 86400,
             "_amounts": _amounts,
             "_receivers": _receivers,
-            "_returnAddress": return_address,
+            # "_returnAddress": return_address,
             "provider": {}
         }
     }
