@@ -26,7 +26,7 @@ receivers = to_checksum_addresses(
 def test_access_endpoint(client, provider_account, consumer_account):
     # order access
     keeper = keeper_instance()
-    ddo = get_registered_ddo(provider_account, providers=[provider_account.address])
+    ddo = get_registered_ddo(provider_account, consumer_account.address, providers=[provider_account.address])
     agreement_id = place_order(provider_account, ddo, consumer_account)
 
     event = keeper.access_template.subscribe_agreement_created(
@@ -79,7 +79,7 @@ def test_access_endpoint_bad_signature(client, provider_account, consumer_accoun
 
     # order access
     keeper = keeper_instance()
-    ddo = get_registered_ddo(provider_account, providers=[provider_account.address])
+    ddo = get_registered_ddo(provider_account, consumer_account.address, providers=[provider_account.address])
     agreement_id = place_order(provider_account, ddo, provider_account)
 
     event = keeper.access_template.subscribe_agreement_created(
@@ -122,7 +122,7 @@ def test_access_endpoint_bad_signature(client, provider_account, consumer_accoun
 
 
 def test_download_endpoint(client, provider_account):
-    ddo = get_registered_ddo(provider_account, providers=[provider_account.address])
+    ddo = get_registered_ddo(provider_account, provider_account.address, providers=[provider_account.address])
 
     # create jwt bearer grant
     jwk = account_to_jwk(provider_account)
