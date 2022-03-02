@@ -150,6 +150,8 @@ def is_lock_payment_condition_fulfilled(lock_payment_condition_id, keeper):
 def is_escrow_payment_condition_fulfilled(escrow_payment_condition_id, keeper):
     return keeper.condition_manager.get_condition_state(escrow_payment_condition_id) == ConditionState.Fulfilled
 
+def is_access_proof_condition_fulfilled(access_proof_condition_id, keeper):
+    return keeper.condition_manager.get_condition_state(access_proof_condition_id) == ConditionState.Fulfilled.value
 
 def is_nft_transfer_condition_fulfilled(nft_transfer_condition_id, keeper):
     return keeper.condition_manager.get_condition_state(nft_transfer_condition_id) == ConditionState.Fulfilled.value
