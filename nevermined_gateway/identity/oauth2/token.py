@@ -227,8 +227,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
                 raise InvalidClientError(
                         f"ServiceAgreement {agreement_id}: public key doesn't match {consumer_address}")
 
-            fulfill_access_proof_condition(keeper, agreement_id, cond_ids, res['hash'], consumer_pub, provider_pub, res['cipher'], res['proof'],
-                                     self.provider_account)
+            fulfill_access_proof_condition(keeper, agreement_id, cond_ids[0], res['hash'], consumer_pub, provider_pub, res['cipher'], res['proof'], self.provider_account)
             fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset,
                                              self.provider_account, ServiceTypes.ASSET_ACCESS_PROOF)
 

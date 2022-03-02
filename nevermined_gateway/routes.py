@@ -18,12 +18,13 @@ from secret_store_client.client import RPCError
 from web3 import Web3
 
 from nevermined_gateway import constants
-from nevermined_gateway.conditions import fulfill_escrow_payment_condition, fulfill_for_delegate_nft_transfer_condition, is_nft_holder
+from nevermined_gateway.conditions import fulfill_access_proof_condition, fulfill_escrow_payment_condition, fulfill_escrow_payment_condition_multi, fulfill_for_delegate_nft_transfer_condition, is_nft_holder
 from nevermined_gateway.config import upload_backends
 from nevermined_gateway.identity.oauth2.authorization_server import create_authorization_server
 from nevermined_gateway.identity.oauth2.resource_server import create_resource_server
 from nevermined_gateway.log import setup_logging
 from nevermined_gateway.myapp import app
+from nevermined_gateway.snark_util import call_prover
 from nevermined_gateway.util import (check_required_attributes,
                                      do_secret_store_encrypt, encrypt, generate_password, get_asset_url_at_index, get_config,
                                      get_provider_account, get_provider_babyjub_key, get_provider_key_file,
@@ -469,7 +470,7 @@ def nft_transfer_proof():
     nft_holder_address = data.get('nftHolder')
     nft_receiver_address = data.get('nftReceiver')
     nft_amount = data.get('nftAmount')
-    buyer_pub = data.get('buyerPub')
+    consumer_pub = data.get('buyerPub')
 
     keeper = keeper_instance()
     agreement = keeper.agreement_manager.get_agreement(agreement_id)
@@ -523,14 +524,34 @@ def nft_transfer_proof():
 
     if not is_access_proof_condition_fulfilled(access_condition_id, keeper):
         logger.debug('AccessProof condition not fulfilled')
-        result = fulfill_for_delegate_nft_transfer_condition(
+        provider_account = get_provider_account()
+        agreement = keeper.agreement_manager.get_agreement(agreement_id)
+        cond_ids = agreement.condition_ids
+        asset = DIDResolver(keeper.did_registry).resolve(did)
+        auth_method = asset.authorization.main['service']
+        url = '0x' + get_asset_url_at_index(0, asset, provider_account, auth_method)
+        provider_key = get_provider_babyjub_key()
+        provider_pub = [provider_key.x, provider_key.y]
+        proof = call_prover(consumer_pub, provider_key.secret, url)
+        print("fullfill access",[
             agreement_id,
-            agreement.did,
-            Web3.toChecksumAddress(nft_holder_address),
-            Web3.toChecksumAddress(nft_receiver_address),
-            nft_amount,
-            lock_payment_condition_id,
-            keeper
+            access_condition_id,
+            proof['hash'], 
+            consumer_pub, 
+            provider_pub, 
+            proof['cipher'], 
+            proof['proof']
+        ])
+        result = fulfill_access_proof_condition(
+            keeper,
+            agreement_id,
+            access_condition_id,
+            proof['hash'], 
+            consumer_pub, 
+            provider_pub, 
+            proof['cipher'], 
+            proof['proof'], 
+            provider_account
         )
         if result is False:
             msg = f'There was an error fulfilling the AccessProof condition for agreement_id={agreement_id}'
@@ -540,17 +561,24 @@ def nft_transfer_proof():
     # fulfill escrowPayment condition
     if not is_escrow_payment_condition_fulfilled(escrow_payment_condition_id, keeper):
         logger.debug('EscrowPayment condition not fulfilled')
-        result = fulfill_escrow_payment_condition(
+        print('************* access condition', access_condition_id)
+        if not is_access_proof_condition_fulfilled(access_condition_id, keeper):
+            print("NOT FULFILLED")
+        print('************* transfer condition', nft_transfer_condition_id)
+        if not is_nft_transfer_condition_fulfilled(nft_transfer_condition_id, keeper):
+            print("NOT FULFILLED")
+        result = fulfill_escrow_payment_condition_multi(
             keeper,
             agreement_id,
             [
                 nft_transfer_condition_id,
                 lock_payment_condition_id,
-                escrow_payment_condition_id
+                escrow_payment_condition_id,
+                access_condition_id
             ],
             ddo,
             get_provider_account(),
-            service_type=ServiceTypes.NFT_SALES
+            service_type=ServiceTypes.NFT_SALES_WITH_ACCESS
         )
         if result is False:
             msg = f'There was an error fulfilling the EscrowPayment condition for agreement_id={agreement_id}'

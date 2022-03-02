@@ -227,7 +227,8 @@ def test_nft_transfer_proof(client, provider_account, consumer_account, publishe
         agreement_id,
         transfer_nft_condition_id,
         lock_payment_condition_id,
-        escrow_payment_condition_id
+        escrow_payment_condition_id,
+        access_condition_id
     ) = nft_sales_service_agreement.generate_agreement_condition_ids(
         agreement_id_seed,
         asset_id,
@@ -237,21 +238,23 @@ def test_nft_transfer_proof(client, provider_account, consumer_account, publishe
         consumer_account.address
     )
 
-    keeper.nft_sales_template.create_agreement(
+    keeper.nft_sales_with_access_template.create_agreement(
         agreement_id[0],
         asset_id,
-        [lock_payment_condition_id[0], transfer_nft_condition_id[0], escrow_payment_condition_id[0]],
+        [lock_payment_condition_id[0], transfer_nft_condition_id[0], escrow_payment_condition_id[0], access_condition_id[0]],
         nft_sales_service_agreement.conditions_timelocks,
         nft_sales_service_agreement.conditions_timeouts,
         consumer_account.address,
         consumer_account
     )
-    event = keeper.nft_sales_template.subscribe_agreement_created(
+    event = keeper.nft_sales_with_access_template.subscribe_agreement_created(
         agreement_id[1], 15, None, (), wait=True, from_block=0
     )
     assert event, "Agreement event is not found, check the keeper node's logs"
 
-    cond_ids = [lock_payment_condition_id[1], transfer_nft_condition_id[1], escrow_payment_condition_id[1]]
+    cond_ids = [lock_payment_condition_id[1], transfer_nft_condition_id[1], escrow_payment_condition_id[1], access_condition_id[1]]
+
+    print('conditions', cond_ids)
 
     keeper.token.token_approve(
         keeper.lock_payment_condition.address,
@@ -290,11 +293,12 @@ def test_nft_transfer_proof(client, provider_account, consumer_account, publishe
     assert is_approved is True
 
     response = client.post(
-        BaseURLs.ASSETS_URL + '/nft-transfer',
+        BaseURLs.ASSETS_URL + '/nft-transfer-with-access',
         json={
             'agreementId': agreement_id[1],
             'nftHolder': publisher_account.address,
             'nftReceiver': consumer_account.address,
+            'buyerPub': get_buyer_public_key(),
             'nftAmount': nft_amounts
         }
     )
@@ -302,6 +306,7 @@ def test_nft_transfer_proof(client, provider_account, consumer_account, publishe
 
     assert keeper.condition_manager.get_condition_state(cond_ids[0]) == ConditionState.Fulfilled.value
     assert keeper.condition_manager.get_condition_state(cond_ids[1]) == ConditionState.Fulfilled.value
+    assert keeper.condition_manager.get_condition_state(cond_ids[3]) == ConditionState.Fulfilled.value
     assert keeper.condition_manager.get_condition_state(cond_ids[2]) == ConditionState.Fulfilled.value
 
 

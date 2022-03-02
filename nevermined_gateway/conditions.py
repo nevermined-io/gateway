@@ -47,8 +47,8 @@ def fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_
     return access_condition_status == ConditionState.Fulfilled.value
 
 
-def fulfill_access_proof_condition(keeper, agreement_id, cond_ids, asset_hash, consumer_address, provider_address, cipher, proof, provider_acc):
-    access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
+def fulfill_access_proof_condition(keeper, agreement_id, cond_id, asset_hash, consumer_address, provider_address, cipher, proof, provider_acc):
+    access_condition_status = keeper.condition_manager.get_condition_state(cond_id)
 
     if access_condition_status != ConditionState.Fulfilled.value:
         logger.info('Fulfilling Access proof condition')
@@ -57,13 +57,13 @@ def fulfill_access_proof_condition(keeper, agreement_id, cond_ids, asset_hash, c
                 agreement_id, asset_hash, consumer_address, provider_address, cipher, proof, provider_acc
             )
         except Exception:
-            access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
+            access_condition_status = keeper.condition_manager.get_condition_state(cond_id)
             if access_condition_status != ConditionState.Fulfilled.value:
                 logger.error('Error in access proof condition fulfill')
             else:
                 logger.info('The access proof condition was already fulfilled')
 
-    access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
+    access_condition_status = keeper.condition_manager.get_condition_state(cond_id)
     return access_condition_status == ConditionState.Fulfilled.value
 
 
@@ -165,6 +165,62 @@ def fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset, prov
             escrow_condition_status = keeper.condition_manager.get_condition_state(cond_ids[2])
             if escrow_condition_status != ConditionState.Fulfilled.value:
                 logger.error('Error in escrowReward fulfill')
+            else:
+                logger.info('The escrowReward condition was already fulfilled')
+
+    escrow_condition_status = keeper.condition_manager.get_condition_state(cond_ids[2])
+    return escrow_condition_status == ConditionState.Fulfilled.value
+
+def fulfill_escrow_payment_condition_multi(keeper, agreement_id, cond_ids, asset, provider_acc,
+                                     service_type=ServiceTypes.ASSET_ACCESS):
+    escrow_condition_status = keeper.condition_manager.get_condition_state(cond_ids[2])
+
+    if escrow_condition_status != ConditionState.Fulfilled.value:
+        logger.debug('Fulfilling EscrowPayment condition %s' % agreement_id)
+        service_agreement = asset.get_service(service_type)
+        access_id = cond_ids[3]
+        transfer_id = cond_ids[0]
+        lock_id = cond_ids[1]
+        print('conditions', cond_ids)
+
+        amounts = list(map(int, service_agreement.get_param_value_by_name('_amounts')))
+        receivers = to_checksum_addresses(service_agreement.get_param_value_by_name('_receivers'))
+        token_address = service_agreement.get_param_value_by_name('_tokenAddress')
+        agreement = keeper.agreement_manager.get_agreement(agreement_id)
+        return_address = agreement.owner
+        # print(['return address', return_address])
+        if token_address is None or len(token_address) == 0:
+            token_address = keeper.token.address
+
+        #print(["args to multi", add_0x_prefix(agreement_id),
+        #        asset.asset_id,
+        #        amounts,
+        #        receivers,
+        #        return_address,
+        #        keeper.escrow_payment_condition.address,
+        #        token_address,
+        #        lock_id,
+        #        [transfer_id, access_id]])
+
+        print('release conditions', [transfer_id, access_id])
+
+        try:
+            keeper.escrow_payment_condition.fulfill_multi(
+                add_0x_prefix(agreement_id),
+                asset.asset_id,
+                amounts,
+                receivers,
+                return_address,
+                keeper.escrow_payment_condition.address,
+                token_address,
+                lock_id,
+                [transfer_id, access_id],
+                provider_acc
+            )
+        except Exception:
+            escrow_condition_status = keeper.condition_manager.get_condition_state(cond_ids[2])
+            if escrow_condition_status != ConditionState.Fulfilled.value:
+                logger.error('Error in escrowReward fulfill (multi)')
             else:
                 logger.info('The escrowReward condition was already fulfilled')
 
