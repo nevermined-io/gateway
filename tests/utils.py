@@ -103,7 +103,6 @@ def get_registered_ddo(account, providers=None, auth_service='PSK-RSA', url=get_
         "timeout": 3600,
         "datePublished": metadata[MetadataMain.KEY]['dateCreated'],
         "_amounts": _amounts,
-        # "_returnAddress": return_address,
         "_receivers": _receivers
     }}
 
@@ -143,7 +142,6 @@ def get_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_key()
             "_amounts": _amounts,
             "_hash": hash,
             "_providerPub": providerKey,
-            # "_returnAddress": return_address,
             "_receivers": _receivers
         }
     }
@@ -164,26 +162,14 @@ def get_nft_ddo(account, providers=None, auth_service='PSK-RSA'):
                  "/CoverSongs/shs_dataset_test.txt?" + str(uuid.uuid4())
     metadata['main']['files'][0]['checksum'] = str(uuid.uuid4())
 
-    escrow_payment_condition = ddo['service'][1]['attributes']['serviceAgreementTemplate']['conditions'][2]
     _number_nfts = 1
-    # _amounts = get_param_value_by_name(escrow_payment_condition['parameters'], '_amounts')
-    # _receivers = to_checksum_addresses(
-    #     get_param_value_by_name(escrow_payment_condition['parameters'], '_receivers'))
     _amounts = ['9']
     _receivers = to_checksum_addresses([account.address])
 
-    transfer_nft_condition = ddo['service'][1]['attributes']['serviceAgreementTemplate']['conditions'][1]
-    # _nftHolder = get_param_value_by_name(transfer_nft_condition['parameters'], '_nftHolder')
     _nftHolder = to_checksum_address(account.address)
     _total_price = sum(int(x) for x in _amounts)
 
-    asset_rewards = {
-        "_amounts": _amounts,
-        "_receivers": _receivers
-    }
-
     metadata['main']['price'] = _total_price
-
     access_service_attributes = {"main": {
         "name": "nftAccessAgreement",
         "creator": account.address,
@@ -193,7 +179,6 @@ def get_nft_ddo(account, providers=None, auth_service='PSK-RSA'):
         "_receivers": _receivers,
         "_numberNfts": str(_number_nfts),
         "_tokenAddress": "",
-        # "_returnAddress": return_address,
         "datePublished": metadata['main']['dateCreated']
     }}
 
@@ -211,6 +196,56 @@ def get_nft_ddo(account, providers=None, auth_service='PSK-RSA'):
     )
 
     return register_ddo(metadata, account, providers, auth_service, [nft_access_service_descriptor, nft_sales_service_descriptor], royalties= 0, cap=10, mint=10)
+
+def get_nft_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_key()):
+    ddo = get_sample_nft_ddo()
+    metadata = ddo['service'][0]['attributes']
+    metadata['main']['files'][0]['url'] = key
+    metadata['main']['files'][0]['checksum'] = str(uuid.uuid4())
+
+    _number_nfts = 1
+    _amounts = ['9']
+    _receivers = to_checksum_addresses([account.address])
+
+    _nftHolder = to_checksum_address(account.address)
+    _total_price = sum(int(x) for x in _amounts)
+
+    metadata['main']['price'] = _total_price
+
+    hash = poseidon_hash(key)
+    providerKey = get_provider_public_key()
+    metadata['additionalInformation'] = {
+        "providerKey": {
+            "x": providerKey[0],
+            "y": providerKey[1]
+        },
+        "poseidonHash": hash
+    }
+
+    access_service_attributes = {"main": {
+        "name": "nftAccessAgreement",
+        "creator": account.address,
+        "timeout": 3600,
+        "price": _total_price,
+        "_amounts": _amounts,
+        "_receivers": _receivers,
+        "_hash": hash,
+        "_providerPub": providerKey,
+        "_numberNfts": str(_number_nfts),
+        "_tokenAddress": "",
+        "datePublished": metadata['main']['dateCreated']
+    }}
+
+    sales_service_attributes = copy.deepcopy(access_service_attributes)
+    sales_service_attributes['main']['name'] = 'nftSalesWithAccessAgreement'
+    sales_service_attributes['main']['_nftHolder'] = _nftHolder
+
+    nft_sales_service_descriptor = ServiceDescriptor.nft_sales_with_access_service_descriptor(
+        sales_service_attributes,
+        'http://localhost:8030'
+    )
+
+    return register_ddo(metadata, account, providers, auth_service, [nft_sales_service_descriptor], royalties= 0, cap=10, mint=10)
 
 
 def get_param_value_by_name(parameters, name):
@@ -339,7 +374,7 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
     did = ddo._did
 
     for service in services:
-        if service.type == ServiceTypes.ASSET_ACCESS or service.type == ServiceTypes.NFT_ACCESS or service.type == ServiceTypes.ASSET_ACCESS_PROOF:
+        if service.type == ServiceTypes.ASSET_ACCESS or service.type == ServiceTypes.NFT_ACCESS or service.type == ServiceTypes.ASSET_ACCESS_PROOF or service.type == ServiceTypes.NFT_ACCESS_PROOF:
             access_service = ServiceFactory.complete_access_service(
                 did,
                 service.service_endpoint,
@@ -358,7 +393,7 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
                 keeper.escrow_payment_condition.address
             )
             ddo.add_service(compute_service)
-        elif service.type == ServiceTypes.NFT_SALES:
+        elif service.type == ServiceTypes.NFT_SALES or service.type == ServiceTypes.NFT_SALES_WITH_ACCESS:
             nft_sales_service = ServiceFactory.complete_nft_sales_service(
                     did,
                     service.service_endpoint,

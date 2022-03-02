@@ -201,8 +201,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
 
         access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
         lock_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
-        escrow_condition_status = keeper.condition_manager.get_condition_state(
-                cond_ids[2])
+        escrow_condition_status = keeper.condition_manager.get_condition_state(cond_ids[2])
 
         logger.info('AccessProofCondition: %d' % access_condition_status)
         logger.info('LockPaymentCondition: %d' % lock_condition_status)
