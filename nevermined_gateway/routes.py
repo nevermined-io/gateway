@@ -403,7 +403,11 @@ def nft_access_proof(agreement_id, index=0):
         url = get_asset_url_at_index(index, asset, provider_acc, auth_method)
         used_by(generate_random_id(), did, consumer_address, 'access', '0x00', 'nft access prof', provider_acc,
                 keeper)
-        return get_asset(request, requests_session, content_type, url, app.config['CONFIG_FILE'])
+        return Response(
+            url,
+            '200',
+            content_type=content_type
+        )
 
     except (ValueError, Exception) as e:
         logger.error(f'Error- {str(e)}', exc_info=1)

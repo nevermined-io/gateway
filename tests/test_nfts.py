@@ -2,10 +2,10 @@ import time
 from common_utils_py.agreements.service_agreement import ServiceAgreement
 from common_utils_py.agreements.service_types import ServiceTypes
 from common_utils_py.did import did_to_id_bytes
-from common_utils_py.oauth2.token import NeverminedJWTBearerGrant, generate_access_grant_token
+from common_utils_py.oauth2.token import NeverminedJWTBearerGrant, generate_access_grant_token, generate_access_proof_grant_token
 
 from nevermined_gateway.constants import BaseURLs, ConditionState
-from nevermined_gateway.util import get_buyer_public_key, get_provider_account, keeper_instance, init_account_envvars
+from nevermined_gateway.util import get_buyer_public_key, get_buyer_secret_key, get_provider_account, keeper_instance, init_account_envvars
 from .utils import get_nft_ddo, lock_payment, get_nft_proof_ddo
 
 
@@ -342,7 +342,7 @@ def test_nft_access_proof(client, provider_account, consumer_account, publisher_
     assert event, "Agreement event is not found, check the keeper node's logs"
 
     # generate the grant token
-    grant_token = generate_access_grant_token(consumer_account, agreement_id[1], ddo.did, uri="/nft-access-proof")
+    grant_token = generate_access_proof_grant_token(consumer_account, agreement_id[1], ddo.did, get_buyer_secret_key(), "/nft-access-proof")
 
     # request access token
     response = client.post("/api/v1/gateway/services/oauth/token", data={

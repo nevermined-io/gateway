@@ -100,15 +100,13 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
     def check_ddo_nft_access(self, did, agreement_id_seed, asset_id, consumer_address, keeper, cond_ids, service_type, creator_address):
         ddo = DIDResolver(keeper.did_registry).resolve(did)
         aservice = ddo.get_service(service_type)
-        token_address = aservice.get_param_value_by_name('_tokenAddress')
-        if token_address is None or len(token_address) == 0:
-            token_address = keeper.token.address
+        token_address = keeper.token.address
         (agreement_id, id1, id2) = aservice.generate_agreement_condition_ids(agreement_id_seed, asset_id, consumer_address, keeper, creator_address, creator_address, token_address)
-        ids = [id1[1], id2[1]]
+        ids = [id2[1], id1[1]]
         if ids != cond_ids:
             print("****************** ids not match")
             print(ids, cond_ids)
-            print([id1[0], id2[0]])
+            print([id2[0], id1[0]])
             raise InvalidClientError(f"ServiceAgreement {agreement_id} doesn't match ddo")
 
     def authenticate_client(self, claims):
@@ -261,6 +259,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
         asset = DIDResolver(keeper.did_registry).resolve(did)
         asset_id = did.replace(NEVERMINED_PREFIX, "")
         self.check_ddo_nft_access(did, agreement.id_seed, asset_id, consumer_pub, keeper, cond_ids, ServiceTypes.NFT_ACCESS_PROOF, agreement.owner)
+        service_agreement = ServiceAgreement.from_ddo(ServiceTypes.NFT_ACCESS_PROOF, asset)
 
         access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
         holder_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
@@ -269,26 +268,42 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
         logger.info('NFTHolderCondition: %d' % holder_condition_status)
 
         if holder_condition_status != ConditionState.Fulfilled.value:
+            print("trying to fulfill holder condition")
+            keeper.nft_holder_condition.fulfill(
+                agreement_id, asset_id, eth_address, service_agreement.get_number_nfts(), self.provider_account
+            )
+
+        holder_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
+        if holder_condition_status != ConditionState.Fulfilled.value:
             logger.debug('ServiceAgreement %s is not valid. Forbidden' % agreement_id)
             raise InvalidClientError(
                     f"ServiceAgreement {agreement_id} is not valid, NFTHolderCondition status is {holder_condition_status}")
 
         if access_condition_status != ConditionState.Fulfilled.value:
             # compute the proof
+            print("fulfill access proof")
             auth_method = asset.authorization.main['service']
             url = '0x' + get_asset_url_at_index(0, asset, self.provider_account, auth_method)
             res = call_prover(consumer_pub, self.provider_key.secret, url)
+            print("got proof", res)
             # check that the condition ID is correct
             cond_id = keeper.access_proof_condition.generate_id(
                 agreement_id,
                 ['bytes32', 'bytes32', 'bytes32', 'bytes32', 'bytes32'],
                 [res['hash'], consumer_pub[0], consumer_pub[1], provider_pub[0], provider_pub[1]]
             )
-            if cond_ids[0] != cond_id.hex():
+            if cond_ids[1] != cond_id.hex():
                 raise InvalidClientError(
                         f"ServiceAgreement {agreement_id}: public key doesn't match {consumer_address}")
 
-            fulfill_access_proof_condition(keeper, agreement_id, cond_ids[0], res['hash'], consumer_pub, provider_pub, res['cipher'], res['proof'], self.provider_account)
+            fulfill_access_proof_condition(keeper, agreement_id, cond_ids[1], res['hash'], consumer_pub, provider_pub, res['cipher'], res['proof'], self.provider_account)
+
+        access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
+        if access_condition_status != ConditionState.Fulfilled.value:
+            print('access proof fulfill fail')
+            logger.debug('ServiceAgreement %s is not valid. Forbidden' % agreement_id)
+            raise InvalidClientError(
+                    f"ServiceAgreement {agreement_id} is not valid, AccessProofCondition status is {access_condition_status}")
 
     def validate_nft_access(self, agreement_id, did, consumer_address):
         keeper = keeper_instance()
