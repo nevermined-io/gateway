@@ -364,6 +364,51 @@ def nft_access(agreement_id, index=0):
         logger.error(f'Error- {str(e)}', exc_info=1)
         return f'Error : {str(e)}', 500
 
+@services.route('/nft-access-proof/<agreement_id>', methods=['GET'])
+@services.route('/nft-access-proof/<agreement_id>/<int:index>', methods=['GET'])
+@require_oauth()
+def nft_access_proof(agreement_id, index=0):
+    """Allows to get access to an asset data file holding a NFT.
+    swagger_from_file: docs/nft_access.yml
+    """
+
+    consumer_address = current_token["client_id"]
+    did = current_token["did"]
+    agreement_id = current_token["sub"]
+
+    logger.info('Parameters:\nAgreementId: %s\nIndex: %d\nConsumerAddress: %s\n'
+                'DID: %s\n'
+                % (agreement_id, index, consumer_address, did))
+
+    try:
+        keeper = keeper_instance()
+        asset = DIDResolver(keeper.did_registry).resolve(did)
+
+        file_attributes = asset.metadata['main']['files'][index]
+        content_type = file_attributes.get('contentType', None)
+
+        try:
+            auth_method = asset.authorization.main['service']
+        except Exception:
+            auth_method = constants.ConfigSections.DEFAULT_DECRYPTION_METHOD
+
+        if auth_method not in constants.ConfigSections.DECRYPTION_METHODS:
+            msg = (
+                    'The Authorization Method defined in the DDO is not part of the available '
+                    'methods supported'
+                    'by the Gateway: ' + auth_method)
+            logger.warning(msg)
+            return msg, 400
+
+        url = get_asset_url_at_index(index, asset, provider_acc, auth_method)
+        used_by(generate_random_id(), did, consumer_address, 'access', '0x00', 'nft access prof', provider_acc,
+                keeper)
+        return get_asset(request, requests_session, content_type, url, app.config['CONFIG_FILE'])
+
+    except (ValueError, Exception) as e:
+        logger.error(f'Error- {str(e)}', exc_info=1)
+        return f'Error : {str(e)}', 500
+
 
 @services.route('/nft-transfer', methods=['POST'])
 def nft_transfer():

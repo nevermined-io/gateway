@@ -97,6 +97,20 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
             print([id1[0], id2[0], id3[0]])
             raise InvalidClientError(f"ServiceAgreement {agreement_id} doesn't match ddo")
 
+    def check_ddo_nft_access(self, did, agreement_id_seed, asset_id, consumer_address, keeper, cond_ids, service_type, creator_address):
+        ddo = DIDResolver(keeper.did_registry).resolve(did)
+        aservice = ddo.get_service(service_type)
+        token_address = aservice.get_param_value_by_name('_tokenAddress')
+        if token_address is None or len(token_address) == 0:
+            token_address = keeper.token.address
+        (agreement_id, id1, id2) = aservice.generate_agreement_condition_ids(agreement_id_seed, asset_id, consumer_address, keeper, creator_address, creator_address, token_address)
+        ids = [id1[1], id2[1]]
+        if ids != cond_ids:
+            print("****************** ids not match")
+            print(ids, cond_ids)
+            print([id1[0], id2[0]])
+            raise InvalidClientError(f"ServiceAgreement {agreement_id} doesn't match ddo")
+
     def authenticate_client(self, claims):
         logger.info('Auth client')
         possible_eth_addresses = [jwk_to_eth_address(jwk) for jwk in self.possible_public_keys]
@@ -117,6 +131,8 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
             self.validate_nft_access(claims["sub"], claims["did"], claims["iss"])
         elif claims["aud"] == BaseURLs.ASSETS_URL + "/access-proof":
             self.validate_access_proof(claims["sub"], claims["did"], claims["iss"], claims["buyer"], claims["babysig"])
+        elif claims["aud"] == BaseURLs.ASSETS_URL + "/nft-access-proof":
+            self.validate_nft_access_proof(claims["sub"], claims["did"], claims["iss"], claims["buyer"], claims["babysig"])
         elif claims["aud"] == BaseURLs.ASSETS_URL + "/download":
             self.validate_owner(claims["did"], claims["iss"])
         elif claims["aud"] == BaseURLs.ASSETS_URL + "/compute":
@@ -137,7 +153,6 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
             # 3. If not granted, verification of agreement and conditions
             agreement = keeper.agreement_manager.get_agreement(agreement_id)
             cond_ids = agreement.condition_ids
-            print(["zuu", agreement.condition_id_seeds])
             asset = DIDResolver(keeper.did_registry).resolve(did)
             asset_id = f'0x{did.replace(NEVERMINED_PREFIX, "")}'
             self.check_ddo(did, agreement.id_seed, asset_id, consumer_address, keeper, cond_ids, ServiceTypes.ASSET_ACCESS, agreement.owner)
@@ -230,6 +245,50 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
             fulfill_access_proof_condition(keeper, agreement_id, cond_ids[0], res['hash'], consumer_pub, provider_pub, res['cipher'], res['proof'], self.provider_account)
             fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset,
                                              self.provider_account, ServiceTypes.ASSET_ACCESS_PROOF)
+
+    def validate_nft_access_proof(self, agreement_id, did, eth_address, consumer_address, jubjub_sig):
+        consumer_pub = ['0x'+consumer_address[0:64], '0x'+consumer_address[64:128]]
+        provider_pub = [self.provider_key.x, self.provider_key.y]
+
+        if not keytransfer.verify([int(consumer_pub[0],16), int(consumer_pub[1],16)], int(eth_address,16), jubjub_sig):
+            raise InvalidClientError(
+                    f"ServiceAgreement {agreement_id}: babyjubjub signature doesn't match")
+
+        keeper = keeper_instance()
+
+        agreement = keeper.agreement_manager.get_agreement(agreement_id)
+        cond_ids = agreement.condition_ids
+        asset = DIDResolver(keeper.did_registry).resolve(did)
+        asset_id = did.replace(NEVERMINED_PREFIX, "")
+        self.check_ddo_nft_access(did, agreement.id_seed, asset_id, consumer_pub, keeper, cond_ids, ServiceTypes.NFT_ACCESS_PROOF, agreement.owner)
+
+        access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
+        holder_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
+
+        logger.info('AccessProofCondition: %d' % access_condition_status)
+        logger.info('NFTHolderCondition: %d' % holder_condition_status)
+
+        if holder_condition_status != ConditionState.Fulfilled.value:
+            logger.debug('ServiceAgreement %s is not valid. Forbidden' % agreement_id)
+            raise InvalidClientError(
+                    f"ServiceAgreement {agreement_id} is not valid, NFTHolderCondition status is {holder_condition_status}")
+
+        if access_condition_status != ConditionState.Fulfilled.value:
+            # compute the proof
+            auth_method = asset.authorization.main['service']
+            url = '0x' + get_asset_url_at_index(0, asset, self.provider_account, auth_method)
+            res = call_prover(consumer_pub, self.provider_key.secret, url)
+            # check that the condition ID is correct
+            cond_id = keeper.access_proof_condition.generate_id(
+                agreement_id,
+                ['bytes32', 'bytes32', 'bytes32', 'bytes32', 'bytes32'],
+                [res['hash'], consumer_pub[0], consumer_pub[1], provider_pub[0], provider_pub[1]]
+            )
+            if cond_ids[0] != cond_id.hex():
+                raise InvalidClientError(
+                        f"ServiceAgreement {agreement_id}: public key doesn't match {consumer_address}")
+
+            fulfill_access_proof_condition(keeper, agreement_id, cond_ids[0], res['hash'], consumer_pub, provider_pub, res['cipher'], res['proof'], self.provider_account)
 
     def validate_nft_access(self, agreement_id, did, consumer_address):
         keeper = keeper_instance()

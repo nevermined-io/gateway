@@ -244,8 +244,12 @@ def get_nft_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_k
         sales_service_attributes,
         'http://localhost:8030'
     )
+    access_service_descriptor = ServiceDescriptor.nft_access_proof_service_descriptor(
+        access_service_attributes,
+        'http://localhost:8030'
+    )
 
-    return register_ddo(metadata, account, providers, auth_service, [nft_sales_service_descriptor], royalties= 0, cap=10, mint=10)
+    return register_ddo(metadata, account, providers, auth_service, [nft_sales_service_descriptor, access_service_descriptor], royalties= 0, cap=10, mint=10)
 
 
 def get_param_value_by_name(parameters, name):
