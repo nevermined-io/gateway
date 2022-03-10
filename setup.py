@@ -21,7 +21,7 @@ install_requirements = [
     'common-utils-py==0.10.0',
     'contracts-lib-py==0.11.0',
     'nevermined-secret-store==0.1.1',
-    'Flask==1.1.2',
+    'Flask==2.0.1',
     'Flask-Cors==3.0.9',
     'flask-swagger==0.2.14',
     'flask-swagger-ui==3.25.0',
