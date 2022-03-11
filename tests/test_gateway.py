@@ -183,6 +183,8 @@ def test_access_proof(client, provider_account, consumer_account):
         # initialize an agreement
         agreement_id = place_order(provider_account, ddo, consumer_account, ServiceTypes.ASSET_ACCESS_PROOF)
 
+        print(ddo.did)
+
         keeper = keeper_instance()
         index = 0
 
