@@ -135,16 +135,13 @@ def fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset, prov
     if escrow_condition_status != ConditionState.Fulfilled.value:
         logger.debug('Fulfilling EscrowPayment condition %s' % agreement_id)
         service_agreement = asset.get_service(service_type)
-        # did_owner = keeper.agreement_manager.get_agreement_did_owner(agreement_id)
         access_id, lock_id = cond_ids[:2]
 
         amounts = list(map(int, service_agreement.get_param_value_by_name('_amounts')))
         receivers = to_checksum_addresses(service_agreement.get_param_value_by_name('_receivers'))
         token_address = service_agreement.get_param_value_by_name('_tokenAddress')
-        # return_address = service_agreement.get_param_value_by_name('_returnAddress')
         agreement = keeper.agreement_manager.get_agreement(agreement_id)
         return_address = agreement.owner
-        print(['return address', return_address])
         if token_address is None or len(token_address) == 0:
             token_address = keeper.token.address
 
@@ -181,28 +178,14 @@ def fulfill_escrow_payment_condition_multi(keeper, agreement_id, cond_ids, asset
         access_id = cond_ids[3]
         transfer_id = cond_ids[0]
         lock_id = cond_ids[1]
-        print('conditions', cond_ids)
 
         amounts = list(map(int, service_agreement.get_param_value_by_name('_amounts')))
         receivers = to_checksum_addresses(service_agreement.get_param_value_by_name('_receivers'))
         token_address = service_agreement.get_param_value_by_name('_tokenAddress')
         agreement = keeper.agreement_manager.get_agreement(agreement_id)
         return_address = agreement.owner
-        # print(['return address', return_address])
         if token_address is None or len(token_address) == 0:
             token_address = keeper.token.address
-
-        #print(["args to multi", add_0x_prefix(agreement_id),
-        #        asset.asset_id,
-        #        amounts,
-        #        receivers,
-        #        return_address,
-        #        keeper.escrow_payment_condition.address,
-        #        token_address,
-        #        lock_id,
-        #        [transfer_id, access_id]])
-
-        print('release conditions', [transfer_id, access_id])
 
         try:
             keeper.escrow_payment_condition.fulfill_multi(

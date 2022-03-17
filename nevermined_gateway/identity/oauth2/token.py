@@ -92,9 +92,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
         (agreement_id, id1, id2, id3) = aservice.generate_agreement_condition_ids(agreement_id_seed, asset_id, consumer_address, keeper, creator_address, creator_address, token_address)
         ids = [id1[1], id2[1], id3[1]]
         if ids != cond_ids:
-            print("****************** ids not match")
-            print(ids, cond_ids)
-            print([id1[0], id2[0], id3[0]])
+            logger.debug(f"ServiceAgreement {agreement_id} doesn't match ddo")
             raise InvalidClientError(f"ServiceAgreement {agreement_id} doesn't match ddo")
 
     def check_ddo_nft_access(self, did, agreement_id_seed, asset_id, consumer_address, keeper, cond_ids, service_type, creator_address):
@@ -104,9 +102,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
         (agreement_id, id1, id2) = aservice.generate_agreement_condition_ids(agreement_id_seed, asset_id, consumer_address, keeper, creator_address, creator_address, token_address)
         ids = [id2[1], id1[1]]
         if ids != cond_ids:
-            print("****************** ids not match")
-            print(ids, cond_ids)
-            print([id2[0], id1[0]])
+            logger.debug(f"ServiceAgreement {agreement_id} doesn't match ddo")
             raise InvalidClientError(f"ServiceAgreement {agreement_id} doesn't match ddo")
 
     def authenticate_client(self, claims):
