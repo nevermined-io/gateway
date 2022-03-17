@@ -290,7 +290,6 @@ def get_registered_compute_ddo(account, providers=None, auth_service='PSK-RSA'):
             "timeout": 86400,
             "_amounts": _amounts,
             "_receivers": _receivers,
-            # "_returnAddress": return_address,
             "provider": {}
         }
     }

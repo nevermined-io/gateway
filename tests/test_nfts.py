@@ -253,8 +253,6 @@ def test_nft_transfer_proof(client, provider_account, consumer_account, publishe
 
     cond_ids = [lock_payment_condition_id[1], transfer_nft_condition_id[1], escrow_payment_condition_id[1], access_condition_id[1]]
 
-    print('conditions', cond_ids)
-
     keeper.token.token_approve(
         keeper.lock_payment_condition.address,
         nft_sales_service_agreement.get_price(),

@@ -582,15 +582,6 @@ def nft_transfer_proof():
         provider_key = get_provider_babyjub_key()
         provider_pub = [provider_key.x, provider_key.y]
         proof = call_prover(consumer_pub, provider_key.secret, url)
-        print("fullfill access",[
-            agreement_id,
-            access_condition_id,
-            proof['hash'], 
-            consumer_pub, 
-            provider_pub, 
-            proof['cipher'], 
-            proof['proof']
-        ])
         result = fulfill_access_proof_condition(
             keeper,
             agreement_id,
@@ -610,12 +601,6 @@ def nft_transfer_proof():
     # fulfill escrowPayment condition
     if not is_escrow_payment_condition_fulfilled(escrow_payment_condition_id, keeper):
         logger.debug('EscrowPayment condition not fulfilled')
-        print('************* access condition', access_condition_id)
-        if not is_access_proof_condition_fulfilled(access_condition_id, keeper):
-            print("NOT FULFILLED")
-        print('************* transfer condition', nft_transfer_condition_id)
-        if not is_nft_transfer_condition_fulfilled(nft_transfer_condition_id, keeper):
-            print("NOT FULFILLED")
         result = fulfill_escrow_payment_condition_multi(
             keeper,
             agreement_id,

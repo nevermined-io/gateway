@@ -264,7 +264,6 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
         logger.info('NFTHolderCondition: %d' % holder_condition_status)
 
         if holder_condition_status != ConditionState.Fulfilled.value:
-            print("trying to fulfill holder condition")
             keeper.nft_holder_condition.fulfill(
                 agreement_id, asset_id, eth_address, service_agreement.get_number_nfts(), self.provider_account
             )
@@ -277,11 +276,9 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
 
         if access_condition_status != ConditionState.Fulfilled.value:
             # compute the proof
-            print("fulfill access proof")
             auth_method = asset.authorization.main['service']
             url = '0x' + get_asset_url_at_index(0, asset, self.provider_account, auth_method)
             res = call_prover(consumer_pub, self.provider_key.secret, url)
-            print("got proof", res)
             # check that the condition ID is correct
             cond_id = keeper.access_proof_condition.generate_id(
                 agreement_id,
@@ -296,7 +293,6 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
 
         access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
         if access_condition_status != ConditionState.Fulfilled.value:
-            print('access proof fulfill fail')
             logger.debug('ServiceAgreement %s is not valid. Forbidden' % agreement_id)
             raise InvalidClientError(
                     f"ServiceAgreement {agreement_id} is not valid, AccessProofCondition status is {access_condition_status}")
@@ -342,7 +338,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
 
             (agreement_id, nft_access_cond_id, nft_holder_cond_id) = nft_access_service_agreement.generate_agreement_condition_ids(agreement.id_seed, asset_id, consumer_address, keeper, agreement.owner, agreement.owner)
             if [nft_holder_cond_id[1], nft_access_cond_id[1]] != cond_ids:
-                print('****************** cond ids not match')
+                logger.debug(f"ServiceAgreement {agreement_id} doesn't match ddo")
                 raise InvalidClientError(f"ServiceAgreement {agreement_id} doesn't match ddo")
 
             if not is_nft_access_condition_fulfilled(
