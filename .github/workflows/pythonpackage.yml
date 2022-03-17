@@ -55,7 +55,7 @@ jobs:
         cd nevermined-tools
         rm -rf "${HOME}/.nevermined/nevermined-contracts/artifacts"
 
-        export KEEPER_VERSION=develop
+        export KEEPER_VERSION=v1.99.1
         export COMPUTE_API_VERSION=latest
         export METADATA_VERSION=latest
         ./start_nevermined.sh --no-marketplace --no-gateway --no-graph --ldap --compute ${{ matrix.network }} &
