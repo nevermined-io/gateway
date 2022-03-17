@@ -23,7 +23,8 @@ from eth_utils.hexadecimal import remove_0x_prefix
 from metadata_driver_aws.data_plugin import Plugin
 from metadata_driver_aws.config_parser import parse_config
 
-from nevermined_gateway.util import do_secret_store_encrypt, get_config, get_provider_key_file, get_provider_password, get_rsa_public_key_file, keeper_instance, web3, get_provider_public_key, get_buyer_public_key
+from nevermined_gateway.util import do_secret_store_encrypt, get_config, get_provider_key_file, get_provider_password, \
+    get_rsa_public_key_file, keeper_instance, web3, get_provider_public_key, get_buyer_public_key
 
 
 def get_sample_ddo():
@@ -44,14 +45,14 @@ def get_sample_algorithm_ddo():
     return json.loads(urlopen(
         'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs'
         '/examples/metadata/v0.1/ddo-example-algorithm.json').read().decode('utf-8')
-    )
+                      )
 
 
 def get_sample_workflow_ddo():
     return json.loads(urlopen(
         'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs'
         '/examples/metadata/v0.1/ddo-example-workflow.json').read().decode('utf-8')
-    )
+                      )
 
 
 def generate_new_id():
@@ -65,6 +66,7 @@ def generate_new_id():
 
 def get_file_url():
     return "https://raw.githubusercontent.com/tbertinmahieux/MSongsDB/master/Tasks_Demos/CoverSongs/shs_dataset_test.txt"
+
 
 def get_key():
     return "23fefefefefefefefefeefefefefefefef2323abababababababab"
@@ -113,6 +115,7 @@ def get_registered_ddo(account, providers=None, auth_service='PSK-RSA', url=get_
 
     return register_ddo(metadata, account, providers, auth_service, [access_service_descriptor])
 
+
 def get_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_key()):
     ddo = get_sample_ddo()
     metadata = ddo['service'][0]['attributes']
@@ -140,6 +143,7 @@ def get_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_key()
             "timeout": 3600,
             "datePublished": metadata[MetadataMain.KEY]['dateCreated'],
             "_amounts": _amounts,
+            "_tokenAddress": "",
             "_hash": hash,
             "_providerPub": providerKey,
             "_receivers": _receivers
@@ -195,7 +199,8 @@ def get_nft_ddo(account, providers=None, auth_service='PSK-RSA'):
         'http://localhost:8030'
     )
 
-    return register_ddo(metadata, account, providers, auth_service, [nft_access_service_descriptor, nft_sales_service_descriptor], royalties= 0, cap=10, mint=10)
+    return register_ddo(metadata, account, providers, auth_service,
+                        [nft_access_service_descriptor, nft_sales_service_descriptor], royalties=0, cap=10, mint=10)
 
 def get_nft_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_key()):
     ddo = get_sample_nft_ddo()
@@ -340,7 +345,8 @@ def get_registered_workflow_ddo(account, compute_did, algorithm_did, providers=N
     return register_ddo(metadata, account, providers, auth_service, [access_service_descriptor])
 
 
-def register_ddo(metadata, account, providers, auth_service, additional_service_descriptors, royalties=None, cap=None, mint=0):
+def register_ddo(metadata, account, providers, auth_service, additional_service_descriptors, royalties=None, cap=None,
+                 mint=0):
     keeper = keeper_instance()
     metadata_api = Metadata('http://172.17.0.1:5000')
 
@@ -399,12 +405,12 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
             ddo.add_service(compute_service)
         elif service.type == ServiceTypes.NFT_SALES or service.type == ServiceTypes.NFT_SALES_WITH_ACCESS:
             nft_sales_service = ServiceFactory.complete_nft_sales_service(
-                    did,
-                    service.service_endpoint,
-                    service.attributes,
-                    keeper.nft_sales_template.address,
-                    keeper.escrow_payment_condition.address,
-                    service.type
+                did,
+                service.service_endpoint,
+                service.attributes,
+                keeper.nft_sales_template.address,
+                keeper.escrow_payment_condition.address,
+                service.type
             )
             ddo.add_service(nft_sales_service)
         else:
