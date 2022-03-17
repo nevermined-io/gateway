@@ -18,8 +18,8 @@ with open("nevermined_gateway/version.py") as version_file:
 # or pip install -e .
 install_requirements = [
     # Install squid-py and all its dependencies first
-    'common-utils-py==0.10.0',
-    'contracts-lib-py==0.11.1',
+    'common-utils-py==1.0.0-rc0',
+    'contracts-lib-py==1.0.0-rc0',
     'nevermined-secret-store==0.1.1',
     'Flask==2.0.1',
     'Flask-Cors==3.0.9',
