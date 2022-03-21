@@ -7,7 +7,7 @@ RUN apt-get update \
     && sudo apt-get -y install nodejs \
     && apt-get clean
 
-RUN git clone https://github.com/nevermined-io/rapidsnark \
+RUN  git clone --branch v0.0.1 https://github.com/nevermined-io/rapidsnark \
     && cd rapidsnark \
     && git submodule update --init --recursive \
     && sh ./scripts/install-linux.sh \
