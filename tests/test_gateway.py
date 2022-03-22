@@ -64,7 +64,7 @@ def grant_access(agreement_id, ddo, consumer_account, provider_account):
     )
     keeper.access_condition.get_tx_receipt(tx_hash)
 
-
+@pytest.mark.skip(reason="deprecated")
 def test_consume(client, provider_account, consumer_account):
     endpoint = BaseURLs.ASSETS_URL + '/consume'
 

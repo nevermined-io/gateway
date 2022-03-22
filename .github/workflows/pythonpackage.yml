@@ -5,9 +5,9 @@ name: Python package
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, develop ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, develop ]
 
 jobs:
   build:
@@ -55,11 +55,14 @@ jobs:
         cd nevermined-tools
         rm -rf "${HOME}/.nevermined/nevermined-contracts/artifacts"
 
-        ./start_nevermined.sh --latest --no-marketplace --no-gateway --no-graph --ldap --compute ${{ matrix.network }} &
+        export KEEPER_VERSION=v1.99.1
+        export COMPUTE_API_VERSION=latest
+        export METADATA_VERSION=latest
+        ./start_nevermined.sh --no-marketplace --no-gateway --no-graph --ldap --compute ${{ matrix.network }} &
 
         # wait for the compute api to be online
         # the compute api is the last service to come online
-        ./scripts/wait_for_compute_api.sh
+        # ./scripts/wait_for_compute_api.sh
 
         # extract artifacts
         cd ..
