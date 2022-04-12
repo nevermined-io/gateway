@@ -9,7 +9,7 @@ RUN apt-get update \
 
 RUN git clone https://github.com/nevermined-io/rapidsnark \
     && cd rapidsnark \
-    && git checkout v0.0.1 \
+    && git checkout v0.0.2 \
     && git submodule update --init --recursive \
     && sh ./scripts/install-linux.sh \
     && cd .. \
