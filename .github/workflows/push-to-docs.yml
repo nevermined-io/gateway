@@ -1,6 +1,7 @@
 name: Push documentation to docs repo
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - v1.*
