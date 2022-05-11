@@ -1,14 +1,13 @@
 name: Push documentation to docs repo
 
 on:
-  workflow_dispatch:
   push:
-    branches: [ test-push-docs ]
-    paths: [ docs/** ]
+    tags:
+      - v1.*
 
 jobs:
   push-to-docs:
     uses: nevermined-io/reusable-workflows/.github/workflows/push-to-docs.yml@main
     with:
-      path-to-push: gateway-docs
+      path-to-push: external/gateway
     secrets: inherit
