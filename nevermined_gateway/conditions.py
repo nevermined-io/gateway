@@ -145,6 +145,18 @@ def fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset, prov
         if token_address is None or len(token_address) == 0:
             token_address = keeper.token.address
 
+        print('Fulfilling EscrowPayment:'
+              'agrId: ', agreement_id,
+              'asset_id', asset.asset_id,
+              'amounts', amounts,
+              'receivers', receivers,
+              'return_address', return_address,
+              'escrow_payment_condition', keeper.escrow_payment_condition.address,
+              'token_address', token_address,
+              'lock_id', lock_id,
+              'access_id', access_id,
+              'provider_acc', provider_acc
+              )
         try:
             keeper.escrow_payment_condition.fulfill(
                 add_0x_prefix(agreement_id),
@@ -167,6 +179,7 @@ def fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset, prov
 
     escrow_condition_status = keeper.condition_manager.get_condition_state(cond_ids[2])
     return escrow_condition_status == ConditionState.Fulfilled.value
+
 
 def fulfill_escrow_payment_condition_multi(keeper, agreement_id, cond_ids, asset, provider_acc,
                                      service_type=ServiceTypes.ASSET_ACCESS):
@@ -212,7 +225,7 @@ def fulfill_escrow_payment_condition_multi(keeper, agreement_id, cond_ids, asset
 
 
 def fulfill_for_delegate_nft_transfer_condition(agreement_id, did, nft_holder_address, nft_receiver_address,
-                                   nft_amount, lock_payment_condition_id, keeper):
+                                   nft_amount, lock_payment_condition_id, keeper, transfer_nft=True):
 
     logger.debug('Fulfilling NFTTransfer condition')
     tx_hash = keeper.transfer_nft_condition.fulfill_for_delegate(
@@ -222,6 +235,7 @@ def fulfill_for_delegate_nft_transfer_condition(agreement_id, did, nft_holder_ad
         nft_receiver_address,
         nft_amount,
         lock_payment_condition_id,
+        transfer_nft,
         get_provider_account()
     )
 

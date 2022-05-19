@@ -55,7 +55,7 @@ jobs:
         cd nevermined-tools
         rm -rf "${HOME}/.nevermined/nevermined-contracts/artifacts"
 
-        export KEEPER_VERSION=v1.99.7
+        export KEEPER_VERSION=develop
         export COMPUTE_API_VERSION=latest
         export METADATA_VERSION=latest
         ./start_nevermined.sh --no-marketplace --no-gateway --no-graph --ldap --compute ${{ matrix.network }} &
@@ -86,8 +86,6 @@ jobs:
         export RSA_PRIVKEY_FILE=tests/resources/data/rsa_priv_key.pem
         export RSA_PUBKEY_FILE=tests/resources/data/rsa_pub_key.pem
         export AUTHLIB_INSECURE_TRANSPORT=true
-        export INFURA_TOKEN=${{ secrets.INFURA_TOKEN }}
-        export ESTUARY_TOKEN=${{ secrets.ESTUARY_TOKEN }}
 
         export PROVIDER_BABYJUB_SECRET=abc
         export BUYER_BABYJUB_SECRET=abd
@@ -96,5 +94,8 @@ jobs:
         export BUYER_BABYJUB_PUBLIC1=0x0d7cdd240c2f5b0640839c49fbaaf016a8c5571b8f592e2b62ea939063545981
         export BUYER_BABYJUB_PUBLIC2=0x14b14fa0a30ec744dde9f32d519c65ebaa749bfe991a32deea44b83a4e5c65bb
 
+        export INFURA_TOKEN=${{ secrets.INFURA_TOKEN }}
+        export ESTUARY_TOKEN=${{ secrets.ESTUARY_TOKEN }}
+        
         pip install pytest
         pytest -v
