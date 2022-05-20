@@ -141,7 +141,7 @@ def test_nft_transfer(client, provider_account, consumer_account, publisher_acco
         asset_id,
         consumer_account.address,
         keeper,
-        publisher_account.address
+        init_agreement_address=consumer_account.address
     )
 
     keeper.nft_sales_template.create_agreement(
@@ -151,7 +151,7 @@ def test_nft_transfer(client, provider_account, consumer_account, publisher_acco
         nft_sales_service_agreement.conditions_timelocks,
         nft_sales_service_agreement.conditions_timeouts,
         consumer_account.address,
-        publisher_account
+        consumer_account
     )
     event = keeper.nft_sales_template.subscribe_agreement_created(
         agreement_id[1], 15, None, (), wait=True, from_block=0
@@ -205,29 +205,12 @@ def test_nft_transfer(client, provider_account, consumer_account, publisher_acco
             'nftAmount': nft_amounts
         }
     )
-    # assert response.status_code == 200
     print('GATEWAY TRANSFER STATUS CODE ' + str(response.status_code))
+    assert response.status_code == 200
 
     # Fulfill escrow_payment_condition
     assert keeper.condition_manager.get_condition_state(cond_ids[0]) == ConditionState.Fulfilled.value
     assert keeper.condition_manager.get_condition_state(cond_ids[1]) == ConditionState.Fulfilled.value
-
-    # DIRECT ESCROW PAYMENT FULFILLMENT DOESNT WORK EITHER
-    # tx_hash = keeper.escrow_payment_condition.fulfill(
-    #     agreement_id[1], asset_id, nft_sales_service_agreement.get_amounts_int(), nft_sales_service_agreement.get_receivers(),
-    #     consumer_account.address, keeper.escrow_payment_condition.address, nft_sales_service_agreement.get_nft_contract_address(),
-    #     lock_payment_condition_id[1], transfer_nft_condition_id[0], publisher_account
-    # )
-    # keeper.escrow_payment_condition.get_tx_receipt(tx_hash)
-    # event = keeper.escrow_payment_condition.subscribe_condition_fulfilled(
-    #     agreement_id[1],
-    #     10,
-    #     None,
-    #     (),
-    #     wait=True
-    # )
-    # assert event, 'no event for EscrowPayment.Fulfilled'
-
     assert keeper.condition_manager.get_condition_state(cond_ids[2]) == ConditionState.Fulfilled.value
 
 
@@ -249,23 +232,25 @@ def test_nft_transfer_proof(client, provider_account, consumer_account, publishe
         agreement_id,
         transfer_nft_condition_id,
         lock_payment_condition_id,
-        escrow_payment_condition_id
+        escrow_payment_condition_id,
+        access_condition_id
     ) = nft_sales_service_agreement.generate_agreement_condition_ids(
         agreement_id_seed,
         asset_id,
-        get_buyer_public_key(),
+        consumer_account.address,
         keeper,
-        publisher_account.address
+        init_agreement_address=consumer_account.address,
+        babyjub_pk=get_buyer_public_key()
     )
 
     keeper.nft_sales_with_access_template.create_agreement(
         agreement_id[0],
         asset_id,
-        [lock_payment_condition_id[0], transfer_nft_condition_id[0], escrow_payment_condition_id[0]],
+        [lock_payment_condition_id[0], transfer_nft_condition_id[0], escrow_payment_condition_id[0], access_condition_id[0]],
         nft_sales_service_agreement.conditions_timelocks,
         nft_sales_service_agreement.conditions_timeouts,
         consumer_account.address,
-        publisher_account
+        consumer_account
     )
     event = keeper.nft_sales_with_access_template.subscribe_agreement_created(
         agreement_id[1], 15, None, (), wait=True, from_block=0
@@ -342,7 +327,13 @@ def test_nft_access_proof(client, provider_account, consumer_account, publisher_
     agreement_id_seed = ServiceAgreement.create_new_agreement_id()
 
     (agreement_id, nft_access_cond_id, nft_holder_cond_id) = nft_access_service_agreement.generate_agreement_condition_ids(
-        agreement_id_seed, asset_id, get_buyer_public_key(), keeper, publisher_account.address)
+        agreement_id_seed,
+        asset_id,
+        consumer_account.address,
+        keeper,
+        init_agreement_address=consumer_account.address,
+        babyjub_pk=get_buyer_public_key()
+    )
 
     print('NFT_ACCESS_DID: ' + asset_id)
 

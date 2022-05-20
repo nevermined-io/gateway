@@ -57,8 +57,8 @@ jobs:
 
         export KEEPER_VERSION=develop
         export COMPUTE_API_VERSION=latest
-        export METADATA_VERSION=latest
-        ./start_nevermined.sh --no-marketplace --no-gateway --no-graph --ldap --compute ${{ matrix.network }} &
+        export MARKETPLACE_API=latest
+        ./start_nevermined.sh --marketplace-api --no-marketplace --no-gateway --no-graph --ldap --compute ${{ matrix.network }} &
 
         # wait for the compute api to be online
         # the compute api is the last service to come online

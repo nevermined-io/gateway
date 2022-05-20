@@ -89,7 +89,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
         token_address = aservice.get_param_value_by_name('_tokenAddress')
         if token_address is None or len(token_address) == 0:
             token_address = keeper.token.address
-        (agreement_id, id1, id2, id3) = aservice.generate_agreement_condition_ids(agreement_id_seed, asset_id, consumer_address, keeper, creator_address, creator_address, token_address)
+        (agreement_id, id1, id2, id3) = aservice.generate_agreement_condition_ids(agreement_id_seed, asset_id, consumer_address, keeper, token_address=token_address, init_agreement_address=creator_address)
         ids = [id1[1], id2[1], id3[1]]
         if ids != cond_ids:
             logger.debug(f"ServiceAgreement {agreement_id} doesn't match ddo")
@@ -99,7 +99,17 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
         ddo = DIDResolver(keeper.did_registry).resolve(did)
         aservice = ddo.get_service(service_type)
         token_address = keeper.token.address
-        (agreement_id, id1, id2) = aservice.generate_agreement_condition_ids(agreement_id_seed, asset_id, consumer_address, keeper, creator_address, creator_address, token_address)
+        (agreement_id, id1, id2) = aservice.generate_agreement_condition_ids(agreement_id_seed, asset_id, consumer_address, keeper, token_address=token_address, init_agreement_address=creator_address)
+        ids = [id2[1], id1[1]]
+        if ids != cond_ids:
+            logger.debug(f"ServiceAgreement {agreement_id} doesn't match ddo")
+            raise InvalidClientError(f"ServiceAgreement {agreement_id} doesn't match ddo")
+
+    def check_ddo_nft_access_proof(self, did, agreement_id_seed, asset_id, consumer_address, keeper, cond_ids, service_type, creator_address, babyjub_pk):
+        ddo = DIDResolver(keeper.did_registry).resolve(did)
+        aservice = ddo.get_service(service_type)
+        token_address = keeper.token.address
+        (agreement_id, id1, id2) = aservice.generate_agreement_condition_ids(agreement_id_seed, asset_id, consumer_address, keeper, token_address=token_address, init_agreement_address=creator_address, babyjub_pk=babyjub_pk)
         ids = [id2[1], id1[1]]
         if ids != cond_ids:
             logger.debug(f"ServiceAgreement {agreement_id} doesn't match ddo")
@@ -254,7 +264,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
         cond_ids = agreement.condition_ids
         asset = DIDResolver(keeper.did_registry).resolve(did)
         asset_id = did.replace(NEVERMINED_PREFIX, "")
-        self.check_ddo_nft_access(did, agreement.id_seed, asset_id, consumer_pub, keeper, cond_ids, ServiceTypes.NFT_ACCESS_PROOF, agreement.owner)
+        self.check_ddo_nft_access_proof(did, agreement.id_seed, asset_id, eth_address, keeper, cond_ids, ServiceTypes.NFT_ACCESS_PROOF, agreement.owner, babyjub_pk=consumer_address)
         service_agreement = ServiceAgreement.from_ddo(ServiceTypes.NFT_ACCESS_PROOF, asset)
 
         access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
@@ -336,7 +346,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
 
             nft_access_service_agreement = ServiceAgreement.from_ddo(service_type, ddo)
 
-            (agreement_id, nft_access_cond_id, nft_holder_cond_id) = nft_access_service_agreement.generate_agreement_condition_ids(agreement.id_seed, asset_id, consumer_address, keeper, agreement.owner, agreement.owner)
+            (agreement_id, nft_access_cond_id, nft_holder_cond_id) = nft_access_service_agreement.generate_agreement_condition_ids(agreement.id_seed, asset_id, consumer_address, keeper, init_agreement_address=agreement.owner)
             if [nft_holder_cond_id[1], nft_access_cond_id[1]] != cond_ids:
                 logger.debug(f"ServiceAgreement {agreement_id} doesn't match ddo")
                 raise InvalidClientError(f"ServiceAgreement {agreement_id} doesn't match ddo")

@@ -25,30 +25,34 @@ from metadata_driver_aws.config_parser import parse_config
 
 from nevermined_gateway.util import do_secret_store_encrypt, get_config, get_provider_key_file, get_provider_password, \
     get_rsa_public_key_file, keeper_instance, web3, get_provider_public_key, get_buyer_public_key
+import ssl
 
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
 
 def get_sample_ddo():
     return json.loads(urlopen(
-        'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs/examples/access/v0.1/ddo1.json').read().decode(
-        'utf-8'))
+        'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs/examples/access/v0.1/ddo1.json',
+        context=ssl_context).read().decode('utf-8'))
 
 
 def get_sample_nft_ddo():
     return json.loads(urlopen(
-        'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs/examples/access/v0.1/ddo_nft.json').read().decode(
-        'utf-8'))
+        'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs/examples/access/v0.1/ddo_nft.json',
+        context=ssl_context).read().decode('utf-8'))
 
 
 def get_sample_algorithm_ddo():
     return json.loads(urlopen(
-        'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs/examples/metadata/v0.1/ddo-example-algorithm.json').read().decode('utf-8')
-                      )
+        'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs/examples/metadata/v0.1/ddo-example-algorithm.json',
+        context=ssl_context).read().decode('utf-8'))
 
 
 def get_sample_workflow_ddo():
     return json.loads(urlopen(
-        'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs/examples/metadata/v0.1/ddo-example-workflow.json').read().decode('utf-8')
-                      )
+        'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs/examples/metadata/v0.1/ddo-example-workflow.json',
+        context=ssl_context).read().decode('utf-8'))
 
 
 def generate_new_id():
@@ -499,10 +503,10 @@ def place_order(provider_account, ddo, consumer_account, service_type=ServiceTyp
     if service_type == ServiceTypes.ASSET_ACCESS_PROOF:
       consumer_pub = get_buyer_public_key()
       (agreement_id, id1, id2, id3) = service_agreement.generate_agreement_condition_ids(
-          agreement_id_seed, ddo.asset_id, consumer_pub, keeper, consumer_account.address, consumer_account.address)
+          agreement_id_seed, ddo.asset_id, consumer_account.address, keeper, init_agreement_address=consumer_account.address, babyjub_pk=consumer_pub)
     else:
       (agreement_id, id1, id2, id3) = service_agreement.generate_agreement_condition_ids(
-          agreement_id_seed, ddo.asset_id, consumer_account.address, keeper, consumer_account.address, consumer_account.address)
+          agreement_id_seed, ddo.asset_id, consumer_account.address, keeper, init_agreement_address=consumer_account.address)
 
     time_locks = service_agreement.conditions_timelocks
     time_outs = service_agreement.conditions_timeouts
