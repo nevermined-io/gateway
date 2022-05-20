@@ -83,13 +83,13 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
 
         return possible_public_keys[0]
 
-    def check_ddo(self, did, agreement_id_seed, asset_id, consumer_address, keeper, cond_ids, service_type, creator_address):
+    def check_ddo(self, did, agreement_id_seed, asset_id, consumer_address, keeper, cond_ids, service_type, creator_address, babyjub_pk=None):
         ddo = DIDResolver(keeper.did_registry).resolve(did)
         aservice = ddo.get_service(service_type)
         token_address = aservice.get_param_value_by_name('_tokenAddress')
         if token_address is None or len(token_address) == 0:
             token_address = keeper.token.address
-        (agreement_id, id1, id2, id3) = aservice.generate_agreement_condition_ids(agreement_id_seed, asset_id, consumer_address, keeper, token_address=token_address, init_agreement_address=creator_address)
+        (agreement_id, id1, id2, id3) = aservice.generate_agreement_condition_ids(agreement_id_seed, asset_id, consumer_address, keeper, token_address=token_address, init_agreement_address=creator_address, babyjub_pk=babyjub_pk)
         ids = [id1[1], id2[1], id3[1]]
         if ids != cond_ids:
             logger.debug(f"ServiceAgreement {agreement_id} doesn't match ddo")
@@ -216,7 +216,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
         cond_ids = agreement.condition_ids
         asset = DIDResolver(keeper.did_registry).resolve(did)
         asset_id = did.replace(NEVERMINED_PREFIX, "")
-        self.check_ddo(did, agreement.id_seed, asset_id, consumer_pub, keeper, cond_ids, ServiceTypes.ASSET_ACCESS_PROOF, agreement.owner)
+        self.check_ddo(did, agreement.id_seed, asset_id, eth_address, keeper, cond_ids, ServiceTypes.ASSET_ACCESS_PROOF, agreement.owner, babyjub_pk=consumer_pub)
 
         access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
         lock_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
