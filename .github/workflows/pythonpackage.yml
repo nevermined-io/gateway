@@ -32,7 +32,8 @@ jobs:
       run: |
         git clone https://github.com/nevermined-io/rapidsnark
         cd rapidsnark
-        git checkout v0.0.2
+        # Using rapidsnark from master
+        # git checkout v0.0.2 
         git submodule update --init --recursive
         sh ./scripts/install-linux.sh
         cd ..
