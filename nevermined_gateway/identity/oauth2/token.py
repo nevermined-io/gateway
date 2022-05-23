@@ -264,7 +264,7 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
         cond_ids = agreement.condition_ids
         asset = DIDResolver(keeper.did_registry).resolve(did)
         asset_id = did.replace(NEVERMINED_PREFIX, "")
-        self.check_ddo_nft_access_proof(did, agreement.id_seed, asset_id, eth_address, keeper, cond_ids, ServiceTypes.NFT_ACCESS_PROOF, agreement.owner, babyjub_pk=consumer_address)
+        self.check_ddo_nft_access_proof(did, agreement.id_seed, asset_id, eth_address, keeper, cond_ids, ServiceTypes.NFT_ACCESS_PROOF, agreement.owner, babyjub_pk=consumer_pub)
         service_agreement = ServiceAgreement.from_ddo(ServiceTypes.NFT_ACCESS_PROOF, asset)
 
         access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
