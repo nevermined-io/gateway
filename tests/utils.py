@@ -25,34 +25,34 @@ from metadata_driver_aws.config_parser import parse_config
 
 from nevermined_gateway.util import do_secret_store_encrypt, get_config, get_provider_key_file, get_provider_password, \
     get_rsa_public_key_file, keeper_instance, web3, get_provider_public_key, get_buyer_public_key
+import ssl
 
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
 
 def get_sample_ddo():
     return json.loads(urlopen(
-        'https://raw.githubusercontent.com/keyko-io/nevermined-docs/master/docs/architecture/specs'
-        '/examples/access/v0.1/ddo1.json').read().decode(
-        'utf-8'))
+        'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs/examples/access/v0.1/ddo1.json',
+        context=ssl_context).read().decode('utf-8'))
 
 
 def get_sample_nft_ddo():
     return json.loads(urlopen(
-        'https://raw.githubusercontent.com/keyko-io/nevermined-docs/master/docs/architecture/specs'
-        '/examples/access/v0.1/ddo_nft.json').read().decode(
-        'utf-8'))
+        'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs/examples/access/v0.1/ddo_nft.json',
+        context=ssl_context).read().decode('utf-8'))
 
 
 def get_sample_algorithm_ddo():
     return json.loads(urlopen(
-        'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs'
-        '/examples/metadata/v0.1/ddo-example-algorithm.json').read().decode('utf-8')
-                      )
+        'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs/examples/metadata/v0.1/ddo-example-algorithm.json',
+        context=ssl_context).read().decode('utf-8'))
 
 
 def get_sample_workflow_ddo():
     return json.loads(urlopen(
-        'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs'
-        '/examples/metadata/v0.1/ddo-example-workflow.json').read().decode('utf-8')
-                      )
+        'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs/examples/metadata/v0.1/ddo-example-workflow.json',
+        context=ssl_context).read().decode('utf-8'))
 
 
 def generate_new_id():
@@ -101,7 +101,7 @@ def get_registered_ddo(account, providers=None, auth_service='PSK-RSA', url=get_
     access_service_attributes = {"main": {
         "name": "dataAssetAccessServiceAgreement",
         "creator": account.address,
-        "price": metadata[MetadataMain.KEY]['price'],
+        "price": str(metadata[MetadataMain.KEY]['price']),
         "timeout": 3600,
         "datePublished": metadata[MetadataMain.KEY]['dateCreated'],
         "_amounts": _amounts,
@@ -139,7 +139,7 @@ def get_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_key()
         "main": {
             "name": "dataAssetAccessProofServiceAgreement",
             "creator": account.address,
-            "price": metadata[MetadataMain.KEY]['price'],
+            "price": str(metadata[MetadataMain.KEY]['price']),
             "timeout": 3600,
             "datePublished": metadata[MetadataMain.KEY]['dateCreated'],
             "_amounts": _amounts,
@@ -171,7 +171,7 @@ def get_nft_ddo(account, providers=None, auth_service='PSK-RSA'):
     _receivers = to_checksum_addresses([account.address])
 
     _nftHolder = to_checksum_address(account.address)
-    _total_price = sum(int(x) for x in _amounts)
+    _total_price = str(sum(int(x) for x in _amounts))
 
     metadata['main']['price'] = _total_price
     access_service_attributes = {"main": {
@@ -202,6 +202,7 @@ def get_nft_ddo(account, providers=None, auth_service='PSK-RSA'):
     return register_ddo(metadata, account, providers, auth_service,
                         [nft_access_service_descriptor, nft_sales_service_descriptor], royalties=0, cap=10, mint=10)
 
+
 def get_nft_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_key()):
     ddo = get_sample_nft_ddo()
     metadata = ddo['service'][0]['attributes']
@@ -213,7 +214,7 @@ def get_nft_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_k
     _receivers = to_checksum_addresses([account.address])
 
     _nftHolder = to_checksum_address(account.address)
-    _total_price = sum(int(x) for x in _amounts)
+    _total_price = str(sum(int(x) for x in _amounts))
 
     metadata['main']['price'] = _total_price
 
@@ -286,7 +287,7 @@ def get_registered_compute_ddo(account, providers=None, auth_service='PSK-RSA'):
             "name": "dataAssetComputeServiceAgreement",
             "creator": account.address,
             "dataPublished": metadata[MetadataMain.KEY]["dateCreated"],
-            "price": metadata[MetadataMain.KEY]["price"],
+            "price": str(metadata[MetadataMain.KEY]["price"]),
             "timeout": 86400,
             "_amounts": _amounts,
             "_receivers": _receivers,
@@ -309,7 +310,7 @@ def get_registered_algorithm_ddo(account, providers=None, auth_service='PSK-RSA'
     access_service_attributes = {"main": {
         "name": "dataAssetAccessServiceAgreement",
         "creator": account.address,
-        "price": metadata[MetadataMain.KEY]['price'],
+        "price": str(metadata[MetadataMain.KEY]['price']),
         "timeout": 3600,
         "datePublished": metadata[MetadataMain.KEY]['dateCreated']
     }}
@@ -331,7 +332,7 @@ def get_registered_workflow_ddo(account, compute_did, algorithm_did, providers=N
     access_service_attributes = {"main": {
         "name": "dataAssetAccessServiceAgreement",
         "creator": account.address,
-        "price": metadata[MetadataMain.KEY]['price'],
+        "price": str(metadata[MetadataMain.KEY]['price']),
         "timeout": 3600,
         "datePublished": metadata[MetadataMain.KEY]['dateCreated']
     }}
@@ -347,7 +348,7 @@ def get_registered_workflow_ddo(account, compute_did, algorithm_did, providers=N
 def register_ddo(metadata, account, providers, auth_service, additional_service_descriptors, royalties=None, cap=None,
                  mint=0):
     keeper = keeper_instance()
-    metadata_api = Metadata('http://172.17.0.1:5000')
+    metadata_api = Metadata('http://172.17.0.1:3100', account)
 
     ddo = DDO()
     ddo_service_endpoint = metadata_api.get_service_endpoint()
@@ -502,10 +503,10 @@ def place_order(provider_account, ddo, consumer_account, service_type=ServiceTyp
     if service_type == ServiceTypes.ASSET_ACCESS_PROOF:
       consumer_pub = get_buyer_public_key()
       (agreement_id, id1, id2, id3) = service_agreement.generate_agreement_condition_ids(
-          agreement_id_seed, ddo.asset_id, consumer_pub, keeper, consumer_account.address, consumer_account.address)
+          agreement_id_seed, ddo.asset_id, consumer_account.address, keeper, init_agreement_address=consumer_account.address, babyjub_pk=consumer_pub)
     else:
       (agreement_id, id1, id2, id3) = service_agreement.generate_agreement_condition_ids(
-          agreement_id_seed, ddo.asset_id, consumer_account.address, keeper, consumer_account.address, consumer_account.address)
+          agreement_id_seed, ddo.asset_id, consumer_account.address, keeper, init_agreement_address=consumer_account.address)
 
     time_locks = service_agreement.conditions_timelocks
     time_outs = service_agreement.conditions_timeouts
@@ -527,6 +528,7 @@ def lock_payment(agreement_id, did, service_agreement, amounts, receivers, consu
     if token_address is None:
         token_address = keeper.token.address
 
+    print('TOKEN ADDRESS = ' + token_address)
     price = service_agreement.get_price()
     keeper.token.token_approve(keeper.lock_payment_condition.address, price, consumer_account)
     tx_hash = keeper.lock_payment_condition.fulfill(

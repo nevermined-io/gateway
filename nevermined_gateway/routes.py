@@ -465,7 +465,7 @@ def nft_transfer():
 
     # fulfill transferNFT condition
     if not is_nft_transfer_condition_fulfilled(nft_transfer_condition_id, keeper):
-        logger.debug('NFTTransfer condition not fulfilled')
+        logger.debug('Fulfilling TransferNFT condition')
         result = fulfill_for_delegate_nft_transfer_condition(
             agreement_id,
             agreement.did,
@@ -476,14 +476,18 @@ def nft_transfer():
             keeper
         )
         if result is False:
-            msg = f'There was an error fulfilling the NFTTransfer condition for agreement_id={agreement_id}'
+            msg = f'There was an error fulfilling the TransferNFT condition for agreement_id={agreement_id}'
             logger.error(msg)
             return msg, 500
 
+    if not is_nft_transfer_condition_fulfilled(nft_transfer_condition_id, keeper):
+        msg = f'The TransferNFT condition was not fulfilled for agreement_id={agreement_id}'
+        logger.error(msg)
+        return msg, 500
 
     # fulfill escrowPayment condition
     if not is_escrow_payment_condition_fulfilled(escrow_payment_condition_id, keeper):
-        logger.debug('EscrowPayment condition not fulfilled')
+        logger.debug('Fulfilling EscrowPayment condition')
         result = fulfill_escrow_payment_condition(
             keeper,
             agreement_id,

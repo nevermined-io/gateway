@@ -1,4 +1,6 @@
 import time
+
+import web3
 from common_utils_py.agreements.service_agreement import ServiceAgreement
 from common_utils_py.agreements.service_types import ServiceTypes
 from common_utils_py.did import did_to_id_bytes
@@ -60,6 +62,7 @@ def test_nft_access(client, provider_account, consumer_account, publisher_accoun
     assert response.status == '200 OK'
     assert len(keeper.did_registry.get_provenance_method_events('USED', did_bytes=did_to_id_bytes(ddo.did))) >= 1
 
+
 def test_nft_access_no_agreement(client, provider_account, consumer_account):
     ddo = get_nft_ddo(provider_account, providers=[provider_account.address])
     nft_amounts = 1
@@ -114,13 +117,14 @@ def test_nft_access_no_balance(client, provider_account, consumer_account):
 
 
 def test_nft_transfer(client, provider_account, consumer_account, publisher_account):
-    print('PROVIDER_ACCOUNT= ' + provider_account.address)
-    print('PUBLISHER_ACCOUNT= ' + publisher_account.address)
-    print('CONSUMER_ACCOUNT= ' + consumer_account.address)
+    print('PROVIDER_ACCOUNT= ' + provider_account.address + ' is CHECKSUM=' + str(web3.Web3.isChecksumAddress(provider_account.address)))
+    print('PUBLISHER_ACCOUNT= ' + publisher_account.address + ' is CHECKSUM=' + str(web3.Web3.isChecksumAddress(publisher_account.address)))
+    print('CONSUMER_ACCOUNT= ' + consumer_account.address + ' is CHECKSUM=' + str(web3.Web3.isChecksumAddress(consumer_account.address)))
 
     keeper = keeper_instance()
     ddo = get_nft_ddo(publisher_account, providers=[provider_account.address])
     asset_id = ddo.asset_id
+
     nft_amounts = 1
     agreement_id_seed = ServiceAgreement.create_new_agreement_id()
 
@@ -137,8 +141,7 @@ def test_nft_transfer(client, provider_account, consumer_account, publisher_acco
         asset_id,
         consumer_account.address,
         keeper,
-        consumer_account.address,
-        consumer_account.address
+        init_agreement_address=consumer_account.address
     )
 
     keeper.nft_sales_template.create_agreement(
@@ -202,11 +205,14 @@ def test_nft_transfer(client, provider_account, consumer_account, publisher_acco
             'nftAmount': nft_amounts
         }
     )
+    print('GATEWAY TRANSFER STATUS CODE ' + str(response.status_code))
     assert response.status_code == 200
 
+    # Fulfill escrow_payment_condition
     assert keeper.condition_manager.get_condition_state(cond_ids[0]) == ConditionState.Fulfilled.value
     assert keeper.condition_manager.get_condition_state(cond_ids[1]) == ConditionState.Fulfilled.value
     assert keeper.condition_manager.get_condition_state(cond_ids[2]) == ConditionState.Fulfilled.value
+
 
 def test_nft_transfer_proof(client, provider_account, consumer_account, publisher_account):
     print('PROVIDER_ACCOUNT= ' + provider_account.address)
@@ -231,10 +237,10 @@ def test_nft_transfer_proof(client, provider_account, consumer_account, publishe
     ) = nft_sales_service_agreement.generate_agreement_condition_ids(
         agreement_id_seed,
         asset_id,
-        get_buyer_public_key(),
-        keeper,
         consumer_account.address,
-        consumer_account.address
+        keeper,
+        init_agreement_address=consumer_account.address,
+        babyjub_pk=get_buyer_public_key()
     )
 
     keeper.nft_sales_with_access_template.create_agreement(
@@ -321,7 +327,13 @@ def test_nft_access_proof(client, provider_account, consumer_account, publisher_
     agreement_id_seed = ServiceAgreement.create_new_agreement_id()
 
     (agreement_id, nft_access_cond_id, nft_holder_cond_id) = nft_access_service_agreement.generate_agreement_condition_ids(
-        agreement_id_seed, asset_id, get_buyer_public_key(), keeper, consumer_account.address, consumer_account.address)
+        agreement_id_seed,
+        asset_id,
+        consumer_account.address,
+        keeper,
+        init_agreement_address=consumer_account.address,
+        babyjub_pk=get_buyer_public_key()
+    )
 
     print('NFT_ACCESS_DID: ' + asset_id)
 
