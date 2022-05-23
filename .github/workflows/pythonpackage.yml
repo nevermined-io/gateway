@@ -58,6 +58,7 @@ jobs:
 
         export KEEPER_VERSION=develop
         export COMPUTE_API_VERSION=latest
+        export MARKETPLACE_API_VERSION=latest
         ./start_nevermined.sh --marketplace-api --no-marketplace --no-gateway --no-graph --ldap --compute ${{ matrix.network }} &
 
         # wait for the compute api to be online
