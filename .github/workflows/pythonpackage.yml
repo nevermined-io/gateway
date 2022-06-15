@@ -55,10 +55,7 @@ jobs:
           cd nevermined-tools
           rm -rf "${HOME}/.nevermined/nevermined-contracts/artifacts"
 
-          export KEEPER_VERSION=latest
-          export COMPUTE_API_VERSION=latest
-          export MARKETPLACE_API_VERSION=latest
-          ./start_nevermined.sh --marketplace-api --no-marketplace --no-gateway --no-graph --ldap --compute ${{ matrix.network }} &
+          ./start_nevermined.sh --latest --no-gateway --no-graph --ldap --compute ${{ matrix.network }} &
 
           # wait for the compute api to be online
           # the compute api is the last service to come online
