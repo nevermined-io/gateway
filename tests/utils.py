@@ -25,34 +25,34 @@ from metadata_driver_aws.config_parser import parse_config
 
 from nevermined_gateway.util import do_secret_store_encrypt, get_config, get_provider_key_file, get_provider_password, \
     get_rsa_public_key_file, keeper_instance, web3, get_provider_public_key, get_buyer_public_key
+import ssl
 
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
 
 def get_sample_ddo():
     return json.loads(urlopen(
-        'https://raw.githubusercontent.com/keyko-io/nevermined-docs/master/docs/architecture/specs'
-        '/examples/access/v0.1/ddo1.json').read().decode(
-        'utf-8'))
+        'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs/examples/access/v0.1/ddo1.json',
+        context=ssl_context).read().decode('utf-8'))
 
 
 def get_sample_nft_ddo():
     return json.loads(urlopen(
-        'https://raw.githubusercontent.com/keyko-io/nevermined-docs/master/docs/architecture/specs'
-        '/examples/access/v0.1/ddo_nft.json').read().decode(
-        'utf-8'))
+        'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs/examples/access/v0.1/ddo_nft.json',
+        context=ssl_context).read().decode('utf-8'))
 
 
 def get_sample_algorithm_ddo():
     return json.loads(urlopen(
-        'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs'
-        '/examples/metadata/v0.1/ddo-example-algorithm.json').read().decode('utf-8')
-                      )
+        'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs/examples/metadata/v0.1/ddo-example-algorithm.json',
+        context=ssl_context).read().decode('utf-8'))
 
 
 def get_sample_workflow_ddo():
     return json.loads(urlopen(
-        'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs'
-        '/examples/metadata/v0.1/ddo-example-workflow.json').read().decode('utf-8')
-                      )
+        'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs/examples/metadata/v0.1/ddo-example-workflow.json',
+        context=ssl_context).read().decode('utf-8'))
 
 
 def generate_new_id():
@@ -101,7 +101,7 @@ def get_registered_ddo(account, providers=None, auth_service='PSK-RSA', url=get_
     access_service_attributes = {"main": {
         "name": "dataAssetAccessServiceAgreement",
         "creator": account.address,
-        "price": metadata[MetadataMain.KEY]['price'],
+        "price": str(metadata[MetadataMain.KEY]['price']),
         "timeout": 3600,
         "datePublished": metadata[MetadataMain.KEY]['dateCreated'],
         "_amounts": _amounts,
@@ -139,7 +139,7 @@ def get_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_key()
         "main": {
             "name": "dataAssetAccessProofServiceAgreement",
             "creator": account.address,
-            "price": metadata[MetadataMain.KEY]['price'],
+            "price": str(metadata[MetadataMain.KEY]['price']),
             "timeout": 3600,
             "datePublished": metadata[MetadataMain.KEY]['dateCreated'],
             "_amounts": _amounts,
@@ -166,26 +166,14 @@ def get_nft_ddo(account, providers=None, auth_service='PSK-RSA'):
                  "/CoverSongs/shs_dataset_test.txt?" + str(uuid.uuid4())
     metadata['main']['files'][0]['checksum'] = str(uuid.uuid4())
 
-    escrow_payment_condition = ddo['service'][1]['attributes']['serviceAgreementTemplate']['conditions'][2]
     _number_nfts = 1
-    # _amounts = get_param_value_by_name(escrow_payment_condition['parameters'], '_amounts')
-    # _receivers = to_checksum_addresses(
-    #     get_param_value_by_name(escrow_payment_condition['parameters'], '_receivers'))
     _amounts = ['9']
     _receivers = to_checksum_addresses([account.address])
 
-    transfer_nft_condition = ddo['service'][1]['attributes']['serviceAgreementTemplate']['conditions'][1]
-    # _nftHolder = get_param_value_by_name(transfer_nft_condition['parameters'], '_nftHolder')
     _nftHolder = to_checksum_address(account.address)
-    _total_price = sum(int(x) for x in _amounts)
-
-    asset_rewards = {
-        "_amounts": _amounts,
-        "_receivers": _receivers
-    }
+    _total_price = str(sum(int(x) for x in _amounts))
 
     metadata['main']['price'] = _total_price
-
     access_service_attributes = {"main": {
         "name": "nftAccessAgreement",
         "creator": account.address,
@@ -213,6 +201,61 @@ def get_nft_ddo(account, providers=None, auth_service='PSK-RSA'):
 
     return register_ddo(metadata, account, providers, auth_service,
                         [nft_access_service_descriptor, nft_sales_service_descriptor], royalties=0, cap=10, mint=10)
+
+
+def get_nft_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_key()):
+    ddo = get_sample_nft_ddo()
+    metadata = ddo['service'][0]['attributes']
+    metadata['main']['files'][0]['url'] = key
+    metadata['main']['files'][0]['checksum'] = str(uuid.uuid4())
+
+    _number_nfts = 1
+    _amounts = ['9']
+    _receivers = to_checksum_addresses([account.address])
+
+    _nftHolder = to_checksum_address(account.address)
+    _total_price = str(sum(int(x) for x in _amounts))
+
+    metadata['main']['price'] = _total_price
+
+    hash = poseidon_hash(key)
+    providerKey = get_provider_public_key()
+    metadata['additionalInformation'] = {
+        "providerKey": {
+            "x": providerKey[0],
+            "y": providerKey[1]
+        },
+        "poseidonHash": hash
+    }
+
+    access_service_attributes = {"main": {
+        "name": "nftAccessAgreement",
+        "creator": account.address,
+        "timeout": 3600,
+        "price": _total_price,
+        "_amounts": _amounts,
+        "_receivers": _receivers,
+        "_hash": hash,
+        "_providerPub": providerKey,
+        "_numberNfts": str(_number_nfts),
+        "_tokenAddress": "",
+        "datePublished": metadata['main']['dateCreated']
+    }}
+
+    sales_service_attributes = copy.deepcopy(access_service_attributes)
+    sales_service_attributes['main']['name'] = 'nftSalesWithAccessAgreement'
+    sales_service_attributes['main']['_nftHolder'] = _nftHolder
+
+    nft_sales_service_descriptor = ServiceDescriptor.nft_sales_with_access_service_descriptor(
+        sales_service_attributes,
+        'http://localhost:8030'
+    )
+    access_service_descriptor = ServiceDescriptor.nft_access_proof_service_descriptor(
+        access_service_attributes,
+        'http://localhost:8030'
+    )
+
+    return register_ddo(metadata, account, providers, auth_service, [nft_sales_service_descriptor, access_service_descriptor], royalties= 0, cap=10, mint=10)
 
 
 def get_param_value_by_name(parameters, name):
@@ -244,7 +287,7 @@ def get_registered_compute_ddo(account, providers=None, auth_service='PSK-RSA'):
             "name": "dataAssetComputeServiceAgreement",
             "creator": account.address,
             "dataPublished": metadata[MetadataMain.KEY]["dateCreated"],
-            "price": metadata[MetadataMain.KEY]["price"],
+            "price": str(metadata[MetadataMain.KEY]["price"]),
             "timeout": 86400,
             "_amounts": _amounts,
             "_receivers": _receivers,
@@ -267,7 +310,7 @@ def get_registered_algorithm_ddo(account, providers=None, auth_service='PSK-RSA'
     access_service_attributes = {"main": {
         "name": "dataAssetAccessServiceAgreement",
         "creator": account.address,
-        "price": metadata[MetadataMain.KEY]['price'],
+        "price": str(metadata[MetadataMain.KEY]['price']),
         "timeout": 3600,
         "datePublished": metadata[MetadataMain.KEY]['dateCreated']
     }}
@@ -289,7 +332,7 @@ def get_registered_workflow_ddo(account, compute_did, algorithm_did, providers=N
     access_service_attributes = {"main": {
         "name": "dataAssetAccessServiceAgreement",
         "creator": account.address,
-        "price": metadata[MetadataMain.KEY]['price'],
+        "price": str(metadata[MetadataMain.KEY]['price']),
         "timeout": 3600,
         "datePublished": metadata[MetadataMain.KEY]['dateCreated']
     }}
@@ -305,7 +348,7 @@ def get_registered_workflow_ddo(account, compute_did, algorithm_did, providers=N
 def register_ddo(metadata, account, providers, auth_service, additional_service_descriptors, royalties=None, cap=None,
                  mint=0):
     keeper = keeper_instance()
-    metadata_api = Metadata('http://172.17.0.1:5000')
+    metadata_api = Metadata('http://172.17.0.1:3100', account)
 
     ddo = DDO()
     ddo_service_endpoint = metadata_api.get_service_endpoint()
@@ -341,7 +384,7 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
     did = ddo._did
 
     for service in services:
-        if service.type == ServiceTypes.ASSET_ACCESS or service.type == ServiceTypes.NFT_ACCESS or service.type == ServiceTypes.ASSET_ACCESS_PROOF:
+        if service.type == ServiceTypes.ASSET_ACCESS or service.type == ServiceTypes.NFT_ACCESS or service.type == ServiceTypes.ASSET_ACCESS_PROOF or service.type == ServiceTypes.NFT_ACCESS_PROOF:
             access_service = ServiceFactory.complete_access_service(
                 did,
                 service.service_endpoint,
@@ -360,7 +403,7 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
                 keeper.escrow_payment_condition.address
             )
             ddo.add_service(compute_service)
-        elif service.type == ServiceTypes.NFT_SALES:
+        elif service.type == ServiceTypes.NFT_SALES or service.type == ServiceTypes.NFT_SALES_WITH_ACCESS:
             nft_sales_service = ServiceFactory.complete_nft_sales_service(
                 did,
                 service.service_endpoint,
@@ -440,7 +483,7 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
 
 def place_order(provider_account, ddo, consumer_account, service_type=ServiceTypes.ASSET_ACCESS):
     keeper = keeper_instance()
-    agreement_id = ServiceAgreement.create_new_agreement_id()
+    agreement_id_seed = ServiceAgreement.create_new_agreement_id()
 
     if service_type == ServiceTypes.ASSET_ACCESS:
         agreement_template = keeper.access_template
@@ -458,27 +501,26 @@ def place_order(provider_account, ddo, consumer_account, service_type=ServiceTyp
     service_agreement = ServiceAgreement.from_ddo(service_type, ddo)
 
     if service_type == ServiceTypes.ASSET_ACCESS_PROOF:
-        consumer_pub = get_buyer_public_key()
-        condition_ids = service_agreement.generate_agreement_condition_ids(
-            agreement_id, ddo.asset_id, consumer_pub, keeper)
+      consumer_pub = get_buyer_public_key()
+      (agreement_id, id1, id2, id3) = service_agreement.generate_agreement_condition_ids(
+          agreement_id_seed, ddo.asset_id, consumer_account.address, keeper, init_agreement_address=consumer_account.address, babyjub_pk=consumer_pub)
     else:
-        condition_ids = service_agreement.generate_agreement_condition_ids(
-            agreement_id, ddo.asset_id, consumer_account.address, keeper)
+      (agreement_id, id1, id2, id3) = service_agreement.generate_agreement_condition_ids(
+          agreement_id_seed, ddo.asset_id, consumer_account.address, keeper, init_agreement_address=consumer_account.address)
 
     time_locks = service_agreement.conditions_timelocks
     time_outs = service_agreement.conditions_timeouts
     agreement_template.create_agreement(
-        agreement_id,
+        agreement_id[0],
         ddo.asset_id,
-        condition_ids,
-
+        [id1[0], id2[0], id3[0]],
         time_locks,
         time_outs,
         consumer_account.address,
         consumer_account
     )
 
-    return agreement_id
+    return agreement_id[1]
 
 
 def lock_payment(agreement_id, did, service_agreement, amounts, receivers, consumer_account, token_address=None):
@@ -486,6 +528,7 @@ def lock_payment(agreement_id, did, service_agreement, amounts, receivers, consu
     if token_address is None:
         token_address = keeper.token.address
 
+    print('TOKEN ADDRESS = ' + token_address)
     price = service_agreement.get_price()
     keeper.token.token_approve(keeper.lock_payment_condition.address, price, consumer_account)
     tx_hash = keeper.lock_payment_condition.fulfill(

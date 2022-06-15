@@ -21,29 +21,6 @@ from nevermined_gateway.util import (build_download_response, check_auth_token,
                                      generate_token, get_buyer_secret_key, get_provider_account,
                                      is_token_valid, keeper_instance, verify_signature, web3)
 from tests.utils import get_registered_ddo, get_proof_ddo, place_order, lock_payment, generate_new_id
-import json
-import mimetypes
-import uuid
-from unittest.mock import MagicMock, Mock
-
-import pytest
-from common_utils_py.agreements.service_agreement import ServiceAgreement
-from common_utils_py.agreements.service_types import ServiceTypes
-from common_utils_py.did import DID, did_to_id_bytes
-from common_utils_py.oauth2.token import NeverminedJWTBearerGrant, generate_access_grant_token, \
-    generate_download_grant_token, generate_access_proof_grant_token
-from common_utils_py.utils.utilities import to_checksum_addresses
-from contracts_lib_py.utils import add_ethereum_prefix_and_hash_msg
-from eth_utils import add_0x_prefix
-from werkzeug.utils import get_content_type
-
-from nevermined_gateway import constants
-from nevermined_gateway import version
-from nevermined_gateway.constants import BaseURLs, ConditionState
-from nevermined_gateway.util import (build_download_response, check_auth_token,
-                                     generate_token, get_buyer_secret_key, get_provider_account,
-                                     is_token_valid, keeper_instance, verify_signature, web3)
-from tests.utils import get_registered_ddo, get_proof_ddo, place_order, lock_payment, generate_new_id
 
 PURCHASE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/access/initialize'
 SERVICE_ENDPOINT = BaseURLs.BASE_GATEWAY_URL + '/services/consume'
@@ -64,7 +41,7 @@ def grant_access(agreement_id, ddo, consumer_account, provider_account):
     )
     keeper.access_condition.get_tx_receipt(tx_hash)
 
-
+@pytest.mark.skip(reason="deprecated")
 def test_consume(client, provider_account, consumer_account):
     endpoint = BaseURLs.ASSETS_URL + '/consume'
 
