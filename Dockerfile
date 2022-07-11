@@ -1,5 +1,5 @@
 FROM python:3.8-slim-buster
-LABEL maintainer="Keyko <root@keyko.io>"
+LABEL maintainer="Nevermined <root@nevermined.io>"
 
 RUN apt-get update \
     && apt-get install gcc gettext-base -y sudo cron curl git g++ nasm libgmp-dev libsodium-dev build-essential pkg-config \

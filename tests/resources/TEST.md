@@ -222,7 +222,7 @@ See [NOTICE file](NOTICE).
 ## License
 
 ```text
-Copyright 2020 Keyko GmbH
+Copyright 2022 Nevermined AG
 This product includes software developed at
 BigchainDB GmbH and Ocean Protocol (https://www.oceanprotocol.com/)
 
