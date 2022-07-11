@@ -5,93 +5,94 @@ name: Python package
 
 on:
   push:
-    branches: [ master ]
+    branches: [master, develop]
   pull_request:
-    branches: [ master ]
+    branches: [master, develop]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         python-version: [3.7]
-        network: ['--spree-embedded-contracts', '--polygon']
+        network: ["--spree-embedded-contracts", "--polygon"]
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Set up node.js
-      uses: actions/setup-node@v1
-      with:
-        node-version: '14.x'
-    - name: Install rapidsnark
-      run: |
-        git clone https://github.com/nevermined-io/rapidsnark
-        cd rapidsnark
-        git checkout v0.0.1
-        git submodule update --init --recursive
-        sh ./scripts/install-linux.sh
-        cd ..
-        rm -rf rapidsnark
-        git clone https://github.com/mrsmkl/snark-tools
-        cd snark-tools
-        npm i -g
-    - name: Install minikube v1.22.0
-      run: |
-        wget https://storage.googleapis.com/minikube/releases/v1.22.0/minikube-linux-amd64
-        chmod +x minikube-linux-amd64
-        sudo mv minikube-linux-amd64 /usr/local/bin/minikube
-    - name: Reclaim some disk space
-      run : |
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Set up node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: "14.x"
+      - name: Install rapidsnark
+        run: |
+          git clone https://github.com/nevermined-io/rapidsnark
+          cd rapidsnark
+          # Using rapidsnark from master
+          # git checkout v0.0.2
+          git submodule update --init --recursive
+          sh ./scripts/install-linux.sh
+          cd ..
+          rm -rf rapidsnark
+          git clone https://github.com/mrsmkl/snark-tools
+          cd snark-tools
+          npm i -g
+      - name: Install minikube v1.22.0
+        run: |
+          wget https://storage.googleapis.com/minikube/releases/v1.22.0/minikube-linux-amd64
+          chmod +x minikube-linux-amd64
+          sudo mv minikube-linux-amd64 /usr/local/bin/minikube
+      - name: Reclaim some disk space
+        run: |
           docker system prune --all --volumes -f
-    - name: Start Nevermined
-      run: |
-        docker login -u ${{ secrets.NEVERMINED_DOCKER_USERNAME }} -p ${{ secrets.NEVERMINED_DOCKER_TOKEN}}
-        git clone https://github.com/nevermined-io/tools nevermined-tools
-        cd nevermined-tools
-        rm -rf "${HOME}/.nevermined/nevermined-contracts/artifacts"
+      - name: Start Nevermined
+        run: |
+          docker login -u ${{ secrets.NEVERMINED_DOCKER_USERNAME }} -p ${{ secrets.NEVERMINED_DOCKER_TOKEN}}
+          git clone https://github.com/nevermined-io/tools nevermined-tools
+          cd nevermined-tools
+          rm -rf "${HOME}/.nevermined/nevermined-contracts/artifacts"
 
-        ./start_nevermined.sh --latest --no-marketplace --no-gateway --no-graph --ldap --compute ${{ matrix.network }} &
+          ./start_nevermined.sh --latest --no-gateway --no-graph --ldap --compute ${{ matrix.network }} &
 
-        # wait for the compute api to be online
-        # the compute api is the last service to come online
-        ./scripts/wait_for_compute_api.sh
+          # wait for the compute api to be online
+          # the compute api is the last service to come online
+          # ./scripts/wait_for_compute_api.sh
 
-        # extract artifacts
-        cd ..
-        ./scripts/wait_for_migration_and_extract_keeper_artifacts.sh
+          # extract artifacts
+          cd ..
+          ./scripts/wait_for_migration_and_extract_keeper_artifacts.sh
 
-    - name: Start minio
-      run: |
-        docker run -d -p 9900:9000 minio/minio server ./data
-        sleep 10
-    - name: Install python package
-      run: |
-        # the latest version of pip (version 20.3) seems to have a lot of problems
-        pip install pip==20.2.4
-        pip install -r requirements_dev.txt
-        pip install awscli --ignore-installed six
-    - name: Test with pytest
-      run: |
-        export PROVIDER_ADDRESS=0x00bd138abd70e2f00903268f3db08f2d25677c9e
-        export PROVIDER_PASSWORD=node0
-        export PROVIDER_KEYFILE=tests/resources/data/publisher_key_file.json
-        export RSA_PRIVKEY_FILE=tests/resources/data/rsa_priv_key.pem
-        export RSA_PUBKEY_FILE=tests/resources/data/rsa_pub_key.pem
-        export AUTHLIB_INSECURE_TRANSPORT=true
-        export INFURA_TOKEN=${{ secrets.INFURA_TOKEN }}
-        export ESTUARY_TOKEN=${{ secrets.ESTUARY_TOKEN }}
+      - name: Start minio
+        run: |
+          docker run -d -p 9900:9000 minio/minio server ./data
+          sleep 10
+      - name: Install python package
+        run: |
+          # the latest version of pip (version 20.3) seems to have a lot of problems
+          pip install pip==20.2.4
+          pip install -r requirements_dev.txt
+          pip install awscli --ignore-installed six
+      - name: Test with pytest
+        run: |
+          export PROVIDER_ADDRESS=0x00bd138abd70e2f00903268f3db08f2d25677c9e
+          export PROVIDER_PASSWORD=node0
+          export PROVIDER_KEYFILE=tests/resources/data/publisher_key_file.json
+          export RSA_PRIVKEY_FILE=tests/resources/data/rsa_priv_key.pem
+          export RSA_PUBKEY_FILE=tests/resources/data/rsa_pub_key.pem
+          export AUTHLIB_INSECURE_TRANSPORT=true
 
-        export PROVIDER_BABYJUB_SECRET=abc
-        export BUYER_BABYJUB_SECRET=abd
-        export PROVIDER_BABYJUB_PUBLIC1=0x2e3133fbdaeb5486b665ba78c0e7e749700a5c32b1998ae14f7d1532972602bb
-        export PROVIDER_BABYJUB_PUBLIC2=0x0b932f02e59f90cdd761d9d5e7c15c8e620efce4ce018bf54015d68d9cb35561
-        export BUYER_BABYJUB_PUBLIC1=0x0d7cdd240c2f5b0640839c49fbaaf016a8c5571b8f592e2b62ea939063545981
-        export BUYER_BABYJUB_PUBLIC2=0x14b14fa0a30ec744dde9f32d519c65ebaa749bfe991a32deea44b83a4e5c65bb
+          export PROVIDER_BABYJUB_SECRET=abc
+          export BUYER_BABYJUB_SECRET=abd
+          export PROVIDER_BABYJUB_PUBLIC1=0x2e3133fbdaeb5486b665ba78c0e7e749700a5c32b1998ae14f7d1532972602bb
+          export PROVIDER_BABYJUB_PUBLIC2=0x0b932f02e59f90cdd761d9d5e7c15c8e620efce4ce018bf54015d68d9cb35561
+          export BUYER_BABYJUB_PUBLIC1=0x0d7cdd240c2f5b0640839c49fbaaf016a8c5571b8f592e2b62ea939063545981
+          export BUYER_BABYJUB_PUBLIC2=0x14b14fa0a30ec744dde9f32d519c65ebaa749bfe991a32deea44b83a4e5c65bb
 
-        pip install pytest
-        pytest -v
+          export INFURA_TOKEN=${{ secrets.INFURA_TOKEN }}
+          export ESTUARY_TOKEN=${{ secrets.ESTUARY_TOKEN }}
+
+          pip install pytest
+          pytest -v

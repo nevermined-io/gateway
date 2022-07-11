@@ -5,7 +5,7 @@ import logging
 import os
 from pathlib import Path
 
-DEFAULT_NAME_METADATA_URL = 'http://172.17.0.1:5000'
+DEFAULT_NAME_METADATA_URL = 'http://172.17.0.1:3100'
 
 NAME_KEEPER_URL = 'keeper.url'
 NAME_KEEPER_PATH = 'keeper.path'
