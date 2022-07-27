@@ -1,6 +1,7 @@
 import copy
 import json
 
+from contracts_lib_py.wallet import Wallet
 from eth_utils import to_checksum_address
 
 from nevermined_gateway.snark_util import poseidon_hash
@@ -33,25 +34,29 @@ ssl_context.verify_mode = ssl.CERT_NONE
 
 def get_sample_ddo():
     return json.loads(urlopen(
-        'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs/examples/access/v0.1/ddo1.json',
+        'https://raw.githubusercontent.com/nevermined-io/nvm-docs/main/docs/architecture/specs/examples/access/v0.1/ddo1.json',
         context=ssl_context).read().decode('utf-8'))
 
 
 def get_sample_nft_ddo():
     return json.loads(urlopen(
-        'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs/examples/access/v0.1/ddo_nft.json',
+        'https://raw.githubusercontent.com/nevermined-io/nvm-docs/main/docs/architecture/specs/examples/access/v0.1/ddo_nft.json',
         context=ssl_context).read().decode('utf-8'))
 
+def get_sample_nft721_ddo():
+    return json.loads(urlopen(
+        'https://raw.githubusercontent.com/nevermined-io/nvm-docs/main/docs/architecture/specs/examples/nft/ddo_nft721.json',
+        context=ssl_context).read().decode('utf-8'))
 
 def get_sample_algorithm_ddo():
     return json.loads(urlopen(
-        'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs/examples/metadata/v0.1/ddo-example-algorithm.json',
+        'https://raw.githubusercontent.com/nevermined-io/nvm-docs/main/docs/architecture/specs/examples/metadata/v0.1/ddo-example-algorithm.json',
         context=ssl_context).read().decode('utf-8'))
 
 
 def get_sample_workflow_ddo():
     return json.loads(urlopen(
-        'https://raw.githubusercontent.com/nevermined-io/docs/master/docs/architecture/specs/examples/metadata/v0.1/ddo-example-workflow.json',
+        'https://raw.githubusercontent.com/nevermined-io/nvm-docs/main/docs/architecture/specs/examples/metadata/v0.1/ddo-example-workflow.json',
         context=ssl_context).read().decode('utf-8'))
 
 
@@ -158,15 +163,115 @@ def get_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_key()
     return register_ddo(metadata, account, providers, auth_service, [access_service_descriptor])
 
 
-def get_nft_ddo(account, providers=None, auth_service='PSK-RSA'):
-    ddo = get_sample_nft_ddo()
+def sign_and_send_tx(web3, construct_txn, account):
+    signed_tx = Wallet(web3, account.key_file, account.password).sign_tx(construct_txn)
+    tx_hash = web3.eth.send_raw_transaction(signed_tx)
+    tx_receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
+
+    print(f'Tx successful with hash: { tx_receipt.transactionHash.hex() }')
+    return tx_receipt
+
+
+def deploy_contract(web3, abi_path, account):
+    with open(abi_path, 'r') as abi_file:
+        abi_dict = json.load(abi_file)
+
+    _contract = web3.eth.contract(abi=abi_dict['abi'], bytecode=abi_dict['bytecode'])
+    construct_txn = _contract.constructor('NFTSubscription', 'NVM').buildTransaction(
+        {
+            'from': account.address,
+            'nonce': web3.eth.get_transaction_count(account.address),
+        }
+    )
+    signed_tx = Wallet(web3, account.key_file, account.password).sign_tx(construct_txn)
+    tx_hash = web3.eth.send_raw_transaction(signed_tx)
+    tx_receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
+
+    print(f'Contract deployed at address: { tx_receipt.contractAddress }')
+    time.sleep(10)
+
+    initialize_txn = _contract.functions.initialize('NFTSubscription', 'NVM').buildTransaction(
+        {
+            'from': account.address,
+            'to': tx_receipt.contractAddress,
+            'nonce': web3.eth.get_transaction_count(account.address),
+        }
+    )
+    sign_and_send_tx(web3, initialize_txn, account)
+
+    return tx_receipt.contractAddress
+
+
+def grant_role_nft721(web3, abi_path, contract_address, transfer_nft_address, account):
+    with open(abi_path, 'r') as abi_file:
+        abi_dict = json.load(abi_file)
+
+    _contract = web3.eth.contract(address=contract_address, abi=abi_dict['abi'])
+
+    contract_owner = _contract.functions.owner().call()
+    print('Current owner is {}'.format(contract_owner))
+
+    print('Trying to add minter with address {}'.format(transfer_nft_address))
+    construct_txn = _contract.functions.addMinter(transfer_nft_address).buildTransaction(
+        {
+            'from': account.address,
+            'nonce': web3.eth.get_transaction_count(account.address),
+        }
+    )
+    sign_and_send_tx(web3, construct_txn, account)
+
+    time.sleep(3)
+
+
+def approve_all_nft721(web3, abi_path, contract_address, provider_address, account):
+    with open(abi_path, 'r') as abi_file:
+        abi_dict = json.load(abi_file)
+
+    _contract = web3.eth.contract(address=contract_address, abi=abi_dict['abi'])
+
+    contract_owner = _contract.functions.owner().call()
+    print('Current owner is {}'.format(contract_owner))
+
+    is_approved = _contract.functions.isApprovedForAll(contract_owner, provider_address).call()
+    print('Is address {} approved? {}'.format(provider_address, is_approved))
+
+    print('Trying to approve address {}'.format(provider_address))
+    construct_txn = _contract.functions.setApprovalForAll(provider_address, True).buildTransaction(
+        {
+            'from': account.address,
+            'nonce': web3.eth.get_transaction_count(account.address),
+        }
+    )
+    sign_and_send_tx(web3, construct_txn, account)
+    time.sleep(3)
+
+    is_approved = _contract.functions.isApprovedForAll(contract_owner, provider_address).call()
+    print('Is address {} approved? {}'.format(provider_address, is_approved))
+
+
+def get_nft_ddo(account, providers=None, auth_service='PSK-RSA', is_1155=True, nft_contract_address=None):
+    nft_type = None
+    to_mint = 10
+    if is_1155:
+        ddo = get_sample_nft_ddo()
+        if nft_contract_address is None:
+            nft_contract_address = keeper_instance().did_registry.get_erc1155_address()
+    else:
+        nft_type = '721'
+        to_mint = 0
+        ddo = get_sample_nft721_ddo()
+        if nft_contract_address is None:
+            nft_contract_address = keeper_instance().did_registry.get_erc721_address()
+
     metadata = ddo['service'][0]['attributes']
     metadata['main']['files'][0][
         'url'] = "https://raw.githubusercontent.com/tbertinmahieux/MSongsDB/master/Tasks_Demos" \
                  "/CoverSongs/shs_dataset_test.txt?" + str(uuid.uuid4())
     metadata['main']['files'][0]['checksum'] = str(uuid.uuid4())
+    metadata['main']['files'][0]['contentType'] = 'text/text'
 
     _number_nfts = 1
+    _duration = 30 # Number of blocks of duration of the subscription
     _amounts = ['9']
     _receivers = to_checksum_addresses([account.address])
 
@@ -182,6 +287,7 @@ def get_nft_ddo(account, providers=None, auth_service='PSK-RSA'):
         "_amounts": _amounts,
         "_receivers": _receivers,
         "_numberNfts": str(_number_nfts),
+        "_contractAddress": nft_contract_address,
         "_tokenAddress": "",
         "datePublished": metadata['main']['dateCreated']
     }}
@@ -189,18 +295,23 @@ def get_nft_ddo(account, providers=None, auth_service='PSK-RSA'):
     sales_service_attributes = copy.deepcopy(access_service_attributes)
     sales_service_attributes['main']['name'] = 'nftSalesAgreement'
     sales_service_attributes['main']['_nftHolder'] = _nftHolder
+    sales_service_attributes['main']['_nftTransfer'] = 'false'
+    sales_service_attributes['main']['_duration'] = str(_duration)
 
     nft_sales_service_descriptor = ServiceDescriptor.nft_sales_service_descriptor(
         sales_service_attributes,
-        'http://localhost:8030'
+        'http://localhost:8030',
+        is_1155
     )
     nft_access_service_descriptor = ServiceDescriptor.nft_access_service_descriptor(
         access_service_attributes,
-        'http://localhost:8030'
+        'http://localhost:8030',
+        is_1155
     )
 
     return register_ddo(metadata, account, providers, auth_service,
-                        [nft_access_service_descriptor, nft_sales_service_descriptor], royalties=0, cap=10, mint=10)
+                        [nft_access_service_descriptor, nft_sales_service_descriptor],
+                        royalties=0, cap=10, mint=to_mint, nft_type=nft_type)
 
 
 def get_nft_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_key()):
@@ -346,7 +457,7 @@ def get_registered_workflow_ddo(account, compute_did, algorithm_did, providers=N
 
 
 def register_ddo(metadata, account, providers, auth_service, additional_service_descriptors, royalties=None, cap=None,
-                 mint=0):
+                 mint=0, nft_type=None):
     keeper = keeper_instance()
     metadata_api = Metadata('http://172.17.0.1:3100', account)
 
@@ -384,7 +495,7 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
     did = ddo._did
 
     for service in services:
-        if service.type == ServiceTypes.ASSET_ACCESS or service.type == ServiceTypes.NFT_ACCESS or service.type == ServiceTypes.ASSET_ACCESS_PROOF or service.type == ServiceTypes.NFT_ACCESS_PROOF:
+        if service.type == ServiceTypes.ASSET_ACCESS or service.type == ServiceTypes.NFT_ACCESS or service.type == ServiceTypes.NFT721_ACCESS or service.type == ServiceTypes.ASSET_ACCESS_PROOF or service.type == ServiceTypes.NFT_ACCESS_PROOF:
             access_service = ServiceFactory.complete_access_service(
                 did,
                 service.service_endpoint,
@@ -403,7 +514,7 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
                 keeper.escrow_payment_condition.address
             )
             ddo.add_service(compute_service)
-        elif service.type == ServiceTypes.NFT_SALES or service.type == ServiceTypes.NFT_SALES_WITH_ACCESS:
+        elif service.type == ServiceTypes.NFT_SALES or service.type == ServiceTypes.NFT721_SALES or service.type == ServiceTypes.NFT_SALES_WITH_ACCESS:
             nft_sales_service = ServiceFactory.complete_nft_sales_service(
                 did,
                 service.service_endpoint,
@@ -457,18 +568,31 @@ def register_ddo(metadata, account, providers, auth_service, additional_service_
     ddo_with_did = DDO(did, json_text=ddo.as_text().replace('/{did}', '/' + did))
     ddo_service_endpoint = ddo_service_endpoint.replace('/{did}', '/' + did)
 
-    if mint > 0 or royalties is not None or cap is not None:
-        keeper.did_registry.register_mintable_did(
-            did_seed,
-            checksum=web3().toBytes(hexstr=ddo.asset_id),
-            url=ddo_service_endpoint,
-            cap=cap,
-            royalties=royalties,
-            account=account,
-            providers=providers
-        )
-        if mint > 0:
-            keeper.did_registry.mint(ddo.asset_id, mint, account=account)
+    if mint > 0 or royalties is not None or cap is not None or nft_type is not None:
+        if nft_type == '721':
+            keeper.did_registry.register_mintable_did721(
+                did_seed,
+                checksum=web3().toBytes(hexstr=ddo.asset_id),
+                url=ddo_service_endpoint,
+                royalties=royalties,
+                account=account,
+                providers=providers
+            )
+            if mint > 0:
+                keeper.did_registry.mint721(ddo.asset_id, account.address, account=account)
+        else:
+            keeper.did_registry.register_mintable_did(
+                did_seed,
+                checksum=web3().toBytes(hexstr=ddo.asset_id),
+                url=ddo_service_endpoint,
+                cap=cap,
+                royalties=royalties,
+                account=account,
+                providers=providers
+            )
+            if mint > 0:
+                keeper.did_registry.mint(ddo.asset_id, mint, account=account)
+
     else:
         keeper_instance().did_registry.register(
             did_seed,
@@ -489,7 +613,7 @@ def place_order(provider_account, ddo, consumer_account, service_type=ServiceTyp
         agreement_template = keeper.access_template
     elif service_type == ServiceTypes.ASSET_ACCESS_PROOF:
         agreement_template = keeper.access_proof_template
-    elif service_type == ServiceTypes.NFT_SALES:
+    elif service_type == ServiceTypes.NFT_SALES or service_type == ServiceTypes.NFT721_SALES:
         agreement_template = keeper.nft_sales_template
     elif service_type == ServiceTypes.CLOUD_COMPUTE:
         agreement_template = keeper.escrow_compute_execution_template

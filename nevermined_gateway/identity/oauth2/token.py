@@ -133,6 +133,8 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
             self.validate_access(claims["sub"], claims["did"], claims["iss"])
         elif claims["aud"] == BaseURLs.ASSETS_URL + "/nft-access":
             self.validate_nft_access(claims["sub"], claims["did"], claims["iss"])
+        elif claims["aud"] == BaseURLs.ASSETS_URL + "/nft-holder-access":
+            self.validate_nft_access(claims["sub"], claims["did"], claims["iss"])
         elif claims["aud"] == BaseURLs.ASSETS_URL + "/access-proof":
             self.validate_access_proof(claims["sub"], claims["did"], claims["iss"], claims["buyer"], claims["babysig"])
         elif claims["aud"] == BaseURLs.ASSETS_URL + "/nft-access-proof":

@@ -47,7 +47,8 @@ def fulfill_access_condition(keeper, agreement_id, cond_ids, asset_id, consumer_
     return access_condition_status == ConditionState.Fulfilled.value
 
 
-def fulfill_access_proof_condition(keeper, agreement_id, cond_id, asset_hash, consumer_address, provider_address, cipher, proof, provider_acc):
+def fulfill_access_proof_condition(keeper, agreement_id, cond_id, asset_hash, consumer_address, provider_address,
+                                   cipher, proof, provider_acc):
     access_condition_status = keeper.condition_manager.get_condition_state(cond_id)
 
     if access_condition_status != ConditionState.Fulfilled.value:
@@ -82,7 +83,8 @@ def is_nft721_holder(keeper, asset_id, consumer_address, contract_address):
     return keeper.nft721.contract.caller.ownerOf(int(asset_id, 16)) == consumer_address
 
 
-def fulfill_nft_holder_and_access_condition(keeper, agreement_id, cond_ids, asset_id, number_nfts, consumer_address, provider_acc):
+def fulfill_nft_holder_and_access_condition(keeper, agreement_id, cond_ids, asset_id, number_nfts, consumer_address,
+                                            provider_acc):
     nft_holder_condition_status = keeper.condition_manager.get_condition_state(cond_ids[0])
     access_condition_status = keeper.condition_manager.get_condition_state(cond_ids[1])
 
@@ -182,7 +184,7 @@ def fulfill_escrow_payment_condition(keeper, agreement_id, cond_ids, asset, prov
 
 
 def fulfill_escrow_payment_condition_multi(keeper, agreement_id, cond_ids, asset, provider_acc,
-                                     service_type=ServiceTypes.ASSET_ACCESS):
+                                           service_type=ServiceTypes.ASSET_ACCESS):
     escrow_condition_status = keeper.condition_manager.get_condition_state(cond_ids[2])
 
     if escrow_condition_status != ConditionState.Fulfilled.value:
@@ -224,10 +226,11 @@ def fulfill_escrow_payment_condition_multi(keeper, agreement_id, cond_ids, asset
     return escrow_condition_status == ConditionState.Fulfilled.value
 
 
-def fulfill_for_delegate_nft_transfer_condition(agreement_id, did, nft_holder_address, nft_receiver_address,
-                                   nft_amount, lock_payment_condition_id, keeper, transfer_nft=True):
-
+def fulfill_for_delegate_nft_transfer_condition(agreement_id, service_agreement, did, nft_holder_address,
+                                                nft_receiver_address, nft_amount, lock_payment_condition_id, keeper):
     logger.debug('Fulfilling NFTTransfer condition')
+    transfer_nft = service_agreement.get_nft_transfer_or_mint()
+
     tx_hash = keeper.transfer_nft_condition.fulfill_for_delegate(
         agreement_id,
         did,
@@ -241,3 +244,36 @@ def fulfill_for_delegate_nft_transfer_condition(agreement_id, did, nft_holder_ad
 
     return keeper.transfer_nft_condition.is_tx_successful(tx_hash)
 
+
+def fulfill_for_delegate_nft721_transfer_condition(agreement_id, service_agreement, did, nft_holder_address,
+                                                   nft_receiver_address, nft_amount, lock_payment_condition_id, keeper):
+    logger.debug('Fulfilling NFT721Transfer condition')
+    nft_contract_address = service_agreement.get_nft_contract_address()
+    transfer_nft = service_agreement.get_nft_transfer_or_mint()
+    duration = service_agreement.get_duration()
+
+    print('*** agreement_id = {}'.format(agreement_id))
+    print('*** asset_id = {}'.format(did))
+    print('*** nft_holder_address = {}'.format(nft_holder_address))
+    print('*** nft_receiver_address = {}'.format(nft_receiver_address))
+    print('*** nft_amount = {}'.format(nft_amount))
+    print('*** lock_payment_condition_id = {}'.format(lock_payment_condition_id))
+    print('*** transfer_nft = {}'.format(transfer_nft))
+    print('*** nft_contract_address = {}'.format(nft_contract_address))
+    print('*** duration = {}'.format(duration))
+    print('*** provider_account = {}'.format(get_provider_account().address))
+
+    tx_hash = keeper.transfer_nft721_condition.fulfill_for_delegate(
+        agreement_id,
+        did,
+        nft_holder_address,
+        nft_receiver_address,
+        nft_amount,
+        lock_payment_condition_id,
+        transfer_nft,
+        nft_contract_address,
+        duration,
+        get_provider_account()
+    )
+
+    return keeper.transfer_nft_condition.is_tx_successful(tx_hash, get_revert_message=True)
