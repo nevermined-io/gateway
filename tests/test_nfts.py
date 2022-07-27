@@ -11,7 +11,7 @@ from eth_utils import to_checksum_address
 
 from nevermined_gateway.constants import BaseURLs, ConditionState
 from nevermined_gateway.util import get_buyer_public_key, get_buyer_secret_key, get_provider_account, keeper_instance
-from utils import get_nft_ddo, lock_payment, get_nft_proof_ddo, deploy_contract, grant_role_nft721, approve_all_nft721
+from .utils import get_nft_ddo, lock_payment, get_nft_proof_ddo, deploy_contract, grant_role_nft721, approve_all_nft721
 
 
 def test_nft_access(client, provider_account, consumer_account, publisher_account):

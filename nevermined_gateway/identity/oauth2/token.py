@@ -328,17 +328,16 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
     def _validate_nft_access(self, agreement_id, did, consumer_address, service_agreement, service_type):
         keeper = keeper_instance()
 
-        asset = DIDResolver(keeper.did_registry).resolve(did)
-        asset_id = asset.asset_id
-        sa_name = service_agreement.main['name']
+        # We get the DID from the DDO just in case it's s subscription to another asset
+        asset_id = service_agreement.get_param_value_by_name('_documentId')
         erc721_address = service_agreement.get_param_value_by_name('_contractAddress')
 
         access_granted = False
 
         if agreement_id is None or agreement_id == '0x':
-            if sa_name == 'nftAccessAgreement':
+            if service_type == ServiceTypes.NFT_ACCESS:
                 access_granted = is_nft_holder(keeper, asset_id, service_agreement.get_number_nfts(), consumer_address)
-            elif sa_name == 'nft721AccessAgreement':
+            elif service_type == ServiceTypes.NFT721_ACCESS:
                 access_granted = is_nft721_holder(keeper, asset_id, consumer_address, erc721_address)
         else:
             agreement = keeper.agreement_manager.get_agreement(agreement_id)
