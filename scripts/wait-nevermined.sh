@@ -33,7 +33,7 @@ fi
 
 printf '\e[32m✔ Found new contract artifacts.\e[0m\n'
 
-docker cp ${nevermined_keeper_docker_id}:/nevermined-contracts/artifacts/. $ARTIFACTS_DIR
+docker cp ${nevermined_keeper_docker_id}:/nevermined-contracts/artifacts/. ./artifacts
 
 docker cp ${nevermined_keeper_docker_id}:/nevermined-contracts/circuits/keytransfer.wasm $CIRCUITS_DIR
 docker cp ${nevermined_keeper_docker_id}:/nevermined-contracts/circuits/keytransfer.zkey $CIRCUITS_DIR
