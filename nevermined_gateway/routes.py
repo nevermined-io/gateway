@@ -561,7 +561,7 @@ def nft_transfer_proof():
     ddo = DIDResolver(keeper.did_registry).resolve(did)
 
     try:
-        ServiceAgreement.from_ddo(ServiceTypes.NFT_SALES_WITH_ACCESS, ddo)
+        service_agreement = ServiceAgreement.from_ddo(ServiceTypes.NFT_SALES_WITH_ACCESS, ddo)
     except ValueError as e:
         logger.error('nft-sales-with-access service not found on ddo for %s', did)
         return str(e), 400
@@ -593,6 +593,7 @@ def nft_transfer_proof():
         logger.debug('NFTTransfer condition not fulfilled')
         result = fulfill_for_delegate_nft_transfer_condition(
             agreement_id,
+            service_agreement,
             agreement.did,
             Web3.toChecksumAddress(nft_holder_address),
             Web3.toChecksumAddress(nft_receiver_address),

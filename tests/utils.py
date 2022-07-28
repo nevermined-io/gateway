@@ -179,8 +179,7 @@ def deploy_contract(web3, abi_path, account):
     _contract = web3.eth.contract(abi=abi_dict['abi'], bytecode=abi_dict['bytecode'])
     construct_txn = _contract.constructor('NFTSubscription', 'NVM').buildTransaction(
         {
-            'from': account.address,
-            'nonce': web3.eth.get_transaction_count(account.address),
+            'from': account.address
         }
     )
     signed_tx = Wallet(web3, account.key_file, account.password).sign_tx(construct_txn)
