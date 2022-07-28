@@ -176,13 +176,16 @@ def deploy_contract(web3, abi_path, account):
     with open(abi_path, 'r') as abi_file:
         abi_dict = json.load(abi_file)
 
+    wallet = Wallet(web3, account.key_file, account.password, address=account.address)
+
     _contract = web3.eth.contract(abi=abi_dict['abi'], bytecode=abi_dict['bytecode'])
     construct_txn = _contract.constructor('NFTSubscription', 'NVM').buildTransaction(
         {
-            'from': account.address
+            'from': account.address,
+            'gasPrice': web3.eth.gas_price,
         }
     )
-    signed_tx = Wallet(web3, account.key_file, account.password).sign_tx(construct_txn)
+    signed_tx = wallet.sign_tx(construct_txn)
     tx_hash = web3.eth.send_raw_transaction(signed_tx)
     tx_receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
 
@@ -193,7 +196,7 @@ def deploy_contract(web3, abi_path, account):
         {
             'from': account.address,
             'to': tx_receipt.contractAddress,
-            'nonce': web3.eth.get_transaction_count(account.address),
+            'gasPrice': web3.eth.gas_price,
         }
     )
     sign_and_send_tx(web3, initialize_txn, account)
@@ -214,7 +217,7 @@ def grant_role_nft721(web3, abi_path, contract_address, transfer_nft_address, ac
     construct_txn = _contract.functions.addMinter(transfer_nft_address).buildTransaction(
         {
             'from': account.address,
-            'nonce': web3.eth.get_transaction_count(account.address),
+            'gasPrice': web3.eth.gas_price,
         }
     )
     sign_and_send_tx(web3, construct_txn, account)
@@ -238,7 +241,7 @@ def approve_all_nft721(web3, abi_path, contract_address, provider_address, accou
     construct_txn = _contract.functions.setApprovalForAll(provider_address, True).buildTransaction(
         {
             'from': account.address,
-            'nonce': web3.eth.get_transaction_count(account.address),
+            'gasPrice': web3.eth.gas_price,
         }
     )
     sign_and_send_tx(web3, construct_txn, account)

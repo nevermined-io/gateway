@@ -43,7 +43,7 @@ install_requirements = [
     'ecdsa==0.16.1',
     'eth-keys==0.3.3',
     "pysha3==1.0.2",
-    "web3==5.26.0",
+    "web3==5.30.0",
 ]
 
 # Required to run setup.py:
