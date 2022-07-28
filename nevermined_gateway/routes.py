@@ -28,10 +28,12 @@ from nevermined_gateway.log import setup_logging
 from nevermined_gateway.myapp import app
 from nevermined_gateway.snark_util import call_prover
 from nevermined_gateway.util import (check_required_attributes,
-                                     do_secret_store_encrypt, encrypt, generate_password, get_asset_url_at_index, get_config,
+                                     do_secret_store_encrypt, encrypt, generate_password, get_asset_url_at_index,
+                                     get_config,
                                      get_provider_account, get_provider_babyjub_key, get_provider_key_file,
                                      get_provider_password, get_rsa_public_key_file,
-                                     is_access_granted, is_access_proof_condition_fulfilled, is_escrow_payment_condition_fulfilled, is_nft_transfer_approved,
+                                     is_access_granted, is_access_proof_condition_fulfilled,
+                                     is_escrow_payment_condition_fulfilled, is_nft_transfer_approved,
                                      is_nft_transfer_condition_fulfilled, keeper_instance,
                                      setup_keeper, used_by, verify_signature, was_compute_triggered,
                                      get_asset, generate_random_id, is_lock_payment_condition_fulfilled,
@@ -321,51 +323,6 @@ def access_proof(agreement_id, index=0):
     except (ValueError, Exception) as e:
         logger.error(f'Error- {str(e)}', exc_info=1)
         return f'Error : {str(e)}', 500
-
-#
-# @services.route('/nft-holder-access', methods=['GET'])
-# @services.route('/nft-holder-access/<int:file_index>', methods=['GET'])
-# @require_oauth()
-# def nft_access(file_index=0):
-#     """Allows to get access to an asset data file holding a NFT.
-#     swagger_from_file: docs/nft_access.yml
-#     """
-#
-#     consumer_address = current_token["client_id"]
-#     did = current_token["did"]
-#
-#     logger.info('Parameters:\nFile Index: %d\nConsumerAddress: %s\n'
-#                 'DID: %s\n'
-#                 % (file_index, consumer_address, did))
-#
-#     try:
-#         keeper = keeper_instance()
-#         asset = DIDResolver(keeper.did_registry).resolve(did)
-#
-#         file_attributes = asset.metadata['main']['files'][file_index]
-#         content_type = file_attributes.get('contentType', None)
-#
-#         try:
-#             auth_method = asset.authorization.main['service']
-#         except Exception:
-#             auth_method = constants.ConfigSections.DEFAULT_DECRYPTION_METHOD
-#
-#         if auth_method not in constants.ConfigSections.DECRYPTION_METHODS:
-#             msg = (
-#                     'The Authorization Method defined in the DDO is not part of the available '
-#                     'methods supported'
-#                     'by the Gateway: ' + auth_method)
-#             logger.warning(msg)
-#             return msg, 400
-#
-#         url = get_asset_url_at_index(file_index, asset, provider_acc, auth_method)
-#         used_by(generate_random_id(), did, consumer_address, 'access', '0x00', 'nft access', provider_acc,
-#                 keeper)
-#         return get_asset(request, requests_session, content_type, url, app.config['CONFIG_FILE'])
-#
-#     except (ValueError, Exception) as e:
-#         logger.error(f'Error- {str(e)}', exc_info=1)
-#         return f'Error : {str(e)}', 500
 
 
 @services.route('/nft-access/<agreement_id>', methods=['GET'])
@@ -663,11 +620,11 @@ def nft_transfer_proof():
             keeper,
             agreement_id,
             access_condition_id,
-            proof['hash'], 
-            consumer_pub, 
-            provider_pub, 
-            proof['cipher'], 
-            proof['proof'], 
+            proof['hash'],
+            consumer_pub,
+            provider_pub,
+            proof['cipher'],
+            proof['proof'],
             provider_account
         )
         if result is False:

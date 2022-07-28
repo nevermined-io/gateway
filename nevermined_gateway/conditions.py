@@ -1,12 +1,11 @@
 import logging
 
+from common_utils_py.agreements.service_agreement import ServiceAgreement
 from common_utils_py.agreements.service_types import ServiceTypes
-from common_utils_py.utils.utilities import to_checksum_addresses
 from contracts_lib_py.web3_provider import Web3Provider
 from eth_utils import add_0x_prefix
 from web3 import Web3
 
-from common_utils_py.agreements.service_agreement import ServiceAgreement
 from nevermined_gateway.constants import ConditionState
 from nevermined_gateway.log import setup_logging
 from nevermined_gateway.util import get_provider_account
@@ -69,16 +68,27 @@ def fulfill_access_proof_condition(keeper, agreement_id, cond_id, asset_hash, co
     return access_condition_status == ConditionState.Fulfilled.value
 
 
-def is_nft_holder(keeper, asset_id, number_nfts, consumer_address):
+def is_nft_holder(keeper, asset_id, number_nfts, consumer_address, contract_address=None):
     try:
-        return keeper.nft_upgradeable.balance(Web3.toChecksumAddress(consumer_address), asset_id) >= number_nfts
+        if contract_address is None:
+            contract_address = keeper.nft_upgradeable.contract.address
+        _contract = Web3Provider.get_web3().eth.contract(
+            address=contract_address, abi=keeper.nft_upgradeable.contract.abi)
+        return _contract.functions.balanceOf(Web3.toChecksumAddress(consumer_address), int(asset_id, 16)).call() >= number_nfts
     except Exception as e:
         logger.error(e)
         return False
 
 
-def is_nft721_holder(keeper, asset_id, consumer_address, contract_address):
-    # we need to change the address of the erc721 contract
+def is_nft721_holder(keeper, consumer_address, contract_address=None):
+    if contract_address is None:
+        contract_address = keeper.nft721.contract.address
+    _contract = Web3Provider.get_web3().eth.contract(
+        address=contract_address, abi=keeper.nft721.contract.abi)
+    return _contract.functions.balanceOf(consumer_address).call() > 0
+
+
+def is_nft721_owner(keeper, asset_id, consumer_address, contract_address):
     keeper.nft721.contract = Web3Provider.get_web3().eth.contract(
         address=contract_address, abi=keeper.nft721.contract.abi)
     return keeper.nft721.contract.caller.ownerOf(int(asset_id, 16)) == consumer_address
