@@ -249,7 +249,8 @@ def approve_all_nft721(web3, abi_path, contract_address, provider_address, accou
     print('Is address {} approved? {}'.format(provider_address, is_approved))
 
 
-def get_nft_ddo(account, providers=None, auth_service='PSK-RSA', is_1155=True, nft_contract_address=None):
+def get_nft_ddo(account, providers=None, auth_service='PSK-RSA', is_1155=True, nft_contract_address=None,
+                access_service=True, sales_service=True):
     nft_type = None
     to_mint = 10
     if is_1155:
@@ -271,7 +272,7 @@ def get_nft_ddo(account, providers=None, auth_service='PSK-RSA', is_1155=True, n
     metadata['main']['files'][0]['contentType'] = 'text/text'
 
     _number_nfts = 1
-    _duration = 30 # Number of blocks of duration of the subscription
+    _duration = 1000000  # Number of blocks of duration of the subscription
     _amounts = ['9']
     _receivers = to_checksum_addresses([account.address])
 
@@ -298,19 +299,24 @@ def get_nft_ddo(account, providers=None, auth_service='PSK-RSA', is_1155=True, n
     sales_service_attributes['main']['_nftTransfer'] = 'false'
     sales_service_attributes['main']['_duration'] = str(_duration)
 
-    nft_sales_service_descriptor = ServiceDescriptor.nft_sales_service_descriptor(
-        sales_service_attributes,
-        'http://localhost:8030',
-        is_1155
-    )
-    nft_access_service_descriptor = ServiceDescriptor.nft_access_service_descriptor(
-        access_service_attributes,
-        'http://localhost:8030',
-        is_1155
-    )
+    list_services = []
+    if sales_service:
+        nft_sales_service_descriptor = ServiceDescriptor.nft_sales_service_descriptor(
+            sales_service_attributes,
+            'http://localhost:8030',
+            is_1155
+        )
+        list_services.append(nft_sales_service_descriptor)
+    if access_service:
+        nft_access_service_descriptor = ServiceDescriptor.nft_access_service_descriptor(
+            access_service_attributes,
+            'http://localhost:8030',
+            is_1155
+        )
+        list_services.append(nft_access_service_descriptor)
 
     return register_ddo(metadata, account, providers, auth_service,
-                        [nft_access_service_descriptor, nft_sales_service_descriptor],
+                        list_services,
                         royalties=0, cap=10, mint=to_mint, nft_type=nft_type)
 
 
