@@ -9,7 +9,7 @@ from common_utils_py.oauth2.token import NeverminedJWTBearerGrant, generate_acce
     generate_access_proof_grant_token
 from eth_utils import to_checksum_address
 
-from conditions import is_nft721_holder
+from nevermined_gateway.conditions import is_nft721_holder
 from nevermined_gateway.constants import BaseURLs, ConditionState
 from nevermined_gateway.util import get_buyer_public_key, get_buyer_secret_key, get_provider_account, keeper_instance
 from .utils import get_nft_ddo, lock_payment, get_nft_proof_ddo, deploy_contract, grant_role_nft721, approve_all_nft721
