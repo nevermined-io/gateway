@@ -324,6 +324,7 @@ def get_nft_ddo(account, providers=None, auth_service='PSK-RSA', is_1155=True, n
 
 def get_nft_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_key()):
     ddo = get_sample_nft_ddo()
+    nft_contract_address = keeper_instance().did_registry.get_erc1155_address()
     metadata = ddo['service'][0]['attributes']
     metadata['main']['files'][0]['url'] = key
     metadata['main']['files'][0]['checksum'] = str(uuid.uuid4())
@@ -354,6 +355,7 @@ def get_nft_proof_ddo(account, providers=None, auth_service='PSK-RSA', key=get_k
         "price": _total_price,
         "_amounts": _amounts,
         "_receivers": _receivers,
+        "_contractAddress": nft_contract_address,
         "_hash": hash,
         "_providerPub": providerKey,
         "_numberNfts": str(_number_nfts),

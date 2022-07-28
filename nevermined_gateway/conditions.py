@@ -2,6 +2,7 @@ import logging
 
 from common_utils_py.agreements.service_agreement import ServiceAgreement
 from common_utils_py.agreements.service_types import ServiceTypes
+from common_utils_py.utils.utilities import to_checksum_addresses
 from contracts_lib_py.web3_provider import Web3Provider
 from eth_utils import add_0x_prefix
 from web3 import Web3
@@ -208,7 +209,7 @@ def fulfill_escrow_payment_condition_multi(keeper, agreement_id, cond_ids, asset
         lock_id = cond_ids[1]
 
         amounts = service_agreement.get_amounts_int()
-        receivers = service_agreement.get_receivers()
+        receivers = to_checksum_addresses(service_agreement.get_receivers())
         token_address = service_agreement.get_param_value_by_name('_tokenAddress')
         agreement = keeper.agreement_manager.get_agreement(agreement_id)
         return_address = agreement.owner
@@ -216,7 +217,7 @@ def fulfill_escrow_payment_condition_multi(keeper, agreement_id, cond_ids, asset
             token_address = keeper.token.address
 
         try:
-            keeper.escrow_payment_condition.fulfill_multi(
+            tx_hash = keeper.escrow_payment_condition.fulfill_multi(
                 add_0x_prefix(agreement_id),
                 asset.asset_id,
                 amounts,
@@ -230,6 +231,7 @@ def fulfill_escrow_payment_condition_multi(keeper, agreement_id, cond_ids, asset
             )
         except Exception:
             escrow_condition_status = keeper.condition_manager.get_condition_state(cond_ids[2])
+            keeper.escrow_payment_condition.is_tx_successful(tx_hash, get_revert_message=True)
             if escrow_condition_status != ConditionState.Fulfilled.value:
                 logger.error('Error in escrowReward fulfill (multi)')
             else:

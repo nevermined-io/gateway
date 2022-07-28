@@ -606,7 +606,7 @@ def test_nft_transfer_proof(client, provider_account, consumer_account, publishe
 
 def test_nft_access_proof(client, provider_account, consumer_account, publisher_account):
     keeper = keeper_instance()
-    ddo = get_nft_proof_ddo(provider_account, providers=[provider_account.address])
+    ddo = get_nft_proof_ddo(publisher_account, providers=[provider_account.address])
     asset_id = ddo.asset_id
     nft_amounts = 1
 
