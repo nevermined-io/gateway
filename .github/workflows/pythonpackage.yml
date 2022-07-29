@@ -63,7 +63,7 @@ jobs:
 
           # extract artifacts
           cd ..
-          ./scripts/wait-nevermined.sh
+          ./scripts/wait_for_migration.sh
 
       - name: Start minio
         run: |
