@@ -326,18 +326,17 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
     def _validate_nft_access(self, agreement_id, did, consumer_address, service_agreement, service_type):
         keeper = keeper_instance()
 
-        asset = DIDResolver(keeper.did_registry).resolve(did)
-        asset_id = asset.asset_id
-        sa_name = service_agreement.main['name']
-        erc721_address = service_agreement.get_param_value_by_name('_contractAddress')
-
+        # We get the DID from the DDO just in case it's s subscription to another asset
+        asset_id = service_agreement.get_param_value_by_name('_documentId')
         access_granted = False
 
         if agreement_id is None or agreement_id == '0x':
-            if sa_name == 'nftAccessAgreement':
-                access_granted = is_nft_holder(keeper, asset_id, service_agreement.get_number_nfts(), consumer_address)
-            elif sa_name == 'nft721AccessAgreement':
-                access_granted = is_nft721_holder(keeper, asset_id, consumer_address, erc721_address)
+            if service_type == ServiceTypes.NFT_ACCESS:
+                nft_address = service_agreement.get_nft_contract_address('1155')
+                access_granted = is_nft_holder(keeper, asset_id, service_agreement.get_number_nfts(), consumer_address, nft_address)
+            elif service_type == ServiceTypes.NFT721_ACCESS:
+                nft_address = service_agreement.get_nft_contract_address('721')
+                access_granted = is_nft721_holder(keeper, consumer_address, nft_address)
         else:
             agreement = keeper.agreement_manager.get_agreement(agreement_id)
             cond_ids = agreement.condition_ids
@@ -357,7 +356,6 @@ class NeverminedJWTBearerGrant(_NeverminedJWTBearerGrant):
                     consumer_address,
                     keeper):
                 # If not granted, verification of agreement and conditions and fulfill
-                # access_granted = is_nft_holder(keeper, asset_id, sa.get_number_nfts(), consumer_address)
                 access_granted = fulfill_nft_holder_and_access_condition(
                     keeper,
                     agreement_id[1],

@@ -63,7 +63,7 @@ jobs:
 
           # extract artifacts
           cd ..
-          ./scripts/wait_for_migration_and_extract_keeper_artifacts.sh
+          ./scripts/wait_for_migration.sh
 
       - name: Start minio
         run: |
