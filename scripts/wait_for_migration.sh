@@ -21,4 +21,4 @@ if [ $COMMAND_STATUS -ne 0 ]; then
 fi
 
 docker cp $nevermined_keeper_docker_id:/nevermined-contracts/artifacts/. ./artifacts/
-sleep 20
+sleep 10

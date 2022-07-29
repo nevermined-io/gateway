@@ -179,27 +179,39 @@ def deploy_contract(web3, abi_path, account):
     wallet = Wallet(web3, account.key_file, account.password, address=account.address)
 
     _contract = web3.eth.contract(abi=abi_dict['abi'], bytecode=abi_dict['bytecode'])
-    construct_txn = _contract.constructor('NFTSubscription', 'NVM').buildTransaction(
-        {
+    try:
+        construct_txn = _contract.constructor('NFTSubscription', 'NVM').buildTransaction({
+            'from': account.address,
+        })
+        signed_tx = wallet.sign_tx(construct_txn)
+    except:
+        construct_txn = _contract.constructor('NFTSubscription', 'NVM').buildTransaction({
             'from': account.address,
             'gasPrice': web3.eth.gas_price,
-        }
-    )
-    signed_tx = wallet.sign_tx(construct_txn)
+        })
+        signed_tx = wallet.sign_tx(construct_txn)
+
     tx_hash = web3.eth.send_raw_transaction(signed_tx)
     tx_receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
 
     print(f'Contract deployed at address: { tx_receipt.contractAddress }')
     time.sleep(10)
 
-    initialize_txn = _contract.functions.initialize('NFTSubscription', 'NVM').buildTransaction(
-        {
+    try:
+        initialize_txn = _contract.functions.initialize('NFTSubscription', 'NVM').buildTransaction(
+            {
+                'from': account.address,
+                'to': tx_receipt.contractAddress,
+            }
+        )
+        sign_and_send_tx(web3, initialize_txn, account)
+    except:
+        initialize_txn = _contract.functions.initialize('NFTSubscription', 'NVM').buildTransaction({
             'from': account.address,
             'to': tx_receipt.contractAddress,
             'gasPrice': web3.eth.gas_price,
-        }
-    )
-    sign_and_send_tx(web3, initialize_txn, account)
+        })
+        sign_and_send_tx(web3, initialize_txn, account)
 
     return tx_receipt.contractAddress
 
@@ -214,13 +226,18 @@ def grant_role_nft721(web3, abi_path, contract_address, transfer_nft_address, ac
     print('Current owner is {}'.format(contract_owner))
 
     print('Trying to add minter with address {}'.format(transfer_nft_address))
-    construct_txn = _contract.functions.addMinter(transfer_nft_address).buildTransaction(
-        {
+    try:
+        construct_txn = _contract.functions.addMinter(transfer_nft_address).buildTransaction({
+            'from': account.address,
+        })
+        sign_and_send_tx(web3, construct_txn, account)
+    except:
+        construct_txn = _contract.functions.addMinter(transfer_nft_address).buildTransaction({
             'from': account.address,
             'gasPrice': web3.eth.gas_price,
-        }
-    )
-    sign_and_send_tx(web3, construct_txn, account)
+        })
+        sign_and_send_tx(web3, construct_txn, account)
+
 
     time.sleep(3)
 
@@ -238,13 +255,18 @@ def approve_all_nft721(web3, abi_path, contract_address, provider_address, accou
     print('Is address {} approved? {}'.format(provider_address, is_approved))
 
     print('Trying to approve address {}'.format(provider_address))
-    construct_txn = _contract.functions.setApprovalForAll(provider_address, True).buildTransaction(
-        {
+    try:
+        construct_txn = _contract.functions.setApprovalForAll(provider_address, True).buildTransaction({
+            'from': account.address
+        })
+        sign_and_send_tx(web3, construct_txn, account)
+    except:
+        construct_txn = _contract.functions.setApprovalForAll(provider_address, True).buildTransaction({
             'from': account.address,
             'gasPrice': web3.eth.gas_price,
-        }
-    )
-    sign_and_send_tx(web3, construct_txn, account)
+        })
+        sign_and_send_tx(web3, construct_txn, account)
+
     time.sleep(3)
 
     is_approved = _contract.functions.isApprovedForAll(contract_owner, provider_address).call()
