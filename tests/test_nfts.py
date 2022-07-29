@@ -610,7 +610,7 @@ def test_nft_access_proof(client, provider_account, consumer_account, publisher_
     asset_id = ddo.asset_id
     nft_amounts = 1
 
-    keeper.nft_upgradeable.transfer_nft(asset_id, consumer_account.address, nft_amounts, provider_account)
+    keeper.nft_upgradeable.transfer_nft(asset_id, consumer_account.address, nft_amounts, publisher_account)
 
     assert keeper.nft_upgradeable.balance(consumer_account.address, asset_id) >= nft_amounts
 

@@ -9,7 +9,6 @@ from datetime import datetime
 from distutils.util import strtobool
 from os import getenv, urandom
 
-import web3 as web3
 from Crypto.Cipher import AES
 from hashlib import pbkdf2_hmac
 

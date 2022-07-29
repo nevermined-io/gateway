@@ -464,7 +464,7 @@ def nft_transfer():
 
     nft_transfer = service_agreement.get_nft_transfer_or_mint()
     nft_contract_address = service_agreement.get_nft_contract_address()
-    if nft_transfer and not is_nft_holder(keeper, agreement.did, nft_amount, nft_holder_address):
+    if nft_transfer and not is_nft_holder(keeper, agreement.did, nft_amount, nft_holder_address, nft_contract_address):
         msg = f'Holder {nft_holder_address} does not have enough NFTs to transfer'
         logger.warning(msg)
         return msg, 406
@@ -573,7 +573,9 @@ def nft_transfer_proof():
         access_condition_id
     ) = agreement.condition_ids
 
-    if not is_nft_holder(keeper, agreement.did, nft_amount, nft_holder_address):
+    nft_contract_address = service_agreement.get_nft_contract_address()
+
+    if not is_nft_holder(keeper, agreement.did, nft_amount, nft_holder_address, nft_contract_address):
         msg = f'Holder {nft_holder_address} does not have enough NFTs to transfer'
         logger.warning(msg)
         return msg, 406

@@ -71,8 +71,7 @@ def fulfill_access_proof_condition(keeper, agreement_id, cond_id, asset_hash, co
 
 def is_nft_holder(keeper, asset_id, number_nfts, consumer_address, contract_address=None):
     try:
-        if contract_address is None:
-            contract_address = keeper.nft_upgradeable.contract.address
+        contracts_address = contract_address or keeper.nft_upgradeable.contract.address
         _contract = Web3Provider.get_web3().eth.contract(
             address=contract_address, abi=keeper.nft_upgradeable.contract.abi)
         return _contract.functions.balanceOf(Web3.toChecksumAddress(consumer_address), int(asset_id, 16)).call() >= number_nfts
@@ -266,17 +265,6 @@ def fulfill_for_delegate_nft721_transfer_condition(agreement_id, service_agreeme
     nft_contract_address = service_agreement.get_nft_contract_address()
     transfer_nft = service_agreement.get_nft_transfer_or_mint()
     duration = service_agreement.get_duration()
-
-    print('*** agreement_id = {}'.format(agreement_id))
-    print('*** asset_id = {}'.format(did))
-    print('*** nft_holder_address = {}'.format(nft_holder_address))
-    print('*** nft_receiver_address = {}'.format(nft_receiver_address))
-    print('*** nft_amount = {}'.format(nft_amount))
-    print('*** lock_payment_condition_id = {}'.format(lock_payment_condition_id))
-    print('*** transfer_nft = {}'.format(transfer_nft))
-    print('*** nft_contract_address = {}'.format(nft_contract_address))
-    print('*** duration = {}'.format(duration))
-    print('*** provider_account = {}'.format(get_provider_account().address))
 
     tx_hash = keeper.transfer_nft721_condition.fulfill_for_delegate(
         agreement_id,
