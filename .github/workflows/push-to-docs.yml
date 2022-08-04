@@ -7,12 +7,6 @@ on:
       - v*
 
 jobs:
-  push-to-docs:
-    uses: nevermined-io/reusable-workflows/.github/workflows/push-to-docs.yml@main
-    with:
-      path-to-push: external/gateway
-    secrets: inherit
-jobs:
   build-doc:
     runs-on: ubuntu-latest
     steps:
