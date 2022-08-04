@@ -7,7 +7,7 @@ on:
       - v*
 
 jobs:
-  build-doc:
+  push-to-docs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
