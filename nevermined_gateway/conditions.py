@@ -261,11 +261,13 @@ def fulfill_for_delegate_nft_transfer_condition(agreement_id, service_agreement,
 
 def fulfill_for_delegate_nft721_transfer_condition(agreement_id, service_agreement, did, nft_holder_address,
                                                    nft_receiver_address, nft_amount, lock_payment_condition_id, keeper):
-    logger.debug('Fulfilling NFT721Transfer condition')
+
     nft_contract_address = service_agreement.get_nft_contract_address()
     transfer_nft = service_agreement.get_nft_transfer_or_mint()
     duration = service_agreement.get_duration()
+    provider_account = get_provider_account()
 
+    logger.debug(f'Fulfilling NFT721Transfer condition with NFT Address {nft_contract_address} and provider account: {provider_account.address}')
     tx_hash = keeper.transfer_nft721_condition.fulfill_for_delegate(
         agreement_id,
         did,
@@ -276,7 +278,7 @@ def fulfill_for_delegate_nft721_transfer_condition(agreement_id, service_agreeme
         transfer_nft,
         nft_contract_address,
         duration,
-        get_provider_account()
+        provider_account
     )
 
     return keeper.transfer_nft_condition.is_tx_successful(tx_hash, get_revert_message=True)

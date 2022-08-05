@@ -437,7 +437,7 @@ def nft_transfer():
     nft_holder_address = data.get('nftHolder')
     nft_receiver_address = data.get('nftReceiver')
     nft_amount = data.get('nftAmount')
-    nft_type = data.get('nftType')
+    nft_type = str(data.get('nftType'))
     service_type = ServiceTypes.NFT_SALES
     is_1155 = True
 
@@ -494,6 +494,7 @@ def nft_transfer():
                 keeper
             )
         else:
+            logger.debug('Fulfilling TransferNFT721 condition')
             result = fulfill_for_delegate_nft721_transfer_condition(
                 agreement_id,
                 service_agreement,
