@@ -3,9 +3,9 @@ name: Push documentation to docs repo
 on:
   workflow_dispatch:
   # Disable until docs/ are updated and belongs to gateway-ts api: https://github.com/nevermined-io/docs/issues/62
-#   push:
-#     tags:
-#       - v*
+  # push:
+  #   tags:
+  #     - v*
 
 jobs:
   push-to-docs:
@@ -19,6 +19,8 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y gettext
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Download push-to-docs script template
         run: |
           curl -o push-to-docs.sh.template https://raw.githubusercontent.com/nevermined-io/reusable-workflows/main/scripts/push-to-docs.sh
