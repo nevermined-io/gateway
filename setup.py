@@ -39,7 +39,7 @@ install_requirements = [
     # secp256k1 support was added recently and the latest release of authlib does not included it yet
     # we will use a fork in the meantime
     'nevermined-authlib==0.1.0',
-    'cryptography==3.3.2',
+    'cryptography==39.0.1',
     'ecdsa==0.16.1',
     'eth-keys==0.3.3',
     "pysha3==1.0.2",
