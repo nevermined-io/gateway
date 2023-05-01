@@ -20,7 +20,7 @@ install_requirements = [
     # Install squid-py and all its dependencies first
     'common-utils-py==1.0.4',
     'nevermined-secret-store==0.1.1',
-    'Flask==2.0.1',
+    'Flask==2.3.2',
     'Flask-Cors==3.0.9',
     'flask-swagger==0.2.14',
     'flask-swagger-ui==3.25.0',
